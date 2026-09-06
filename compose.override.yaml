@@ -1,0 +1,28 @@
+# Yerel geliştirme. `docker compose up` bunu otomatik birleştirir.
+# Prod'da kullanılmaz: `docker compose -f compose.yaml up -d --build`
+# UYARI: `composer update` Flex recipe blokları ekleyebilir (###> ... ###).
+# Eklenirse silin; aşağıdaki el yazımı MySQL/Mailpit ayarları geçerlidir.
+services:
+  app:
+    environment:
+      APP_ENV: dev
+      # .env dosyasındaki null://null değerini ezer, mailler Mailpit'e düşer:
+      MAILER_DSN: smtp://mailer:1025
+      DEFAULT_URI: http://localhost:8080
+    volumes:
+      - ./:/app
+      # OneDrive senkronunu ve kilitleri azaltmak için önbellek konteynerde kalır:
+      - app_cache:/app/var/cache
+
+  database:
+    ports:
+      - "3306"
+
+  mailer:
+    ports:
+      # 1025/8025 başka projede (birdunyataki) dolu; çakışmayı önlemek için farklı host portları:
+      - "1026:1025"
+      - "8026:8025"
+
+volumes:
+  app_cache:

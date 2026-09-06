@@ -1,0 +1,8 @@
+.git/
+.github/
+var/
+vendor/
+.env.*.local
+.phpunit.cache/
+.idea/
+.vscode/

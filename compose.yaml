@@ -1,0 +1,61 @@
+# efeotomativadana — üretim tabanı.
+# Yerelde `docker compose up` (override otomatik dev'e çevirir).
+# Sunucuda prod: `docker compose -f compose.yaml up -d --build`
+# NOT: doctrine recipe'i postgres getirdi; proje MySQL 8.4 kullanıyor (bilinçli el değişikliği).
+# UYARI: `composer update` doctrine recipe'ini güncellerse Flex buraya postgres
+# bloğu yeniden ekleyebilir (###> doctrine/doctrine-bundle ###). Öyle olursa
+# eklenen bloğu sil, MySQL servisini koru.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SERVER_NAME: ${SERVER_NAME:-:80}
+      APP_ENV: ${APP_ENV:-prod}
+      DATABASE_URL: mysql://${MYSQL_USER:-app}:${MYSQL_PASSWORD:-!ChangeMe!}@database:3306/${MYSQL_DATABASE:-app}?serverVersion=8.4&charset=utf8mb4
+      MAILER_DSN: ${MAILER_DSN:-smtp://mailer:1025}
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
+      DEFAULT_URI: ${DEFAULT_URI:-http://localhost:8080}
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+      - "${HTTPS_PORT:-8443}:443/udp"
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+  database:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-app}
+      MYSQL_USER: ${MYSQL_USER:-app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-!ChangeMe!}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-!ChangeMeRoot!}
+    volumes:
+      - database_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u${MYSQL_USER:-app}", "-p${MYSQL_PASSWORD:-!ChangeMe!}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  mailer:
+    image: axllent/mailpit:v1.30.0
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+volumes:
+  database_data:
+  caddy_data:
+  caddy_config:
