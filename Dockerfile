@@ -1,5 +1,5 @@
 # Efe Otomotiv Adana — Symfony 8.1 + FrankenPHP (PHP 8.4)
-FROM dunglas/frankenphp:1-php8.4-bookworm
+FROM dunglas/frankenphp:1-php8.4-bookworm AS base
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_PROCESS_TIMEOUT=1200
@@ -24,6 +24,22 @@ RUN printf 'realpath_cache_size=64M\nrealpath_cache_ttl=600\nopcache.memory_cons
 COPY --from=composer:lts /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
+
+# Geliştirme: require-dev paketleriyle birlikte. Kaynak kod bind mount ile
+# gelir; /app/vendor ise Linux named volume'da çalışır (compose.override.yaml),
+# böylece Windows bind-mount filesystem maliyeti ortadan kalkar.
+FROM base AS dev
+
+ENV APP_ENV=dev
+
+COPY . .
+
+RUN composer install --prefer-dist --no-progress
+
+EXPOSE 80 443
+
+# Üretim: optimize edilmiş, dev paketsiz.
+FROM base AS prod
 
 COPY . .
 

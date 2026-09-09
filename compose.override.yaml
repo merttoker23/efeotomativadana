@@ -4,6 +4,8 @@
 # Eklenirse silin; aşağıdaki el yazımı MySQL/Mailpit ayarları geçerlidir.
 services:
   app:
+    build:
+      target: dev
     environment:
       APP_ENV: dev
       # .env dosyasındaki null://null değerini ezer, mailler Mailpit'e düşer:
@@ -11,6 +13,10 @@ services:
       DEFAULT_URI: http://localhost:8080
     volumes:
       - ./:/app
+      # Windows bind-mount üzerinden vendor okumak on binlerce yavaş stat
+      # demektir (ClassLoader timeout). Vendor Linux named volume'da kalır;
+      # ilk `up`'ta imajdaki /app/vendor içeriğiyle dolar.
+      - app_vendor:/app/vendor
       # OneDrive senkronunu ve kilitleri azaltmak için önbellek konteynerde kalır:
       - app_cache:/app/var/cache
 
@@ -25,4 +31,5 @@ services:
       - "8026:8025"
 
 volumes:
+  app_vendor:
   app_cache:
