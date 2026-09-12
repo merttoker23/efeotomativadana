@@ -1,0 +1,19 @@
+RewriteEngine On
+
+# Deny direct access to private Symfony application files
+RewriteRule ^\.env - [F]
+RewriteRule ^composer\.json - [F]
+RewriteRule ^composer\.lock - [F]
+RewriteRule ^src/ - [F]
+RewriteRule ^config/ - [F]
+RewriteRule ^vendor/ - [F]
+RewriteRule ^templates/ - [F]
+RewriteRule ^bin/ - [F]
+RewriteRule ^var/ - [F]
+
+# Serve files from the public/ directory directly
+RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
+RewriteRule ^(.+)$ public/$1 [L]
+
+# Route all other requests to Symfony front controller
+RewriteRule ^ public/index.php [L]
