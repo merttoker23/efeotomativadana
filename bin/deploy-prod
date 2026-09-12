@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Production deployment script for efeotomotivadana
+# Usage: bin/deploy-prod
+
+export APP_ENV=prod
+export APP_DEBUG=0
+export APP_SECRET="${APP_SECRET:?APP_SECRET is required}"
+
+echo "Installing dependencies for production..."
+composer install --no-dev --optimize-autoloader --prefer-dist --no-progress
+
+echo "Clearing cache..."
+php bin/console cache:clear --env=prod
+
+echo "Compiling asset map..."
+php bin/console asset-map:compile --env=prod
+
+echo "Deployment complete."

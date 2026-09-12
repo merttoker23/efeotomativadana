@@ -19,5 +19,13 @@ services:
     App\:
         resource: '../src/'
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    # Override the default AssetMapper dev server subscriber to only intercept /yeni/assets/ requests.
+    # The default public_prefix='/yeni' would cause the base subscriber to intercept ALL /yeni/
+    # requests including application routes. This custom subscriber only handles asset paths.
+    asset_mapper.dev_server_subscriber:
+        class: App\EventListener\AssetMapperDevServerSubscriber
+        arguments:
+            $assetMapper: '@asset_mapper'
+            $cache: '@cache.asset_mapper'
+            $profiler: '@?profiler'
+        tags: [kernel.event_subscriber]

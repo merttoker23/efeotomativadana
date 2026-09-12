@@ -4,7 +4,6 @@ framework:
         paths:
             - assets/
         missing_import_mode: strict
-        public_path: '/yeni'
 
 when@prod:
     framework:

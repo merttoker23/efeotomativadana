@@ -46,6 +46,8 @@ COPY . .
 # --no-dev ile dev paketleri yoktur; script'ler prod çekirdeğiyle koşmalı.
 # Secret SADECE bu adıma özel (imaja gömülmez); çalışırken compose/.env.local verir.
 RUN APP_ENV=prod APP_SECRET=dummy-build-secret-not-for-production-0123456789abcdef \
-    composer install --no-dev --optimize-autoloader --prefer-dist --no-progress
+    composer install --no-dev --optimize-autoloader --prefer-dist --no-progress && \
+    APP_ENV=prod APP_DEBUG=0 php bin/console asset-map:compile --env=prod && \
+    APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --env=prod
 
 EXPOSE 80 443
