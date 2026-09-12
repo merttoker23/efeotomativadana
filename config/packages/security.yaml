@@ -5,7 +5,10 @@ security:
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        users_in_memory: { memory: null }
+        admin_users:
+            entity:
+                class: App\Entity\Customer\AdminUser
+                property: email
 
     firewalls:
         dev:
@@ -14,21 +17,37 @@ security:
             security: false
         main:
             lazy: true
-            provider: users_in_memory
-
-            # Activate different ways to authenticate:
-            # https://symfony.com/doc/current/security.html#the-firewall
-
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
+            provider: admin_users
+            form_login:
+                login_path: admin_login
+                check_path: admin_login
+                enable_csrf: true
+                default_target_path: admin_dashboard
+            logout:
+                path: admin_logout
+                target: admin_login
+                enable_csrf: true
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/yeni/admin/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/yeni/admin, roles: ROLE_ADMIN }
 
 when@test:
     security:
+        providers:
+            test_non_admins:
+                memory:
+                    users:
+                        viewer@example.com:
+                            password: 'test-only-not-used-for-form-login'
+                            roles: [ROLE_USER]
+            test_user_chain:
+                chain:
+                    providers: [admin_users, test_non_admins]
+        firewalls:
+            main:
+                provider: test_user_chain
         password_hashers:
             # Password hashers are resource-intensive by design to ensure security.
             # In tests, it's safe to reduce their cost to improve performance.

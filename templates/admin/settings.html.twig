@@ -1,0 +1,41 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Store settings{% endblock %}
+
+{% block body %}
+    <section class="panel">
+        <p class="eyebrow">Configuration</p>
+        <h1>Store settings</h1>
+        <p>Provider keys select integrations only. Credentials remain in environment secrets.</p>
+
+        <div class="form-errors">
+            {{ form_start(form) }}
+                {{ form_errors(form) }}
+
+                <fieldset>
+                    <legend>Store</legend>
+                    {{ form_row(form.storeName) }}
+                    {{ form_row(form.currency) }}
+                    {{ form_row(form.defaultLocale) }}
+                    {{ form_row(form.defaultTaxRate) }}
+                </fieldset>
+
+                <fieldset>
+                    <legend>Feature switches</legend>
+                    {{ form_row(form.b2bEnabled) }}
+                    {{ form_row(form.b2bProvider) }}
+                    {{ form_row(form.loyaltyEnabled) }}
+                    {{ form_row(form.loyaltyEarnPercentage) }}
+                </fieldset>
+
+                <fieldset>
+                    <legend>Providers</legend>
+                    {{ form_row(form.paymentProvider) }}
+                    {{ form_row(form.shippingProvider) }}
+                </fieldset>
+
+                {{ form_row(form.save) }}
+            {{ form_end(form) }}
+        </div>
+    </section>
+{% endblock %}

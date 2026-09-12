@@ -74,10 +74,22 @@ class AssetMapperDevServerSubscriber implements EventSubscriberInterface
 
     private function findAsset(string $pathInfo): ?\Symfony\Component\AssetMapper\MappedAsset
     {
-        $assetPath = preg_replace('#^/yeni#', '', $pathInfo);
-        foreach ($this->assetMapper->allAssets() as $assetCandidate) {
-            if ($assetPath === $assetCandidate->publicPath) {
-                return $assetCandidate;
+        $publicPath = preg_replace('#^/yeni#', '', $pathInfo);
+        if (null === $publicPath) {
+            return null;
+        }
+
+        $logicalPath = ltrim(preg_replace('#^/assets/#', '', $publicPath) ?? '', '/');
+        $undigestedPath = preg_replace('/-[-_0-9A-Za-z]{7}(\.[^\/.]+)$/', '$1', $logicalPath);
+        $logicalPaths = [null === $undigestedPath ? $logicalPath : $undigestedPath];
+        if (null !== $undigestedPath && $undigestedPath !== $logicalPath) {
+            $logicalPaths[] = $logicalPath;
+        }
+
+        foreach ($logicalPaths as $candidatePath) {
+            $asset = $this->assetMapper->getAsset($candidatePath);
+            if (null !== $asset && $publicPath === $asset->publicPath) {
+                return $asset;
             }
         }
 

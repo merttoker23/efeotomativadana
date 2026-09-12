@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noindex, nofollow">
+        <title>{% block title %}Administration{% endblock %} | Efe Otomotiv Adana</title>
+        <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+    </head>
+    <body class="admin-page">
+        <header class="admin-header">
+            <a class="brand" href="{{ path('admin_dashboard') }}">Efe Otomotiv Administration</a>
+            <nav aria-label="Administrator navigation">
+                <a href="{{ path('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ path('admin_settings') }}">Store settings</a>
+                <form method="post" action="{{ path('admin_logout') }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                    <button type="submit">Sign out</button>
+                </form>
+            </nav>
+        </header>
+
+        <main class="admin-content">
+            {% for message in app.flashes('success') %}
+                <div class="alert alert-success" role="status">{{ message }}</div>
+            {% endfor %}
+
+            {% block body %}{% endblock %}
+        </main>
+    </body>
+</html>
