@@ -11,7 +11,21 @@ RewriteRule ^templates/ - [F]
 RewriteRule ^bin/ - [F]
 RewriteRule ^var/ - [F]
 
-# Serve files from the public/ directory directly
+# Serve /yeni/assets/... files from public/assets/ (strip /yeni prefix)
+RewriteCond %{REQUEST_URI} ^/yeni/assets/(.*)$
+RewriteCond %{DOCUMENT_ROOT}/public/assets/%1 -f
+RewriteRule ^yeni/assets/(.*)$ public/assets/$1 [L]
+
+# Serve /yeni/ static files from public/ (strip /yeni prefix)
+RewriteCond %{REQUEST_URI} ^/yeni/(.*)$
+RewriteCond %{DOCUMENT_ROOT}/public/%1 -f
+RewriteRule ^yeni/(.*)$ public/$1 [L]
+
+# Route all other /yeni/ requests to Symfony front controller
+RewriteCond %{REQUEST_URI} ^/yeni/(.*)$
+RewriteRule ^yeni/(.*)$ public/index.php [L]
+
+# Serve files from the public/ directory directly (non-/yeni/ requests)
 RewriteCond %{DOCUMENT_ROOT}/public%{REQUEST_URI} -f
 RewriteRule ^(.+)$ public/$1 [L]
 
