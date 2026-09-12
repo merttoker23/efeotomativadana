@@ -2,7 +2,6 @@
 
 namespace App\EventListener;
 
-use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -16,7 +15,6 @@ class AssetMapperDevServerSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly AssetMapperInterface $assetMapper,
-        private readonly CacheItemPoolInterface $cache,
         private readonly ?Profiler $profiler = null,
     ) {
     }

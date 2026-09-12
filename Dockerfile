@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN printf 'realpath_cache_size=64M\nrealpath_cache_ttl=600\nopcache.memory_consumption=256\n' \
     > /usr/local/etc/php/conf.d/zzz-perf.ini
 
-COPY --from=composer:lts /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 

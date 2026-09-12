@@ -26,6 +26,5 @@ services:
         class: App\EventListener\AssetMapperDevServerSubscriber
         arguments:
             $assetMapper: '@asset_mapper'
-            $cache: '@cache.asset_mapper'
             $profiler: '@?profiler'
         tags: [kernel.event_subscriber]

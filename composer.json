@@ -1,4 +1,6 @@
 {
+    "name": "merttoker23/efeotomativadana",
+    "description": "Symfony e-commerce application for Efe Otomotiv Adana.",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",
@@ -81,12 +83,25 @@
             "assets:install %PUBLIC_DIR%": "symfony-cmd",
             "importmap:install": "symfony-cmd"
         },
+        "analyse": "@php -d memory_limit=512M vendor/bin/phpstan analyse --no-progress",
+        "lint": [
+            "@php bin/console lint:container",
+            "@php bin/console lint:yaml config",
+            "@php bin/console lint:twig templates"
+        ],
         "post-install-cmd": [
             "@auto-scripts"
         ],
         "post-update-cmd": [
             "@auto-scripts"
-        ]
+        ],
+        "qa": [
+            "@composer validate --strict",
+            "@lint",
+            "@analyse",
+            "@test"
+        ],
+        "test": "@php bin/phpunit"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -98,6 +113,7 @@
         }
     },
     "require-dev": {
+        "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^13.3",
         "symfony/browser-kit": "8.1.*",
         "symfony/css-selector": "8.1.*",
