@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="{{ store.locale|default('tr') }}">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#092a53">
+        <title>{% block title %}{{ store.name|default('Efe Otomotiv Adana') }}{% endblock %}</title>
+        <link rel="stylesheet" href="{{ asset('styles/storefront.css') }}" data-storefront-stylesheet>
+        {% block javascripts %}{{ importmap('app') }}{% endblock %}
+    </head>
+    <body class="storefront-page">
+        <a class="skip-link" href="#main-content">İçeriğe geç</a>
+        {% include 'storefront/layout/_header.html.twig' %}
+
+        {% block body %}{% endblock %}
+
+        {% include 'storefront/layout/_footer.html.twig' %}
+    </body>
+</html>

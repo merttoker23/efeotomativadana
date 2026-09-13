@@ -102,6 +102,7 @@ class AssetMapperDevServerSubscriber implements EventSubscriberInterface
         return match ($extension) {
             'css' => 'text/css',
             'js' => 'text/javascript',
+            'svg' => 'image/svg+xml',
             default => null,
         };
     }

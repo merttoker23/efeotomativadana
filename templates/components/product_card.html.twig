@@ -1,0 +1,16 @@
+{% set product_url = product.url|default(null) %}
+<article class="product-card">
+    {% if product.badge|default(null) %}
+        <span class="product-badge">{{ product.badge }}</span>
+    {% endif %}
+
+    {% if product_url %}<a class="product-thumb" href="{{ product_url }}">{% else %}<div class="product-thumb" aria-disabled="true">{% endif %}
+        <img src="{{ product.image }}" alt="{{ product.name }}">
+    {% if product_url %}</a>{% else %}</div>{% endif %}
+
+    <div class="product-info">
+        {% if product.brand|default(null) %}<p class="product-brand">{{ product.brand }}</p>{% endif %}
+        {% if product_url %}<a class="product-name" href="{{ product_url }}">{{ product.name }}</a>{% else %}<strong class="product-name">{{ product.name }}</strong>{% endif %}
+        <p class="product-price">{{ product.price }}</p>
+    </div>
+</article>

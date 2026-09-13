@@ -1,0 +1,64 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}{{ store.name }} | Otomotiv Yedek Parça{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <section class="container home-top" aria-labelledby="home-title">
+        <div class="hero-panel">
+            <div class="hero-copy">
+                <p class="hero-eyebrow">Efe Otomotiv Adana</p>
+                <h1 id="home-title">Otomotiv parçasında güvenilir adresiniz</h1>
+                <p>Aracınız için doğru yedek parçayı, güçlü stok altyapısı ve uzman desteğiyle buluşturuyoruz.</p>
+                <span class="hero-cta" aria-disabled="true">Ürün kataloğu yakında</span>
+            </div>
+            <img class="hero-image" src="{{ asset('storefront/images/hero-automotive.svg') }}" alt="Otomotiv yedek parça vitrini">
+            <span class="hero-marker" aria-hidden="true"></span>
+        </div>
+
+        <aside class="category-panel" aria-labelledby="category-title">
+            <h2 id="category-title">Popüler Kategoriler</h2>
+            <ul>
+                <li><span aria-hidden="true">◉</span> Motor Parçaları <small>Yakında</small></li>
+                <li><span aria-hidden="true">▣</span> Fren Sistemleri <small>Yakında</small></li>
+                <li><span aria-hidden="true">◇</span> Filtreler <small>Yakında</small></li>
+                <li><span aria-hidden="true">⌁</span> Elektrik &amp; Aydınlatma <small>Yakında</small></li>
+                <li><span aria-hidden="true">▤</span> Kaporta Parçaları <small>Yakında</small></li>
+            </ul>
+        </aside>
+
+        <aside class="support-panel" aria-labelledby="support-title">
+            <p class="panel-kicker">Size özel</p>
+            <h2 id="support-title">Parça seçerken yalnız değilsiniz</h2>
+            <p>Marka, model ve parça kodu eşleştirme deneyimi katalog fazında etkinleşecek.</p>
+            <dl>
+                <div><dt>Yerel</dt><dd>Adana merkezli hizmet</dd></div>
+                <div><dt>Güvenli</dt><dd>Kontrollü ürün akışı</dd></div>
+                <div><dt>Hızlı</dt><dd>Hazır gönderim altyapısı</dd></div>
+            </dl>
+        </aside>
+    </section>
+
+    <section class="container feature-grid" aria-label="Mağaza avantajları">
+        {% include 'components/_feature.html.twig' with { icon: '🚚', title: 'Hızlı Gönderim', description: 'Siparişlerinizi özenle hazırlayan teslimat akışı.' } only %}
+        {% include 'components/_feature.html.twig' with { icon: '✓', title: 'Doğru Parça', description: 'Kod ve araç bilgisiyle doğrulanabilir ürün yapısı.' } only %}
+        {% include 'components/_feature.html.twig' with { icon: '↩', title: 'Kolay İade', description: 'Şeffaf süreçlere hazır müşteri deneyimi.' } only %}
+        {% include 'components/_feature.html.twig' with { icon: '☎', title: 'Uzman Destek', description: 'Satın alma öncesi ve sonrası erişilebilir destek.' } only %}
+    </section>
+
+    <section class="container foundation-section" aria-labelledby="foundation-title">
+        <div class="section-heading">
+            <div>
+                <p class="panel-kicker">Mağaza vitrini</p>
+                <h2 id="foundation-title">Katalog için hazır, sade bir temel</h2>
+            </div>
+            <span aria-disabled="true">Ürünler yakında</span>
+        </div>
+        <div class="foundation-grid">
+            <article><span aria-hidden="true">01</span><h3>Ürün keşfi</h3><p>Kategori, marka ve kod tabanlı gezinme için ayrılmış alan.</p></article>
+            <article><span aria-hidden="true">02</span><h3>Net fiyat görünümü</h3><p>Vergi ve kampanya durumlarını anlaşılır sunacak kart yapısı.</p></article>
+            <article><span aria-hidden="true">03</span><h3>Stok güveni</h3><p>Yerel stok verisiyle beslenecek hızlı ve tutarlı mağaza deneyimi.</p></article>
+        </div>
+    </section>
+</main>
+{% endblock %}

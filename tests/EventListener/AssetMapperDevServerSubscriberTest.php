@@ -46,4 +46,33 @@ final class AssetMapperDevServerSubscriberTest extends TestCase
         self::assertSame('text/css', $event->getResponse()->headers->get('Content-Type'));
         self::assertSame('1', $event->getResponse()->headers->get('X-Assets-Dev'));
     }
+
+    public function testItServesSvgAssetsWithTheirImageContentType(): void
+    {
+        $assetMapper = $this->createMock(AssetMapperInterface::class);
+        $assetMapper
+            ->expects(self::once())
+            ->method('getAsset')
+            ->with('storefront/images/hero-automotive.svg')
+            ->willReturn(new MappedAsset(
+                logicalPath: 'storefront/images/hero-automotive.svg',
+                sourcePath: __FILE__,
+                publicPathWithoutDigest: '/assets/storefront/images/hero-automotive.svg',
+                publicPath: '/assets/storefront/images/hero-automotive-H3R0ABC.svg',
+                content: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+                digest: 'svg-digest',
+                isPredigested: false,
+            ));
+
+        $event = new RequestEvent(
+            $this->createStub(HttpKernelInterface::class),
+            Request::create('/yeni/assets/storefront/images/hero-automotive-H3R0ABC.svg'),
+            HttpKernelInterface::MAIN_REQUEST,
+        );
+
+        (new AssetMapperDevServerSubscriber($assetMapper))->onKernelRequest($event);
+
+        self::assertNotNull($event->getResponse());
+        self::assertSame('image/svg+xml', $event->getResponse()->headers->get('Content-Type'));
+    }
 }

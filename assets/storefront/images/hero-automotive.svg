@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640" role="img" aria-labelledby="title description">
+  <title id="title">Otomotiv yedek parça vitrini</title>
+  <desc id="description">Lacivert ve sarı tonlarda stilize edilmiş yedek parça illüstrasyonu</desc>
+  <rect width="640" height="640" rx="40" fill="#f7f7f8"/>
+  <circle cx="320" cy="292" r="218" fill="#e7edf5"/>
+  <circle cx="320" cy="292" r="146" fill="#ffffff" stroke="#bcc9d8" stroke-width="12"/>
+  <circle cx="320" cy="292" r="72" fill="#092a53"/>
+  <g fill="#fed243">
+    <rect x="296" y="92" width="48" height="82" rx="14"/>
+    <rect x="296" y="410" width="48" height="82" rx="14"/>
+    <rect x="438" y="251" width="82" height="48" rx="14" transform="rotate(90 479 275)"/>
+    <rect x="120" y="251" width="82" height="48" rx="14" transform="rotate(90 161 275)"/>
+  </g>
+  <text x="320" y="552" text-anchor="middle" font-size="28" font-weight="700" font-family="Arial, sans-serif" fill="#27384b">YEDEK PARÇA</text>
+</svg>

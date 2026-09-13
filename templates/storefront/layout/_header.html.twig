@@ -1,0 +1,44 @@
+<header class="site-header" data-controller="storefront-shell">
+    {% include 'storefront/layout/_announcement.html.twig' %}
+
+    <div class="header-topbar">
+        <div class="container topbar-inner">
+            <p>Otomotiv yedek parçada yerel uzmanlık</p>
+            <p>Güvenli alışveriş · Kolay iade · Hızlı destek</p>
+        </div>
+    </div>
+
+    <div class="header-primary">
+        <div class="container header-primary-inner">
+            <a class="storefront-brand" href="{{ path('app_home') }}" aria-label="{{ store.name }} ana sayfa" data-storefront-shell-target="brand">
+                <span class="brand-mark" aria-hidden="true">EO</span>
+                <span class="brand-copy">
+                    <strong>{{ store.name }}</strong>
+                    <small>Otomotiv &amp; Yedek Parça</small>
+                </span>
+            </a>
+
+            <div class="storefront-search" role="search" aria-label="Ürün arama yakında kullanıma açılacak">
+                <label class="sr-only" for="storefront-search">Ürün, marka veya parça kodu ara</label>
+                <input id="storefront-search" type="search" placeholder="Ürün, marka veya parça kodu ara..." disabled>
+                <button type="button" disabled aria-label="Arama yakında kullanıma açılacak">⌕</button>
+            </div>
+
+            <div class="header-actions" aria-label="Mağaza kısayolları">
+                <span class="header-action" aria-disabled="true">Hesabım <small>Yakında</small></span>
+                <span class="header-action cart-action" aria-disabled="true">Sepet <strong>0</strong></span>
+                <button
+                    class="mobile-menu-toggle"
+                    type="button"
+                    aria-controls="mobile-navigation"
+                    aria-expanded="false"
+                    aria-label="Menüyü aç"
+                    data-storefront-shell-target="toggle"
+                    data-action="storefront-shell#toggleMenu"
+                ><span aria-hidden="true">☰</span></button>
+            </div>
+        </div>
+    </div>
+
+    {% include 'storefront/layout/_navigation.html.twig' %}
+</header>

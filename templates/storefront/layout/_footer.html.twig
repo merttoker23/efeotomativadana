@@ -1,0 +1,30 @@
+<footer class="site-footer">
+    <div class="container footer-grid">
+        <section aria-labelledby="footer-store-title">
+            <h2 id="footer-store-title">{{ store.name }}</h2>
+            <p>Otomotiv yedek parçada doğru ürünü güvenle bulmanız için yanınızdayız.</p>
+        </section>
+        <section aria-labelledby="footer-service-title">
+            <h2 id="footer-service-title">Müşteri Hizmetleri</h2>
+            <span>İletişim</span>
+            <span>İade ve değişim</span>
+            <span>Sık sorulan sorular</span>
+        </section>
+        <section aria-labelledby="footer-info-title">
+            <h2 id="footer-info-title">Bilgilendirme</h2>
+            <span>Hakkımızda</span>
+            <span>Teslimat bilgileri</span>
+            <span>Gizlilik politikası</span>
+        </section>
+        <section aria-labelledby="footer-account-title">
+            <h2 id="footer-account-title">Hesabım</h2>
+            <span>Siparişlerim</span>
+            <span>Adreslerim</span>
+            <span>Favorilerim</span>
+        </section>
+    </div>
+    <div class="container footer-bottom">
+        <span>© {{ 'now'|date('Y') }} {{ store.name }}</span>
+        <span>Güvenli alışveriş altyapısı</span>
+    </div>
+</footer>

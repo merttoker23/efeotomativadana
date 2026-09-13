@@ -1,0 +1,36 @@
+<div class="navigation-band">
+    <div class="container navigation-inner">
+        <span class="departments-control" aria-disabled="true">
+            <span aria-hidden="true">☷</span>
+            Tüm Kategoriler
+            <small>Yakında</small>
+        </span>
+
+        <nav class="main-navigation" aria-label="Ana navigasyon">
+            <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
+            <span aria-disabled="true">Ürünler</span>
+            <span aria-disabled="true">Markalar</span>
+            <span aria-disabled="true">Kampanyalar</span>
+        </nav>
+
+        <div class="quick-navigation" aria-label="Hızlı erişim">
+            <span aria-disabled="true">Favoriler</span>
+            <span aria-disabled="true">Karşılaştır</span>
+        </div>
+    </div>
+</div>
+
+<nav
+    id="mobile-navigation"
+    class="mobile-navigation"
+    aria-label="Mobil navigasyon"
+    data-storefront-shell-target="menu"
+    hidden
+>
+    <div class="container mobile-navigation-inner">
+        <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
+        <span aria-disabled="true">Ürünler <small>Yakında</small></span>
+        <span aria-disabled="true">Markalar <small>Yakında</small></span>
+        <span aria-disabled="true">Hesabım <small>Yakında</small></span>
+    </div>
+</nav>
