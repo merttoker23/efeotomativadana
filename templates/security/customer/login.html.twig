@@ -1,0 +1,36 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Giriş yap | {{ store.name }}{% endblock %}
+
+{% block body %}
+    <main id="main-content" class="page-shell">
+        <div class="container">
+            <nav class="breadcrumbs" aria-label="Sayfa yolu">
+                <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><span>Giriş yap</span>
+            </nav>
+
+            <section class="account-card account-card-narrow" aria-labelledby="login-heading">
+                <p class="panel-kicker">Müşteri hesabı</p>
+                <h1 id="login-heading">Giriş yap</h1>
+
+                {% if error %}
+                    <div class="account-alert account-alert-error" role="alert">E-posta veya parola hatalı.</div>
+                {% endif %}
+
+                <form class="account-form" method="post" action="{{ path('customer_login') }}">
+                    <label for="customer-email">E-posta adresi</label>
+                    <input id="customer-email" name="_username" type="email" value="{{ last_username }}" autocomplete="username" required>
+
+                    <label for="customer-password">Parola</label>
+                    <input id="customer-password" name="_password" type="password" autocomplete="current-password" required>
+
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                    <button class="account-primary-button" type="submit">Giriş yap</button>
+                </form>
+
+                <p class="account-switch"><a href="{{ path('customer_password_request') }}">Parolamı unuttum</a></p>
+                <p class="account-switch">Hesabınız yok mu? <a href="{{ path('customer_registration') }}">Hesap oluşturun</a>.</p>
+            </section>
+        </div>
+    </main>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Hesap oluştur | {{ store.name }}{% endblock %}
+
+{% block body %}
+    <main id="main-content" class="page-shell">
+        <div class="container">
+            <nav class="breadcrumbs" aria-label="Sayfa yolu">
+                <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><span>Hesap oluştur</span>
+            </nav>
+
+            <section class="account-card account-card-narrow" aria-labelledby="registration-heading">
+                <p class="panel-kicker">Müşteri hesabı</p>
+                <h1 id="registration-heading">Hesap oluştur</h1>
+                <p class="account-intro">Adreslerinizi güvenle kaydedin ve alışverişinizi daha hızlı tamamlayın.</p>
+
+                {{ form_start(registration_form, {attr: {class: 'account-form'}}) }}
+                    {{ form_errors(registration_form) }}
+                    <div class="account-form-grid">
+                        {{ form_row(registration_form.firstName) }}
+                        {{ form_row(registration_form.lastName) }}
+                        <div class="account-field-full">{{ form_row(registration_form.email) }}</div>
+                        {{ form_row(registration_form.plainPassword.first) }}
+                        {{ form_row(registration_form.plainPassword.second) }}
+                    </div>
+                    {{ form_row(registration_form.register, {attr: {class: 'account-primary-button'}}) }}
+                {{ form_end(registration_form) }}
+
+                <p class="account-switch">Zaten hesabınız var mı? <a href="{{ path('customer_login') }}">Giriş yapın</a>.</p>
+            </section>
+        </div>
+    </main>
+{% endblock %}

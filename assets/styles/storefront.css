@@ -723,6 +723,251 @@ select:focus-visible {
     font-weight: 750;
 }
 
+.account-card {
+    padding: 1.5rem;
+    border-radius: 0.35rem;
+    background: #fff;
+}
+
+.account-card-narrow {
+    max-width: 800px;
+    margin-inline: auto;
+}
+
+.account-card h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 2.8vw, 2.4rem);
+}
+
+.account-intro,
+.account-switch {
+    color: var(--storefront-muted);
+    font-size: 0.78rem;
+}
+
+.account-switch {
+    margin: 1.25rem 0 0;
+}
+
+.account-switch a {
+    color: var(--storefront-navy);
+    font-weight: 800;
+}
+
+.account-form {
+    margin-top: 1.4rem;
+}
+
+.account-form > div > div {
+    margin-bottom: 1rem;
+}
+
+.account-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.account-field-full {
+    grid-column: 1 / -1;
+}
+
+.account-form label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #4e5963;
+    font-size: 0.72rem;
+    font-weight: 750;
+}
+
+.account-form input,
+.account-form select,
+.account-form textarea {
+    width: 100%;
+    min-height: 42px;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #cfd4da;
+    border-radius: 0.3rem;
+    background: #fff;
+}
+
+.account-form ul {
+    padding: 0;
+    margin: 0.35rem 0 0;
+    color: #9a3e3e;
+    font-size: 0.7rem;
+    list-style: none;
+}
+
+.account-primary-button {
+    min-height: 42px;
+    margin-top: 1rem;
+    padding: 0 1rem;
+    border: 0;
+    border-radius: 0.3rem;
+    color: var(--storefront-navy);
+    background: var(--storefront-yellow);
+    font-size: 0.76rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.account-primary-button:hover,
+.account-primary-link:hover {
+    filter: brightness(0.96);
+}
+
+.storefront-flash {
+    padding: 0.75rem max(1rem, calc((100% - 1400px) / 2));
+    color: #164c31;
+    background: #dff3e8;
+    font-size: 0.75rem;
+    font-weight: 750;
+}
+
+.account-alert {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.3rem;
+    font-size: 0.75rem;
+}
+
+.account-alert-error {
+    color: #792f2f;
+    background: #f8e3e3;
+}
+
+.account-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.35rem;
+    background: #fff;
+}
+
+.account-nav a,
+.account-nav button {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--storefront-line);
+    border-radius: 0.25rem;
+    color: var(--storefront-navy);
+    background: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.account-nav a:hover,
+.account-nav a[aria-current="page"] {
+    border-color: var(--storefront-navy);
+    color: #fff;
+    background: var(--storefront-navy);
+}
+
+.account-nav button {
+    cursor: pointer;
+}
+
+.account-primary-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0.55rem 0.9rem;
+    border-radius: 0.25rem;
+    color: var(--storefront-navy);
+    background: var(--storefront-yellow);
+    font-size: 0.72rem;
+    font-weight: 850;
+}
+
+.account-nav form {
+    margin-left: auto;
+}
+
+.account-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.account-grid,
+.address-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.account-grid a,
+.address-grid article {
+    padding: 1rem;
+    border: 1px solid var(--storefront-line);
+    border-radius: 0.35rem;
+    background: #fff;
+}
+
+.address-grid h2 {
+    margin-top: 0;
+    font-size: 1rem;
+}
+
+.address-grid p {
+    color: var(--storefront-muted);
+    font-size: 0.72rem;
+}
+
+.address-default-badge {
+    display: inline-flex;
+    padding: 0.3rem 0.5rem;
+    border-radius: 999px;
+    color: var(--storefront-navy);
+    background: #fff4b8;
+    font-size: 0.64rem;
+}
+
+.address-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 1rem;
+}
+
+.address-action-edit,
+.address-action-delete {
+    min-height: 36px;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--storefront-line);
+    border-radius: 0.25rem;
+    color: var(--storefront-navy);
+    background: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.address-action-edit {
+    display: inline-flex;
+    align-items: center;
+}
+
+.address-action-delete {
+    color: #8b3030;
+    cursor: pointer;
+}
+
+.address-action-edit:hover {
+    border-color: var(--storefront-navy);
+    color: #fff;
+    background: var(--storefront-navy);
+}
+
+.address-action-delete:hover {
+    border-color: #8b3030;
+    color: #fff;
+    background: #8b3030;
+}
+
 .catalog-layout {
     display: grid;
     grid-template-columns: 248px minmax(0, 1fr);
@@ -1093,6 +1338,39 @@ select:focus-visible {
 }
 
 @media (max-width: 680px) {
+    .account-card {
+        padding: 1rem;
+    }
+
+    .account-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .account-field-full {
+        grid-column: auto;
+    }
+
+    .account-nav {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .account-nav form {
+        margin-left: 0;
+    }
+
+    .account-nav a,
+    .account-nav button {
+        display: block;
+        width: 100%;
+        text-align: left;
+    }
+
+    .account-grid,
+    .address-grid {
+        grid-template-columns: 1fr;
+    }
+
     .catalog-results,
     .catalog-filters,
     .product-detail,

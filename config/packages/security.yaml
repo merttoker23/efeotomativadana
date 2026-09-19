@@ -9,13 +9,18 @@ security:
             entity:
                 class: App\Entity\Customer\AdminUser
                 property: email
+        customer_users:
+            entity:
+                class: App\Entity\Customer\CustomerUser
+                property: email
 
     firewalls:
         dev:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
-        main:
+        admin:
+            pattern: ^/yeni/admin
             lazy: true
             provider: admin_users
             form_login:
@@ -27,11 +32,25 @@ security:
                 path: admin_logout
                 target: admin_login
                 enable_csrf: true
+        main:
+            lazy: true
+            provider: customer_users
+            user_checker: App\Security\CustomerUserChecker
+            form_login:
+                login_path: customer_login
+                check_path: customer_login
+                enable_csrf: true
+                default_target_path: customer_account_dashboard
+            logout:
+                path: customer_logout
+                target: customer_login
+                enable_csrf: true
 
     # Note: Only the *first* matching rule is applied
     access_control:
         - { path: ^/yeni/admin/login$, roles: PUBLIC_ACCESS }
         - { path: ^/yeni/admin, roles: ROLE_ADMIN }
+        - { path: ^/yeni/hesabim, roles: ROLE_CUSTOMER }
 
 when@test:
     security:
@@ -42,12 +61,12 @@ when@test:
                         viewer@example.com:
                             password: 'test-only-not-used-for-form-login'
                             roles: [ROLE_USER]
-            test_user_chain:
+            test_admin_chain:
                 chain:
                     providers: [admin_users, test_non_admins]
         firewalls:
-            main:
-                provider: test_user_chain
+            admin:
+                provider: test_admin_chain
         password_hashers:
             # Password hashers are resource-intensive by design to ensure security.
             # In tests, it's safe to reduce their cost to improve performance.

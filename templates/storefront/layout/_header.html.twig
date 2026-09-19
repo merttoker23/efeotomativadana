@@ -25,7 +25,7 @@
             </form>
 
             <div class="header-actions" aria-label="Mağaza kısayolları">
-                <span class="header-action" aria-disabled="true">Hesabım <small>Yakında</small></span>
+                <a class="header-action" href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}">Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
                 <span class="header-action cart-action" aria-disabled="true">Sepet <strong>0</strong></span>
                 <button
                     class="mobile-menu-toggle"

@@ -22,7 +22,7 @@ final class SettingsControllerTest extends WebTestCase
         $this->client = static::createClient();
         $this->connection = self::getContainer()->get(Connection::class);
         $this->resetDatabaseState();
-        $this->client->loginUser($this->createAdministrator());
+        $this->client->loginUser($this->createAdministrator(), 'admin');
     }
 
     protected function tearDown(): void

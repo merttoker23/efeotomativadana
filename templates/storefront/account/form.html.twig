@@ -1,0 +1,3 @@
+{% extends 'storefront/base.html.twig' %}
+{% block title %}{{ heading }} | {{ store.name }}{% endblock %}
+{% block body %}<main id="main-content" class="page-shell"><div class="container">{% include 'storefront/account/_nav.html.twig' %}<section class="account-card account-card-narrow"><h1>{{ heading }}</h1>{{ form_start(form, {attr: {class: 'account-form'}}) }}{{ form_widget(form) }}{{ form_end(form) }}</section></div></main>{% endblock %}

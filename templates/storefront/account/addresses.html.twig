@@ -1,0 +1,34 @@
+{% extends 'storefront/base.html.twig' %}
+{% block title %}Adreslerim | {{ store.name }}{% endblock %}
+{% block body %}
+    <main id="main-content" class="page-shell">
+        <div class="container">
+            {% include 'storefront/account/_nav.html.twig' %}
+            <section class="account-card">
+                <div class="account-heading">
+                    <h1>Adreslerim</h1>
+                    <a class="account-primary-link" href="{{ path('customer_account_address_new') }}">Yeni adres</a>
+                </div>
+                <div class="address-grid">
+                    {% for address in addresses %}
+                        <article>
+                            <h2>{{ address.label }}</h2>
+                            <p>{{ address.recipientName }}</p>
+                            <p>{{ address.addressLine1 }}, {{ address.district }}/{{ address.city }}</p>
+                            {% if address.default %}<strong class="address-default-badge">Varsayılan</strong>{% endif %}
+                            <div class="address-actions">
+                                <a class="address-action-edit" href="{{ path('customer_account_address_edit', {id: address.id}) }}">Düzenle</a>
+                                <form method="post" action="{{ path('customer_account_address_delete', {id: address.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete_address_' ~ address.id) }}">
+                                    <button class="address-action-delete" type="submit">Sil</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% else %}
+                        <p>Henüz kayıtlı adresiniz yok.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </main>
+{% endblock %}

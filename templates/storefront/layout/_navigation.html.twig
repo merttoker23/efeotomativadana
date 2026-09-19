@@ -32,6 +32,6 @@
         <a href="{{ path('storefront_catalog_index') }}">Ürünler</a>
         <a href="{{ path('storefront_catalog_brands') }}">Markalar</a>
         {% for category in catalog_navigation.categories|default([])|slice(0, 5) %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }} <small>{{ category.productCount }}</small></a>{% endfor %}
-        <span aria-disabled="true">Hesabım <small>Yakında</small></span>
+        <a href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}">Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
     </div>
 </nav>

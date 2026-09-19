@@ -1,0 +1,20 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Hesabım | {{ store.name }}{% endblock %}
+
+{% block body %}
+    <main id="main-content" class="page-shell">
+        <div class="container">
+            {% include 'storefront/account/_nav.html.twig' %}
+            <nav class="breadcrumbs" aria-label="Sayfa yolu">
+                <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><span>Hesabım</span>
+            </nav>
+            <section class="account-card" aria-labelledby="account-heading">
+                <p class="panel-kicker">Müşteri hesabı</p>
+                <h1 id="account-heading">Merhaba, {{ customer.firstName }}</h1>
+                <p class="account-intro">Profilinizi, parolanızı ve teslimat adreslerinizi buradan yönetin.</p>
+                <div class="account-grid"><a href="{{ path('customer_account_profile') }}">Profil bilgileri</a><a href="{{ path('customer_account_password') }}">Parola değiştir</a><a href="{{ path('customer_account_addresses') }}">Adres defteri</a></div>
+            </section>
+        </div>
+    </main>
+{% endblock %}

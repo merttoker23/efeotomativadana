@@ -12,6 +12,12 @@
         <a class="skip-link" href="#main-content">İçeriğe geç</a>
         {% include 'storefront/layout/_header.html.twig' %}
 
+        {% for type, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="storefront-flash storefront-flash-{{ type }}" role="status">{{ message }}</div>
+            {% endfor %}
+        {% endfor %}
+
         {% block body %}{% endblock %}
 
         {% include 'storefront/layout/_footer.html.twig' %}

@@ -41,6 +41,7 @@ final class AdminSecurityTest extends WebTestCase
         $this->createAdministrator('admin@example.com', 'VeryStrong!123');
 
         $crawler = $this->client->request('GET', '/yeni/admin/login');
+        self::assertSelectorNotExists('#username[autofocus]');
         $form = $crawler->selectButton('Sign in')->form([
             '_username' => 'ADMIN@example.com',
             '_password' => 'VeryStrong!123',
@@ -60,7 +61,7 @@ final class AdminSecurityTest extends WebTestCase
             'viewer@example.com',
             'test-only-not-used-for-form-login',
             ['ROLE_USER'],
-        ));
+        ), 'admin');
 
         $this->client->request('GET', '/yeni/admin');
 
@@ -70,7 +71,7 @@ final class AdminSecurityTest extends WebTestCase
     public function testLogoutRejectsGetAndAcceptsCsrfProtectedPost(): void
     {
         $administrator = $this->createAdministrator('admin@example.com', 'VeryStrong!123');
-        $this->client->loginUser($administrator);
+        $this->client->loginUser($administrator, 'admin');
 
         $this->client->request('GET', '/yeni/admin/logout');
         self::assertResponseStatusCodeSame(405);
