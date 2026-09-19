@@ -1,0 +1,61 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}{{ product.name }} | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell product-page">
+    <nav class="container breadcrumbs" aria-label="İçerik yolu">
+        <a href="{{ path('app_home') }}">Ana Sayfa</a><span aria-hidden="true">/</span>
+        <a href="{{ path('storefront_catalog_index') }}">Ürünler</a><span aria-hidden="true">/</span><span>{{ product.name }}</span>
+    </nav>
+
+    <article class="container product-detail">
+        <section class="product-gallery" aria-label="Ürün görselleri">
+            {% if product.images is empty %}
+                <img src="{{ asset('storefront/images/hero-automotive.svg') }}" alt="{{ product.name }} için temsili görsel">
+            {% else %}
+                {% for image in product.images %}<img src="{{ asset(image.path) }}" alt="{{ image.alt }}"{% if not loop.first %} loading="lazy"{% endif %}>{% endfor %}
+            {% endif %}
+        </section>
+
+        <section class="product-meta">
+            <p class="product-code-line">
+                {% if product.brandName %}<a href="{{ path('storefront_catalog_brand', {slug: product.brandSlug}) }}">{{ product.brandName }}</a><span aria-hidden="true"> · </span>{% endif %}
+                <span>SKU: {{ product.sku }}</span>
+            </p>
+            <h1>{{ product.name }}</h1>
+            {% if product.description %}<p class="product-description">{{ product.description }}</p>{% endif %}
+
+            <div class="product-price-large">
+                {% if product.sellPrice %}
+                    <strong>{{ product.sellPrice|storefront_money }}</strong>
+                    {% if product.onSale %}<del>{{ product.basePrice|storefront_money }}</del>{% endif %}
+                {% else %}
+                    <strong>Fiyat için iletişime geçin</strong>
+                {% endif %}
+            </div>
+            <p class="stock-state {{ product.sellable ? 'is-available' : 'is-unavailable' }}">
+                {{ product.sellable ? 'Stokta (' ~ product.quantity ~ ')' : 'Şu anda stokta yok' }}
+            </p>
+
+            {% if product.categories %}
+                <div class="product-categories"><strong>Kategoriler</strong>{% for category in product.categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }}</a>{% endfor %}</div>
+            {% endif %}
+
+            {% if product.identifiers %}
+                <section class="product-identifiers" aria-labelledby="identifier-title">
+                    <h2 id="identifier-title">Parça Kodları</h2>
+                    <dl>{% for identifier in product.identifiers %}<div><dt>{{ identifier.label }}</dt><dd>{{ identifier.code }}</dd></div>{% endfor %}</dl>
+                </section>
+            {% endif %}
+
+            {% if product.attributes %}
+                <section class="product-attributes" aria-labelledby="attribute-title">
+                    <h2 id="attribute-title">Teknik Özellikler</h2>
+                    <dl>{% for attribute in product.attributes %}<div><dt>{{ attribute.label }}</dt><dd>{{ attribute.value }}</dd></div>{% endfor %}</dl>
+                </section>
+            {% endif %}
+        </section>
+    </article>
+</main>
+{% endblock %}

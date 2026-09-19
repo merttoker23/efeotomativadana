@@ -18,11 +18,11 @@
                 </span>
             </a>
 
-            <div class="storefront-search" role="search" aria-label="Ürün arama yakında kullanıma açılacak">
+            <form class="storefront-search" role="search" aria-label="Ürün arama" method="get" action="{{ path('storefront_catalog_index') }}">
                 <label class="sr-only" for="storefront-search">Ürün, marka veya parça kodu ara</label>
-                <input id="storefront-search" type="search" placeholder="Ürün, marka veya parça kodu ara..." disabled>
-                <button type="button" disabled aria-label="Arama yakında kullanıma açılacak">⌕</button>
-            </div>
+                <input id="storefront-search" name="q" type="search" value="{{ app.request.query.get('q') }}" placeholder="Ürün, SKU, OEM veya parça kodu ara..." maxlength="120">
+                <button type="submit" aria-label="Ürün ara">⌕</button>
+            </form>
 
             <div class="header-actions" aria-label="Mağaza kısayolları">
                 <span class="header-action" aria-disabled="true">Hesabım <small>Yakında</small></span>

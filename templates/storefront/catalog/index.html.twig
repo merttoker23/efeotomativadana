@@ -1,0 +1,85 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}{{ heading }} | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell catalog-page">
+    <nav class="container breadcrumbs" aria-label="İçerik yolu">
+        <a href="{{ path('app_home') }}">Ana Sayfa</a><span aria-hidden="true">/</span><span>{{ heading }}</span>
+    </nav>
+
+    <div class="container catalog-layout">
+        <aside class="catalog-filters" aria-labelledby="catalog-filter-title">
+            <h2 id="catalog-filter-title">Kategoriler</h2>
+            <a href="{{ path('storefront_catalog_index') }}"{% if criteria.categorySlug is null %} aria-current="page"{% endif %}>Tüm Ürünler</a>
+            {% for category in categories %}
+                <a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}"{% if criteria.categorySlug == category.slug %} aria-current="page"{% endif %}>
+                    <span>{{ category.name }}</span><small>{{ category.productCount }}</small>
+                </a>
+            {% endfor %}
+
+            <h2>Filtrele</h2>
+            <form method="get" action="{{ app.request.pathInfo }}" class="catalog-filter-form">
+                {% if criteria.query %}<input type="hidden" name="q" value="{{ criteria.query }}">{% endif %}
+                {% if criteria.categorySlug and app.request.attributes.get('_route') == 'storefront_catalog_index' %}<input type="hidden" name="category" value="{{ criteria.categorySlug }}">{% endif %}
+                {% if app.request.attributes.get('_route') != 'storefront_catalog_brand' %}
+                    <label for="catalog-brand">Marka</label>
+                    <select id="catalog-brand" name="brand">
+                        <option value="">Tüm markalar</option>
+                        {% for brand in brands %}
+                            <option value="{{ brand.slug }}"{% if criteria.brandSlug == brand.slug %} selected{% endif %}>{{ brand.name }} ({{ brand.productCount }})</option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+                <label class="checkbox-field"><input type="checkbox" name="availability" value="in-stock"{% if criteria.inStockOnly %} checked{% endif %}> Yalnızca stoktakiler</label>
+                <button type="submit">Filtreleri uygula</button>
+            </form>
+        </aside>
+
+        <section class="catalog-results" aria-labelledby="catalog-heading">
+            <div class="catalog-heading-row">
+                <div>
+                    <p class="panel-kicker">Yerel katalog</p>
+                    <h1 id="catalog-heading">{{ heading }}</h1>
+                    {% if criteria.query %}<p class="search-context">“{{ criteria.query }}” için sonuçlar</p>{% endif %}
+                </div>
+                <form method="get" action="{{ app.request.pathInfo }}" class="sort-form">
+                    {% for key, value in criteria.filterParameters(route_filter) %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+                    <label for="catalog-sort">Sırala</label>
+                    <select id="catalog-sort" name="sort" onchange="this.form.submit()">
+                        <option value="newest"{% if criteria.sort.value == 'newest' %} selected{% endif %}>En yeni</option>
+                        <option value="name-asc"{% if criteria.sort.value == 'name-asc' %} selected{% endif %}>Ada göre</option>
+                        <option value="price-asc"{% if criteria.sort.value == 'price-asc' %} selected{% endif %}>Fiyat: düşükten yükseğe</option>
+                        <option value="price-desc"{% if criteria.sort.value == 'price-desc' %} selected{% endif %}>Fiyat: yüksekten düşüğe</option>
+                    </select>
+                </form>
+            </div>
+
+            <p class="catalog-summary">{{ page.totalItems }} üründen {{ page.firstItem }} - {{ page.lastItem }} arası gösteriliyor</p>
+
+            {% if page.items is empty %}
+                <div class="catalog-empty" role="status"><h2>Ürün bulunamadı</h2><p>Arama veya filtre seçiminizi değiştirerek tekrar deneyin.</p></div>
+            {% else %}
+                <div class="product-grid">
+                    {% for product in page.items %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}
+                </div>
+            {% endif %}
+
+            {% if page.totalPages > 1 %}
+                <nav class="pagination" aria-label="Katalog sayfaları">
+                    {% set route_name = app.request.attributes.get('_route') %}
+                    {% set route_params = app.request.attributes.get('_route_params') %}
+                    {% if page.previousPage %}<a href="{{ path(route_name, route_params|merge(criteria.queryParameters(page.previousPage, route_filter))) }}" rel="prev" aria-label="Önceki sayfa">‹</a>{% endif %}
+                    {% set previous_number = 0 %}
+                    {% for number in page.pageNumbers %}
+                        {% if previous_number and number > previous_number + 1 %}<span aria-hidden="true">…</span>{% endif %}
+                        <a href="{{ path(route_name, route_params|merge(criteria.queryParameters(number, route_filter))) }}"{% if number == page.page %} aria-current="page"{% endif %}>{{ number }}</a>
+                        {% set previous_number = number %}
+                    {% endfor %}
+                    {% if page.nextPage %}<a href="{{ path(route_name, route_params|merge(criteria.queryParameters(page.nextPage, route_filter))) }}" rel="next" aria-label="Sonraki sayfa">›</a>{% endif %}
+                </nav>
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}

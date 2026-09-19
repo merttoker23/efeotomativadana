@@ -10,7 +10,7 @@
                 <p class="hero-eyebrow">Efe Otomotiv Adana</p>
                 <h1 id="home-title">Otomotiv parçasında güvenilir adresiniz</h1>
                 <p>Aracınız için doğru yedek parçayı, güçlü stok altyapısı ve uzman desteğiyle buluşturuyoruz.</p>
-                <span class="hero-cta" aria-disabled="true">Ürün kataloğu yakında</span>
+                <a class="hero-cta" href="{{ path('storefront_catalog_index') }}">Ürün kataloğunu incele</a>
             </div>
             <img class="hero-image" src="{{ asset('storefront/images/hero-automotive.svg') }}" alt="Otomotiv yedek parça vitrini">
             <span class="hero-marker" aria-hidden="true"></span>
@@ -19,11 +19,11 @@
         <aside class="category-panel" aria-labelledby="category-title">
             <h2 id="category-title">Popüler Kategoriler</h2>
             <ul>
-                <li><span aria-hidden="true">◉</span> Motor Parçaları <small>Yakında</small></li>
-                <li><span aria-hidden="true">▣</span> Fren Sistemleri <small>Yakında</small></li>
-                <li><span aria-hidden="true">◇</span> Filtreler <small>Yakında</small></li>
-                <li><span aria-hidden="true">⌁</span> Elektrik &amp; Aydınlatma <small>Yakında</small></li>
-                <li><span aria-hidden="true">▤</span> Kaporta Parçaları <small>Yakında</small></li>
+                {% for category in homepage_categories %}
+                    <li><span aria-hidden="true">◉</span><a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }}</a><small>{{ category.productCount }}</small></li>
+                {% else %}
+                    <li><span aria-hidden="true">◇</span><a href="{{ path('storefront_catalog_index') }}">Tüm ürünleri keşfedin</a><small>0</small></li>
+                {% endfor %}
             </ul>
         </aside>
 
@@ -52,13 +52,17 @@
                 <p class="panel-kicker">Mağaza vitrini</p>
                 <h2 id="foundation-title">Katalog için hazır, sade bir temel</h2>
             </div>
-            <span aria-disabled="true">Ürünler yakında</span>
+            <a href="{{ path('storefront_catalog_index') }}">Tüm ürünler</a>
         </div>
-        <div class="foundation-grid">
-            <article><span aria-hidden="true">01</span><h3>Ürün keşfi</h3><p>Kategori, marka ve kod tabanlı gezinme için ayrılmış alan.</p></article>
-            <article><span aria-hidden="true">02</span><h3>Net fiyat görünümü</h3><p>Vergi ve kampanya durumlarını anlaşılır sunacak kart yapısı.</p></article>
-            <article><span aria-hidden="true">03</span><h3>Stok güveni</h3><p>Yerel stok verisiyle beslenecek hızlı ve tutarlı mağaza deneyimi.</p></article>
-        </div>
+        {% if homepage_products %}
+            <div class="product-grid home-product-grid">{% for product in homepage_products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}</div>
+        {% else %}
+            <div class="foundation-grid">
+                <article><span aria-hidden="true">01</span><h3>Ürün keşfi</h3><p>Kategori, marka ve kod tabanlı gezinme için hazır katalog.</p></article>
+                <article><span aria-hidden="true">02</span><h3>Net fiyat görünümü</h3><p>Vergi ve kampanya durumlarını anlaşılır sunan kart yapısı.</p></article>
+                <article><span aria-hidden="true">03</span><h3>Stok güveni</h3><p>Yerel stok verisiyle beslenen hızlı ve tutarlı mağaza deneyimi.</p></article>
+            </div>
+        {% endif %}
     </section>
 </main>
 {% endblock %}

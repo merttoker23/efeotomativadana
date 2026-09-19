@@ -1,0 +1,14 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Markalar | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <nav class="container breadcrumbs" aria-label="İçerik yolu"><a href="{{ path('app_home') }}">Ana Sayfa</a><span aria-hidden="true">/</span><span>Markalar</span></nav>
+    <section class="container brands-directory" aria-labelledby="brands-heading">
+        <p class="panel-kicker">Üreticiler</p>
+        <h1 id="brands-heading">Markalar</h1>
+        {% if brands is empty %}<p>Henüz yayınlanmış marka bulunmuyor.</p>{% else %}<div class="brand-grid">{% for brand in brands %}<a href="{{ path('storefront_catalog_brand', {slug: brand.slug}) }}"><strong>{{ brand.name }}</strong><span>{{ brand.productCount }} ürün</span></a>{% endfor %}</div>{% endif %}
+    </section>
+</main>
+{% endblock %}

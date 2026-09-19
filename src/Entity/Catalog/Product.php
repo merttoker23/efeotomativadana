@@ -16,6 +16,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\UniqueConstraint(name: 'uniq_catalog_product_sku', columns: ['sku'])]
 #[ORM\UniqueConstraint(name: 'uniq_catalog_product_slug', columns: ['slug'])]
 #[ORM\Index(name: 'idx_catalog_product_publication', columns: ['publication_status'])]
+#[ORM\Index(name: 'idx_catalog_product_publication_name', columns: ['publication_status', 'name'])]
 class Product
 {
     #[ORM\Id]

@@ -1,16 +1,14 @@
-{% set product_url = product.url|default(null) %}
 <article class="product-card">
-    {% if product.badge|default(null) %}
-        <span class="product-badge">{{ product.badge }}</span>
-    {% endif %}
-
-    {% if product_url %}<a class="product-thumb" href="{{ product_url }}">{% else %}<div class="product-thumb" aria-disabled="true">{% endif %}
-        <img src="{{ product.image }}" alt="{{ product.name }}">
-    {% if product_url %}</a>{% else %}</div>{% endif %}
+    {% if product.onSale %}<span class="product-badge">İndirim</span>{% endif %}
+    <a class="product-thumb" href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">
+        <img src="{{ asset(product.imagePath ?? 'storefront/images/hero-automotive.svg') }}" alt="{{ product.imageAlt ?? product.name }}" loading="lazy">
+    </a>
 
     <div class="product-info">
-        {% if product.brand|default(null) %}<p class="product-brand">{{ product.brand }}</p>{% endif %}
-        {% if product_url %}<a class="product-name" href="{{ product_url }}">{{ product.name }}</a>{% else %}<strong class="product-name">{{ product.name }}</strong>{% endif %}
-        <p class="product-price">{{ product.price }}</p>
+        {% if product.brandName %}<a class="product-brand" href="{{ path('storefront_catalog_brand', {slug: product.brandSlug}) }}">{{ product.brandName }}</a>{% endif %}
+        <a class="product-name" href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">{{ product.name }}</a>
+        <p class="product-sku">{{ product.sku }}</p>
+        <p class="product-price">{% if product.sellPrice %}{{ product.sellPrice|storefront_money }}{% else %}Fiyat için iletişime geçin{% endif %}{% if product.onSale %} <del class="product-old">{{ product.basePrice|storefront_money }}</del>{% endif %}</p>
+        <p class="stock-state {{ product.sellable ? 'is-available' : 'is-unavailable' }}">{{ product.sellable ? 'Stokta (' ~ product.quantity ~ ')' : 'Stokta yok' }}</p>
     </div>
 </article>
