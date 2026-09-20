@@ -4,5 +4,6 @@
     <a href="{{ path('customer_account_profile') }}"{% if current_route == 'customer_account_profile' %} aria-current="page"{% endif %}>Profil</a>
     <a href="{{ path('customer_account_password') }}"{% if current_route == 'customer_account_password' %} aria-current="page"{% endif %}>Parola</a>
     <a href="{{ path('customer_account_addresses') }}"{% if current_route starts with 'customer_account_address' %} aria-current="page"{% endif %}>Adresler</a>
+    <a href="{{ path('storefront_wishlist_index') }}">İstek Listem</a>
     <form method="post" action="{{ path('customer_logout') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}"><button type="submit">Çıkış yap</button></form>
 </nav>

@@ -1,0 +1,44 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Ürün Karşılaştırma | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <section class="container comparison-page-card">
+        <h1>Ürün Karşılaştırma</h1>
+        {% if comparison.products is empty %}
+            <div class="cart-empty"><p>Karşılaştırma listeniz boş.</p><a class="account-primary-link" href="{{ path('storefront_catalog_index') }}">Ürünleri incele</a></div>
+        {% else %}
+            <div class="compare-scroll" tabindex="0" aria-label="Ürün karşılaştırma tablosu">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Özellik</th>
+                            {% for product in comparison.products %}
+                                <th scope="col">
+                                    <div class="compare-product">
+                                        <img src="{{ asset(product.imagePath ?? 'storefront/images/hero-automotive.svg') }}" alt="">
+                                        <a href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">{{ product.name }}</a>
+                                        <small>{{ product.sku }}</small>
+                                        <form method="post" action="{{ path('storefront_compare_remove', {id: product.productId}) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('compare_remove_' ~ product.productId) }}">
+                                            <button type="submit">Kaldır</button>
+                                        </form>
+                                    </div>
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><th scope="row">Fiyat</th>{% for product in comparison.products %}<td>{{ product.price ? product.price|storefront_money : 'Fiyat için iletişime geçin' }}</td>{% endfor %}</tr>
+                        <tr><th scope="row">Stok</th>{% for product in comparison.products %}<td>{{ product.sellable ? 'Stokta' : 'Stokta yok' }}</td>{% endfor %}</tr>
+                        {% for row in comparison.rows %}
+                            <tr><th scope="row">{{ row.label }}</th>{% for product in comparison.products %}<td>{{ row.values[product.productId]|default('—') }}</td>{% endfor %}</tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

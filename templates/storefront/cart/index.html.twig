@@ -1,0 +1,52 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Sepetim | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <section class="container cart-page-card">
+        <h1>Sepetim</h1>
+        {% if cart.items is empty %}
+            <div class="cart-empty">
+                <p>Sepetiniz boş.</p>
+                <a class="account-primary-link" href="{{ path('storefront_catalog_index') }}">Ürünleri incele</a>
+            </div>
+        {% else %}
+            <div class="cart-layout">
+                <div class="cart-lines">
+                    {% for item in cart.items %}
+                        <article class="cart-line">
+                            <img src="{{ asset(item.imagePath ?? 'storefront/images/hero-automotive.svg') }}" alt="">
+                            <div>
+                                <a href="{{ path('storefront_catalog_product', {slug: item.slug}) }}"><strong>{{ item.name }}</strong></a>
+                                <small>{{ item.sku }}</small>
+                                <span>{{ item.unitPrice ? item.unitPrice|storefront_money : 'Fiyat bilgisi kullanılamıyor' }}</span>
+                                {% if item.unitPrice is null %}
+                                    <p class="cart-line-error">Güncel fiyat bulunamadı; ürünü sepetten kaldırabilirsiniz.</p>
+                                {% elseif not item.sellable %}
+                                    <p class="cart-line-error">Stok miktarı değişti; lütfen adedi güncelleyin.</p>
+                                {% endif %}
+                            </div>
+                            <form class="cart-update-form" method="post" action="{{ path('storefront_cart_update', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('cart_update') }}">
+                                <label>Adet <input name="quantity" type="number" value="{{ item.quantity }}" min="1" max="{{ item.availableQuantity > 0 ? item.availableQuantity : 1 }}" inputmode="numeric"{% if not item.updatable %} disabled{% endif %}></label>
+                                <button type="submit"{% if not item.updatable %} disabled{% endif %}>Güncelle</button>
+                            </form>
+                            <form class="cart-remove-form" method="post" action="{{ path('storefront_cart_remove', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('cart_remove') }}">
+                                <button type="submit">Kaldır</button>
+                            </form>
+                            <strong>{{ item.lineTotal ? item.lineTotal|storefront_money : '—' }}</strong>
+                        </article>
+                    {% endfor %}
+                </div>
+                <aside class="cart-summary">
+                    <h2>Sepet özeti</h2>
+                    <p><span>Ürün adedi</span><strong>{{ cart.itemCount }}</strong></p>
+                    <p><span>Toplam</span><strong>{{ cart.total ? cart.total|storefront_money : 'Hesaplanamıyor' }}</strong></p>
+                </aside>
+            </div>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

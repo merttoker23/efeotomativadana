@@ -38,6 +38,23 @@
                 {{ product.sellable ? 'Stokta (' ~ product.quantity ~ ')' : 'Şu anda stokta yok' }}
             </p>
 
+            {% if product.sellable and product.sellPrice %}
+                <form class="cart-add-form" method="post" action="{{ path('storefront_cart_add', {id: product.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('cart_add_' ~ product.id) }}">
+                    <label for="product-quantity">Miktar</label>
+                    <input id="product-quantity" name="quantity" type="number" min="1" max="{{ product.quantity > 99 ? 99 : product.quantity }}" value="1" inputmode="numeric">
+                    <button type="submit">Sepete ekle</button>
+                </form>
+            {% endif %}
+            <form class="wishlist-add-form" method="post" action="{{ path('storefront_wishlist_add', {id: product.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('wishlist_add_' ~ product.id) }}">
+                <button type="submit">İstek listesine ekle</button>
+            </form>
+            <form class="compare-add-form" method="post" action="{{ path('storefront_compare_add', {id: product.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('compare_add_' ~ product.id) }}">
+                <button type="submit">Karşılaştırmaya ekle</button>
+            </form>
+
             {% if product.categories %}
                 <div class="product-categories"><strong>Kategoriler</strong>{% for category in product.categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }}</a>{% endfor %}</div>
             {% endif %}

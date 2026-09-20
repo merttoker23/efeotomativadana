@@ -66,9 +66,14 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorTextContains('.product-card .product-price', '1.399,90 TRY');
         self::assertSelectorTextContains('.product-card .product-old', '1.599,90 TRY');
         self::assertSelectorTextContains('.product-card .stock-state', 'Stokta (7)');
+        self::assertSelectorExists('.product-card .cart-add-form[action*="/sepet/ekle/"]');
+        self::assertSelectorExists('.product-card .wishlist-add-form[action*="/istek-listem/ekle/"]');
+        self::assertSelectorExists('.product-card .compare-add-form[action*="/karsilastir/ekle/"]');
         self::assertSame('/yeni/katalog', $crawler->filter('form.storefront-search')->attr('action'));
         self::assertSame('/yeni/katalog', $crawler->filter('nav.main-navigation a')->eq(1)->attr('href'));
         self::assertSame('/yeni/kategori/filtreler', $crawler->filter('.catalog-filters a[href*="/kategori/"]')->first()->attr('href'));
+        self::assertSelectorExists('.quick-navigation a[href="/yeni/istek-listem"]');
+        self::assertSelectorExists('.quick-navigation a[href="/yeni/karsilastir"]');
         self::assertSelectorCount(0, 'a[href$=".html"], form[action$=".html"]');
     }
 

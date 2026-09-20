@@ -24,9 +24,10 @@
                 <button type="submit" aria-label="Ürün ara">⌕</button>
             </form>
 
+            {% set header_cart = storefront_cart() %}
             <div class="header-actions" aria-label="Mağaza kısayolları">
                 <a class="header-action" href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}">Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
-                <span class="header-action cart-action" aria-disabled="true">Sepet <strong>0</strong></span>
+                <a class="header-action cart-action" href="{{ path('storefront_cart_index') }}">Sepet {% if header_cart.total %}<small>{{ header_cart.total|storefront_money }}</small>{% endif %}<strong>{{ header_cart.itemCount }}</strong></a>
                 <button
                     class="mobile-menu-toggle"
                     type="button"

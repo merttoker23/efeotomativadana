@@ -14,8 +14,8 @@
         </nav>
 
         <div class="quick-navigation" aria-label="Hızlı erişim">
-            <span aria-disabled="true">Favoriler</span>
-            <span aria-disabled="true">Karşılaştır</span>
+            <a href="{{ path('storefront_wishlist_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}>İstek Listem</a>
+            <a href="{{ path('storefront_compare_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_compare_' %} aria-current="page"{% endif %}>Karşılaştır</a>
         </div>
     </div>
 </div>
@@ -31,6 +31,8 @@
         <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
         <a href="{{ path('storefront_catalog_index') }}">Ürünler</a>
         <a href="{{ path('storefront_catalog_brands') }}">Markalar</a>
+        <a href="{{ path('storefront_wishlist_index') }}">İstek Listem</a>
+        <a href="{{ path('storefront_compare_index') }}">Karşılaştır</a>
         {% for category in catalog_navigation.categories|default([])|slice(0, 5) %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }} <small>{{ category.productCount }}</small></a>{% endfor %}
         <a href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}">Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
     </div>

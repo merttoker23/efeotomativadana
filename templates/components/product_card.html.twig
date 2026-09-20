@@ -10,5 +10,22 @@
         <p class="product-sku">{{ product.sku }}</p>
         <p class="product-price">{% if product.sellPrice %}{{ product.sellPrice|storefront_money }}{% else %}Fiyat için iletişime geçin{% endif %}{% if product.onSale %} <del class="product-old">{{ product.basePrice|storefront_money }}</del>{% endif %}</p>
         <p class="stock-state {{ product.sellable ? 'is-available' : 'is-unavailable' }}">{{ product.sellable ? 'Stokta (' ~ product.quantity ~ ')' : 'Stokta yok' }}</p>
+        <div class="product-actions">
+            {% if product.sellable and product.sellPrice %}
+                <form class="cart-add-form" method="post" action="{{ path('storefront_cart_add', {id: product.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('cart_add_' ~ product.id) }}">
+                    <input type="hidden" name="quantity" value="1">
+                    <button type="submit">Sepete ekle</button>
+                </form>
+            {% endif %}
+            <form class="wishlist-add-form" method="post" action="{{ path('storefront_wishlist_add', {id: product.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('wishlist_add_' ~ product.id) }}">
+                <button type="submit" aria-label="{{ product.name }} ürününü istek listesine ekle">İstek</button>
+            </form>
+            <form class="compare-add-form" method="post" action="{{ path('storefront_compare_add', {id: product.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('compare_add_' ~ product.id) }}">
+                <button type="submit" aria-label="{{ product.name }} ürününü karşılaştırmaya ekle">Karşılaştır</button>
+            </form>
+        </div>
     </div>
 </article>
