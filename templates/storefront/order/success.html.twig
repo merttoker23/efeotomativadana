@@ -1,0 +1,35 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Siparişiniz alındı | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <section class="container order-success-card">
+        <span class="order-success-mark" aria-hidden="true">✓</span>
+        <p class="checkout-kicker">Sipariş kaydedildi</p>
+        <h1>Siparişiniz alındı</h1>
+        <p class="order-number">Sipariş numarası: <strong>{{ order.orderNumber }}</strong></p>
+        <p class="order-payment">Ödeme yöntemi: {{ order.paymentOptionLabel }}</p>
+
+        <div class="order-success-grid">
+            <div>
+                <h2>Ürünler</h2>
+                {% for item in order.items %}
+                    <article class="order-line">
+                        <div><strong>{{ item.productName }}</strong><small>{{ item.sku }} · {{ item.quantity }} adet</small></div>
+                        <span>{{ item.lineGross|storefront_money }}</span>
+                    </article>
+                {% endfor %}
+            </div>
+            <aside class="order-totals">
+                <h2>Toplamlar</h2>
+                <p><span>Ara toplam</span><strong>{{ order.subtotal|storefront_money }}</strong></p>
+                <p><span>Vergi</span><strong>{{ order.taxTotal|storefront_money }}</strong></p>
+                <p><span>Teslimat</span><strong>{{ order.shippingTotal|storefront_money }}</strong></p>
+                <p class="grand"><span>Genel toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></p>
+            </aside>
+        </div>
+        <a class="account-primary-link" href="{{ path('storefront_catalog_index') }}">Alışverişe devam et</a>
+    </section>
+</main>
+{% endblock %}

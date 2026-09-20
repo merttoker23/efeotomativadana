@@ -28,3 +28,10 @@ services:
             $assetMapper: '@asset_mapper'
             $profiler: '@?profiler'
         tags: [kernel.event_subscriber]
+
+when@test:
+    services:
+        App\Module\Checkout\CheckoutManager:
+            autowire: true
+            autoconfigure: true
+            public: true

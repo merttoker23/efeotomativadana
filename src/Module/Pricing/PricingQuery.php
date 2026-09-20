@@ -16,7 +16,16 @@ final readonly class PricingQuery
 
     public function forProduct(Product $product): ?PriceView
     {
-        $price = $this->prices->findOneByProduct($product);
+        return $this->view($this->prices->findOneByProduct($product));
+    }
+
+    public function forProductForUpdate(Product $product): ?PriceView
+    {
+        return $this->view($this->prices->findOneByProductForUpdate($product));
+    }
+
+    private function view(?\App\Entity\Commerce\ProductPrice $price): ?PriceView
+    {
         if (null === $price) {
             return null;
         }

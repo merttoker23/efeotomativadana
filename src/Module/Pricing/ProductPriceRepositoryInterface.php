@@ -9,5 +9,7 @@ interface ProductPriceRepositoryInterface
 {
     public function findOneByProduct(Product $product): ?ProductPrice;
 
+    public function findOneByProductForUpdate(Product $product): ?ProductPrice;
+
     public function save(ProductPrice $price): void;
 }

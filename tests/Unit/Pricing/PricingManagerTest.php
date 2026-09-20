@@ -141,6 +141,11 @@ final class RecordingProductPriceRepository implements ProductPriceRepositoryInt
         return null !== $this->price && $this->price->product() === $product ? $this->price : null;
     }
 
+    public function findOneByProductForUpdate(Product $product): ?ProductPrice
+    {
+        return $this->findOneByProduct($product);
+    }
+
     public function save(ProductPrice $price): void
     {
         $this->price = $price;

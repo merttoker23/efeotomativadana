@@ -50,6 +50,7 @@ security:
     access_control:
         - { path: ^/yeni/admin/login$, roles: PUBLIC_ACCESS }
         - { path: ^/yeni/admin, roles: ROLE_ADMIN }
+        - { path: ^/yeni/(odeme|siparis/), roles: ROLE_CUSTOMER }
         - { path: ^/yeni/hesabim, roles: ROLE_CUSTOMER }
 
 when@test:

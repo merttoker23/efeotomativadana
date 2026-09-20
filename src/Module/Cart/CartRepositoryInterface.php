@@ -9,6 +9,8 @@ interface CartRepositoryInterface
 {
     public function findOneByCustomer(CustomerUser $customer): ?Cart;
 
+    public function findOneByCustomerForUpdate(CustomerUser $customer): ?Cart;
+
     public function findOneByGuestToken(string $token): ?Cart;
 
     public function summary(Cart $cart, \DateTimeImmutable $now): CartSummary;

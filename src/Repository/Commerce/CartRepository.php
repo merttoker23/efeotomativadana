@@ -10,6 +10,8 @@ use App\Module\Catalog\PublicationStatus;
 use App\Shared\Money\Money;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\DBAL\LockMode;
+use Doctrine\ORM\Query;
 
 /** @extends ServiceEntityRepository<Cart> */
 final class CartRepository extends ServiceEntityRepository implements CartRepositoryInterface
@@ -22,6 +24,20 @@ final class CartRepository extends ServiceEntityRepository implements CartReposi
     public function findOneByCustomer(CustomerUser $customer): ?Cart
     {
         return $this->findOneBy(['customer' => $customer]);
+    }
+
+    public function findOneByCustomerForUpdate(CustomerUser $customer): ?Cart
+    {
+        /** @var Cart|null $cart */
+        $cart = $this->createQueryBuilder('cart')
+            ->andWhere('cart.customer = :customer')
+            ->setParameter('customer', $customer)
+            ->getQuery()
+            ->setLockMode(LockMode::PESSIMISTIC_WRITE)
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getOneOrNullResult();
+
+        return $cart;
     }
 
     public function findOneByGuestToken(string $token): ?Cart

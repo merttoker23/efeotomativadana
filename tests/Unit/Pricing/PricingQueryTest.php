@@ -39,6 +39,18 @@ final class PricingQueryTest extends TestCase
         self::assertSame(2000, $view->taxRate()->basisPoints());
     }
 
+    public function testItBuildsTheSameExactViewFromTheCheckoutLockedRead(): void
+    {
+        $price = self::price();
+        $query = self::query(new InMemoryProductPriceRepository($price));
+
+        $view = $query->forProductForUpdate($price->product());
+
+        self::assertNotNull($view);
+        self::assertTrue(Money::ofMinor(12000, 'TRY')->equals($view->sellPrice()));
+        self::assertSame(2000, $view->taxRate()->basisPoints());
+    }
+
     public function testItReturnsAnActiveSaleAndItsExactTwentyPercentTaxSplit(): void
     {
         $price = self::price();
@@ -141,6 +153,11 @@ final class InMemoryProductPriceRepository implements ProductPriceRepositoryInte
     public function findOneByProduct(Product $product): ?ProductPrice
     {
         return null !== $this->price && $this->price->product() === $product ? $this->price : null;
+    }
+
+    public function findOneByProductForUpdate(Product $product): ?ProductPrice
+    {
+        return $this->findOneByProduct($product);
     }
 
     public function save(ProductPrice $price): void

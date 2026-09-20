@@ -44,6 +44,13 @@
                     <h2>Sepet özeti</h2>
                     <p><span>Ürün adedi</span><strong>{{ cart.itemCount }}</strong></p>
                     <p><span>Toplam</span><strong>{{ cart.total ? cart.total|storefront_money : 'Hesaplanamıyor' }}</strong></p>
+                    {% if cart.total %}
+                        {% if app.user %}
+                            <a class="cart-checkout-link" href="{{ path('storefront_checkout') }}">Siparişi tamamla</a>
+                        {% else %}
+                            <a class="cart-checkout-link" href="{{ path('customer_login') }}">Giriş yap ve tamamla</a>
+                        {% endif %}
+                    {% endif %}
                 </aside>
             </div>
         {% endif %}
