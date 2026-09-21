@@ -113,6 +113,24 @@ input[type="number"] {
     color: inherit;
 }
 
+input[type="search"],
+input[type="datetime-local"],
+select,
+textarea {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #abb5c5;
+    border-radius: 0.4rem;
+    background: #fff;
+    color: inherit;
+}
+
+textarea {
+    min-height: 7rem;
+    resize: vertical;
+}
+
 button,
 .button-link {
     display: inline-block;
@@ -133,6 +151,115 @@ button:focus-visible,
 input:focus-visible {
     outline: 3px solid #f59e0b;
     outline-offset: 2px;
+}
+
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid #f59e0b;
+    outline-offset: 2px;
+}
+
+.page-heading,
+.button-row,
+.filter-bar,
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-heading .button-link,
+.button-row .button-link,
+.filter-bar button,
+.danger-zone button {
+    margin-top: 0;
+}
+
+.filter-bar {
+    justify-content: flex-start;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background: #f3f5f8;
+}
+
+.filter-bar label {
+    min-width: min(18rem, 100%);
+    margin: 0;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dce1e8;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    color: #475569;
+    background: #f8fafc;
+}
+
+.pagination {
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.form-grid,
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 1rem;
+}
+
+.detail-grid dt {
+    font-weight: 700;
+}
+
+.detail-grid dd {
+    margin: 0 0 1rem;
+}
+
+.subpanel {
+    margin: 0.75rem 0;
+    padding: 1rem;
+    border: 1px solid #dce1e8;
+    border-radius: 0.5rem;
+}
+
+.subpanel h3,
+.subpanel p {
+    margin-top: 0;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: #e2e8f0;
+    font-size: 0.8rem;
+}
+
+.danger-zone {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #fecaca;
+}
+
+.danger-button {
+    background: #b42318;
 }
 
 .alert {
@@ -180,5 +307,10 @@ legend {
 
     .admin-content {
         margin-top: 1rem;
+    }
+
+    .form-grid,
+    .detail-grid {
+        grid-template-columns: 1fr;
     }
 }

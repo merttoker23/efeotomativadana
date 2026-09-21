@@ -4,13 +4,14 @@ namespace App\Entity\Customer;
 
 use App\Repository\Customer\CustomerUserRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: CustomerUserRepository::class)]
 #[ORM\Table(name: 'customer_user')]
 #[ORM\UniqueConstraint(name: 'uniq_customer_user_email', columns: ['email'])]
-class CustomerUser implements UserInterface, PasswordAuthenticatedUserInterface
+class CustomerUser implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -130,6 +131,12 @@ class CustomerUser implements UserInterface, PasswordAuthenticatedUserInterface
         $this->updatedAt = new \DateTimeImmutable();
     }
 
+    public function activate(): void
+    {
+        $this->active = true;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
     public function createdAt(): \DateTimeImmutable
     {
         return $this->createdAt;
@@ -138,6 +145,19 @@ class CustomerUser implements UserInterface, PasswordAuthenticatedUserInterface
     public function updatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function isEqualTo(UserInterface $user): bool
+    {
+        $passwordMatches = $user instanceof self && (
+            hash_equals($this->password, $user->password)
+            || (8 === strlen($this->password) && hash_equals($this->password, hash('crc32c', $user->password)))
+        );
+
+        return $user instanceof self
+            && $this->getUserIdentifier() === $user->getUserIdentifier()
+            && $passwordMatches
+            && $this->active === $user->active;
     }
 
     /** @return array<string, mixed> */

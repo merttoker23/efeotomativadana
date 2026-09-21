@@ -1,0 +1,6 @@
+{% if address %}
+    <p><strong>{{ address.recipientName }}</strong><br>{{ address.phone }}</p>
+    <p>{{ address.addressLine1 }}{% if address.addressLine2 %}<br>{{ address.addressLine2 }}{% endif %}<br>{{ address.district }} / {{ address.city }}{% if address.postalCode %} {{ address.postalCode }}{% endif %}<br>{{ address.countryCode }}</p>
+{% else %}
+    <p>Address snapshot unavailable.</p>
+{% endif %}

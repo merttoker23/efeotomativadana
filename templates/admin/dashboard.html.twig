@@ -6,7 +6,11 @@
     <section class="panel">
         <p class="eyebrow">Secure area</p>
         <h1>Administration</h1>
-        <p>Manage store configuration and feature switches.</p>
-        <a class="button-link" href="{{ path('admin_settings') }}">Open store settings</a>
+        <p>Operate the local catalog, customers, orders and store configuration.</p>
+        <div class="button-row">
+            <a class="button-link" href="{{ path('admin_catalog_product_index') }}">Manage products</a>
+            <a class="button-link" href="{{ path('admin_order_index') }}">Manage orders</a>
+            <a class="button-link" href="{{ path('admin_settings') }}">Open store settings</a>
+        </div>
     </section>
 {% endblock %}

@@ -58,6 +58,8 @@ final class CheckoutManager
 
     public function view(CustomerUser $customer): CheckoutView
     {
+        $this->assertActiveCustomer($customer);
+
         return new CheckoutView(
             $this->addresses->findForCustomer($customer),
             array_values(array_filter($this->shippingOptions, static fn (ShippingOptionInterface $option): bool => $option->available())),
@@ -67,6 +69,8 @@ final class CheckoutManager
 
     public function place(CustomerUser $customer, CheckoutSelection $selection): CustomerOrder
     {
+        $this->assertActiveCustomer($customer);
+
         $shippingAddress = $this->ownedAddress($customer, $selection->shippingAddressId);
         $billingAddress = $this->ownedAddress($customer, $selection->billingAddressId);
         $shippingOption = $this->shippingOptions[$selection->shippingOptionKey] ?? null;
@@ -152,6 +156,13 @@ final class CheckoutManager
         }
 
         return $address;
+    }
+
+    private function assertActiveCustomer(CustomerUser $customer): void
+    {
+        if (!$customer->isActive()) {
+            throw new CheckoutViolation('Müşteri hesabınız aktif değil.');
+        }
     }
 
     private function snapshotAddress(CustomerOrder $order, OrderAddressRole $role, CustomerAddress $address): void

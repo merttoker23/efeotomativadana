@@ -1,0 +1,7 @@
+{% if page.pages > 1 %}
+    <nav class="pagination" aria-label="Pagination">
+        {% if page.hasPrevious %}<a rel="prev" href="{{ path(route, query|merge({page: page.page - 1})) }}">Previous</a>{% endif %}
+        <span>Page {{ page.page }} / {{ page.pages }}</span>
+        {% if page.hasNext %}<a rel="next" href="{{ path(route, query|merge({page: page.page + 1})) }}">Next</a>{% endif %}
+    </nav>
+{% endif %}

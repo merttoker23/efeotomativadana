@@ -1,0 +1,30 @@
+{% extends 'admin/base.html.twig' %}
+{% block title %}Order {{ order.orderNumber }}{% endblock %}
+{% block body %}
+<section class="panel">
+    <p class="eyebrow">Order operations</p>
+    <h1>{{ order.orderNumber }}</h1>
+    <dl class="detail-grid">
+        <dt>Status</dt><dd>{{ order.state.value }}</dd>
+        <dt>Customer</dt><dd>{{ order.customerName }} · {{ order.customerEmail }}</dd>
+        <dt>Total</dt><dd>{{ order.grandTotal|storefront_money }}</dd>
+        <dt>Shipping</dt><dd>{{ order.shippingOptionLabel }}</dd>
+        <dt>Payment</dt><dd>{{ order.paymentOptionLabel }}</dd>
+    </dl>
+    <div class="form-grid">
+        <article class="subpanel">
+            <h2>Shipping address</h2>
+            {% include 'admin/orders/_address.html.twig' with {address: shippingAddress} only %}
+        </article>
+        <article class="subpanel">
+            <h2>Billing address</h2>
+            {% include 'admin/orders/_address.html.twig' with {address: billingAddress} only %}
+        </article>
+    </div>
+    <h2>Items</h2>
+    <div class="table-wrap"><table><thead><tr><th>SKU</th><th>Product</th><th>Qty</th><th>Total</th></tr></thead><tbody>{% for item in order.items %}<tr><td>{{ item.sku }}</td><td>{{ item.productName }}</td><td>{{ item.quantity }}</td><td>{{ item.lineGross|storefront_money }}</td></tr>{% endfor %}</tbody></table></div>
+    {% if transitionForm.nextState.vars.choices is not empty %}<h2>Change status</h2><div class="form-errors">{{ form(transitionForm) }}</div>{% endif %}
+    <h2>Status history</h2>
+    {% for change in history %}<article class="subpanel"><strong>{{ change.fromState.value }} → {{ change.toState.value }}</strong><p>{{ change.reason }}</p><small>{{ change.actorEmail }} · {{ change.changedAt|date('Y-m-d H:i:s') }}</small></article>{% else %}<p>No status changes yet.</p>{% endfor %}
+</section>
+{% endblock %}

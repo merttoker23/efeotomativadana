@@ -1,0 +1,13 @@
+{% extends 'admin/base.html.twig' %}
+{% block title %}{{ product ? 'Edit product' : 'New product' }}{% endblock %}
+{% block body %}
+<section class="panel"><p class="eyebrow">Catalog operations</p><h1>{{ product ? 'Edit product' : 'New product' }}</h1>
+<div class="form-errors">{{ form_start(form) }}{{ form_errors(form) }}
+<fieldset><legend>Identity and publication</legend>{{ form_row(form.sku) }}{{ form_row(form.name) }}{{ form_row(form.slug) }}{{ form_row(form.description) }}{{ form_row(form.published) }}{{ form_row(form.brand) }}{{ form_row(form.categories) }}</fieldset>
+<fieldset><legend>Automotive identifiers and media</legend>{{ form_row(form.manufacturerCode) }}{{ form_row(form.oemCodes) }}{{ form_row(form.referenceCodes) }}{{ form_row(form.imagePaths) }}</fieldset>
+<fieldset><legend>Price and tax</legend><div class="form-grid">{{ form_row(form.baseMinorAmount) }}{{ form_row(form.currency) }}{{ form_row(form.taxCategory) }}{{ form_row(form.taxRateBasisPoints) }}{{ form_row(form.saleMinorAmount) }}{{ form_row(form.saleStartsAt) }}{{ form_row(form.saleEndsAt) }}</div></fieldset>
+<fieldset><legend>Stock</legend><div class="form-grid">{{ form_row(form.quantity) }}{{ form_row(form.availableForSale) }}</div></fieldset>
+{{ form_row(form.save) }}{{ form_end(form) }}</div>
+{% if product %}<form class="danger-zone" method="post" action="{{ path('admin_catalog_product_delete', {id: product.id}) }}" onsubmit="return confirm('Delete this product?')"><input type="hidden" name="_token" value="{{ csrf_token('delete_product_' ~ product.id) }}"><button class="danger-button" type="submit">Delete product</button></form>{% endif %}
+</section>
+{% endblock %}

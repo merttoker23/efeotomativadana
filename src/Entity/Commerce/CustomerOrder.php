@@ -24,9 +24,13 @@ class CustomerOrder
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(type: Types::INTEGER)]
     // @phpstan-ignore property.unusedType (Doctrine assigns the generated integer after insert.)
     private ?int $id = null;
+
+    #[ORM\Version]
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $version = 1;
 
     #[ORM\Column(length: 32)]
     private string $orderNumber;
@@ -143,6 +147,7 @@ class CustomerOrder
     }
 
     public function id(): ?int { return $this->id; }
+    public function version(): int { return $this->version; }
     public function orderNumber(): string { return $this->orderNumber; }
     public function customer(): CustomerUser { return $this->customer; }
     public function customerEmail(): string { return $this->customerEmail; }

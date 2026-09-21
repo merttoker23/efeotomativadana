@@ -12,6 +12,11 @@
             <a class="brand" href="{{ path('admin_dashboard') }}">Efe Otomotiv Administration</a>
             <nav aria-label="Administrator navigation">
                 <a href="{{ path('admin_dashboard') }}">Dashboard</a>
+                <a href="{{ path('admin_catalog_product_index') }}">Products</a>
+                <a href="{{ path('admin_catalog_category_index') }}">Categories</a>
+                <a href="{{ path('admin_catalog_brand_index') }}">Brands</a>
+                <a href="{{ path('admin_customer_index') }}">Customers</a>
+                <a href="{{ path('admin_order_index') }}">Orders</a>
                 <a href="{{ path('admin_settings') }}">Store settings</a>
                 <form method="post" action="{{ path('admin_logout') }}">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
@@ -23,6 +28,10 @@
         <main class="admin-content">
             {% for message in app.flashes('success') %}
                 <div class="alert alert-success" role="status">{{ message }}</div>
+            {% endfor %}
+
+            {% for message in app.flashes('error') %}
+                <div class="alert alert-error" role="alert">{{ message }}</div>
             {% endfor %}
 
             {% block body %}{% endblock %}

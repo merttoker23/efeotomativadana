@@ -16,9 +16,13 @@ class ProductInventory
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column]
+    #[ORM\Column(type: Types::INTEGER)]
     // @phpstan-ignore property.onlyWritten, property.unusedType (Doctrine assigns the generated integer after insert.)
     private ?int $id = null;
+
+    #[ORM\Version]
+    #[ORM\Column(type: Types::INTEGER)]
+    private int $version = 1;
 
     #[ORM\OneToOne(targetEntity: Product::class)]
     #[ORM\JoinColumn(name: 'product_id', referencedColumnName: 'id', nullable: false, unique: true, onDelete: 'CASCADE')]
@@ -50,6 +54,11 @@ class ProductInventory
     public function product(): Product
     {
         return $this->product;
+    }
+
+    public function version(): int
+    {
+        return $this->version;
     }
 
     public function quantity(): int

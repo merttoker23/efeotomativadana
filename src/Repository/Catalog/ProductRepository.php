@@ -6,6 +6,7 @@ use App\Entity\Catalog\Product;
 use App\Module\Catalog\ProductIdentifierType;
 use App\Module\Catalog\ProductRepositoryInterface;
 use App\Module\Catalog\PublicationStatus;
+use App\Module\Admin\Pagination\AdminPage;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -58,5 +59,29 @@ final class ProductRepository extends ServiceEntityRepository implements Product
     public function save(Product $product): void
     {
         $this->getEntityManager()->persist($product);
+    }
+
+    /** @return AdminPage<Product> */
+    public function adminPage(string $query, ?PublicationStatus $status, int $page, int $perPage = 20): AdminPage
+    {
+        $builder = $this->createQueryBuilder('product')
+            ->leftJoin('product.brand', 'brand')->addSelect('brand')
+            ->orderBy('product.updatedAt', 'DESC')->addOrderBy('product.id', 'DESC');
+        if ('' !== ($query = trim($query))) {
+            $builder->andWhere('LOWER(product.name) LIKE :query OR LOWER(product.sku) LIKE :query OR LOWER(product.slug) LIKE :query')
+                ->setParameter('query', '%'.mb_strtolower($query).'%');
+        }
+        if (null !== $status) {
+            $builder->andWhere('product.publicationStatus = :status')->setParameter('status', $status->value);
+        }
+
+        $page = max(1, $page);
+        $paginator = new \Doctrine\ORM\Tools\Pagination\Paginator(
+            $builder->setFirstResult(($page - 1) * $perPage)->setMaxResults($perPage)->getQuery(),
+        );
+
+        /** @var list<Product> $items */
+        $items = iterator_to_array($paginator->getIterator(), false);
+        return new AdminPage($items, $page, $perPage, count($paginator));
     }
 }

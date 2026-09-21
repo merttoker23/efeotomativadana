@@ -12,4 +12,6 @@ interface OrderRepositoryInterface
     public function save(CustomerOrder $order): void;
 
     public function findOneByNumberForCustomer(string $orderNumber, CustomerUser $customer): ?CustomerOrder;
+
+    public function findOneByNumberForUpdate(string $orderNumber): ?CustomerOrder;
 }

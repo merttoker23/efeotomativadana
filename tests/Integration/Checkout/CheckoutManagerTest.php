@@ -192,6 +192,25 @@ final class CheckoutManagerTest extends KernelTestCase
         $this->entityManager->flush();
     }
 
+    public function testInactiveCustomerCannotUseCheckoutApplicationService(): void
+    {
+        $customer = $this->customer('inactive-checkout@example.com');
+        $customer->deactivate();
+        $this->entityManager->flush();
+
+        foreach ([
+            fn (): mixed => $this->manager()->view($customer),
+            fn (): mixed => $this->manager()->place($customer, new CheckoutSelection(1, 1, 'local_standard', 'local_manual')),
+        ] as $operation) {
+            try {
+                $operation();
+                self::fail('An inactive customer must not be able to use checkout.');
+            } catch (CheckoutViolation $exception) {
+                self::assertStringContainsString('aktif değil', $exception->getMessage());
+            }
+        }
+    }
+
     private function manager(): CheckoutManager
     {
         $manager = self::getContainer()->get(CheckoutManager::class);
