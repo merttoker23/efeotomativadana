@@ -19,6 +19,7 @@ services:
       - app_vendor:/app/vendor
       # OneDrive senkronunu ve kilitleri azaltmak için önbellek konteynerde kalır:
       - app_cache:/app/var/cache
+      - ./public/uploads/cms:/app/public/uploads/cms
 
   database:
     ports:

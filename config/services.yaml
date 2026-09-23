@@ -19,6 +19,10 @@ services:
     App\:
         resource: '../src/'
 
+    App\Module\Cms\CmsMediaStorage:
+        arguments:
+            $directory: '%kernel.project_dir%/public/uploads/cms'
+
     # Override the default AssetMapper dev server subscriber to only intercept /yeni/assets/ requests.
     # The default public_prefix='/yeni' would cause the base subscriber to intercept ALL /yeni/
     # requests including application routes. This custom subscriber only handles asset paths.

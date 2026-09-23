@@ -4,65 +4,23 @@
 
 {% block body %}
 <main id="main-content" class="page-shell">
-    <section class="container home-top" aria-labelledby="home-title">
-        <div class="hero-panel">
-            <div class="hero-copy">
-                <p class="hero-eyebrow">Efe Otomotiv Adana</p>
-                <h1 id="home-title">Otomotiv parçasında güvenilir adresiniz</h1>
-                <p>Aracınız için doğru yedek parçayı, güçlü stok altyapısı ve uzman desteğiyle buluşturuyoruz.</p>
-                <a class="hero-cta" href="{{ path('storefront_catalog_index') }}">Ürün kataloğunu incele</a>
+    {% if sections %}
+        <h1 class="container cms-home-title">Otomotiv parçasında güvenilir adresiniz</h1>
+        {% for section in sections %}
+            {% include section.template with {section: section} only %}
+        {% endfor %}
+    {% else %}
+        <section class="container home-top" aria-labelledby="home-title">
+            <div class="hero-panel">
+                <div class="hero-copy">
+                    <p class="hero-eyebrow">{{ store.name }}</p>
+                    <h1 id="home-title">Otomotiv parçasında güvenilir adresiniz</h1>
+                    <p>Aracınız için doğru yedek parçayı keşfedin.</p>
+                    <a class="hero-cta" href="{{ path('storefront_catalog_index') }}">Ürün kataloğunu incele</a>
+                </div>
+                <img class="hero-image" src="{{ asset('storefront/images/hero-automotive.svg') }}" alt="Otomotiv yedek parça vitrini">
             </div>
-            <img class="hero-image" src="{{ asset('storefront/images/hero-automotive.svg') }}" alt="Otomotiv yedek parça vitrini">
-            <span class="hero-marker" aria-hidden="true"></span>
-        </div>
-
-        <aside class="category-panel" aria-labelledby="category-title">
-            <h2 id="category-title">Popüler Kategoriler</h2>
-            <ul>
-                {% for category in homepage_categories %}
-                    <li><span aria-hidden="true">◉</span><a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }}</a><small>{{ category.productCount }}</small></li>
-                {% else %}
-                    <li><span aria-hidden="true">◇</span><a href="{{ path('storefront_catalog_index') }}">Tüm ürünleri keşfedin</a><small>0</small></li>
-                {% endfor %}
-            </ul>
-        </aside>
-
-        <aside class="support-panel" aria-labelledby="support-title">
-            <p class="panel-kicker">Size özel</p>
-            <h2 id="support-title">Parça seçerken yalnız değilsiniz</h2>
-            <p>Marka, model ve parça kodu eşleştirme deneyimi katalog fazında etkinleşecek.</p>
-            <dl>
-                <div><dt>Yerel</dt><dd>Adana merkezli hizmet</dd></div>
-                <div><dt>Güvenli</dt><dd>Kontrollü ürün akışı</dd></div>
-                <div><dt>Hızlı</dt><dd>Hazır gönderim altyapısı</dd></div>
-            </dl>
-        </aside>
-    </section>
-
-    <section class="container feature-grid" aria-label="Mağaza avantajları">
-        {% include 'components/_feature.html.twig' with { icon: '🚚', title: 'Hızlı Gönderim', description: 'Siparişlerinizi özenle hazırlayan teslimat akışı.' } only %}
-        {% include 'components/_feature.html.twig' with { icon: '✓', title: 'Doğru Parça', description: 'Kod ve araç bilgisiyle doğrulanabilir ürün yapısı.' } only %}
-        {% include 'components/_feature.html.twig' with { icon: '↩', title: 'Kolay İade', description: 'Şeffaf süreçlere hazır müşteri deneyimi.' } only %}
-        {% include 'components/_feature.html.twig' with { icon: '☎', title: 'Uzman Destek', description: 'Satın alma öncesi ve sonrası erişilebilir destek.' } only %}
-    </section>
-
-    <section class="container foundation-section" aria-labelledby="foundation-title">
-        <div class="section-heading">
-            <div>
-                <p class="panel-kicker">Mağaza vitrini</p>
-                <h2 id="foundation-title">Katalog için hazır, sade bir temel</h2>
-            </div>
-            <a href="{{ path('storefront_catalog_index') }}">Tüm ürünler</a>
-        </div>
-        {% if homepage_products %}
-            <div class="product-grid home-product-grid">{% for product in homepage_products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}</div>
-        {% else %}
-            <div class="foundation-grid">
-                <article><span aria-hidden="true">01</span><h3>Ürün keşfi</h3><p>Kategori, marka ve kod tabanlı gezinme için hazır katalog.</p></article>
-                <article><span aria-hidden="true">02</span><h3>Net fiyat görünümü</h3><p>Vergi ve kampanya durumlarını anlaşılır sunan kart yapısı.</p></article>
-                <article><span aria-hidden="true">03</span><h3>Stok güveni</h3><p>Yerel stok verisiyle beslenen hızlı ve tutarlı mağaza deneyimi.</p></article>
-            </div>
-        {% endif %}
-    </section>
+        </section>
+    {% endif %}
 </main>
 {% endblock %}

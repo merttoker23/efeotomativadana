@@ -1,0 +1,1 @@
+{% extends 'storefront/base.html.twig' %}{% block title %}{{ page.title }} | {{ store.name }}{% endblock %}{% block body %}<main id="main-content" class="container content-page"><article><a href="{{ path('storefront_information_index') }}">Bilgilendirme</a><h1>{{ page.title }}</h1><div class="content-body">{{ page.body|nl2br }}</div></article></main>{% endblock %}

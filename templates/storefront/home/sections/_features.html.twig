@@ -1,0 +1,1 @@
+{% if section.data.features %}<section class="container home-section feature-grid cms-features" aria-label="{{ section.title }}">{% for feature in section.data.features %}{% include 'components/_feature.html.twig' with {icon: '✓', title: feature.title, description: feature.description} only %}{% endfor %}</section>{% endif %}

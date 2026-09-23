@@ -17,6 +17,9 @@
                 <a href="{{ path('admin_catalog_brand_index') }}">Brands</a>
                 <a href="{{ path('admin_customer_index') }}">Customers</a>
                 <a href="{{ path('admin_order_index') }}">Orders</a>
+                <a href="{{ path('admin_cms_home_index') }}">Homepage</a>
+                <a href="{{ path('admin_cms_content_index', {kind: 'blog'}) }}">Blog</a>
+                <a href="{{ path('admin_cms_content_index', {kind: 'pages'}) }}">Pages</a>
                 <a href="{{ path('admin_settings') }}">Store settings</a>
                 <form method="post" action="{{ path('admin_logout') }}">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">

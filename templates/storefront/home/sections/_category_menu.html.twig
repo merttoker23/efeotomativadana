@@ -1,0 +1,1 @@
+{% if section.data.categories %}<section class="container home-section section-card" aria-label="{{ section.title }}"><h2>{{ section.title }}</h2><div class="cms-link-grid">{% for category in section.data.categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }}</a>{% endfor %}</div></section>{% endif %}

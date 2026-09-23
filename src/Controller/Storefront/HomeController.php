@@ -2,8 +2,8 @@
 
 namespace App\Controller\Storefront;
 
-use App\Module\Catalog\Query\CatalogCriteria;
 use App\Module\Catalog\Query\CatalogQuery;
+use App\Module\Cms\HomepageRenderer;
 use App\Module\Settings\StoreConfiguration;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_home', methods: ['GET'])]
-    public function index(StoreConfiguration $configuration, CatalogQuery $catalog): Response
+    public function index(StoreConfiguration $configuration, CatalogQuery $catalog, HomepageRenderer $homepage): Response
     {
         $categories = $catalog->categories(8);
 
@@ -25,8 +25,7 @@ final class HomeController extends AbstractController
                 'categories' => $categories,
                 'brands' => $catalog->brands(8),
             ],
-            'homepage_categories' => array_slice($categories, 0, 5),
-            'homepage_products' => $catalog->search(new CatalogCriteria(perPage: 4))->items,
+            'sections' => $homepage->render(),
         ]);
     }
 }
