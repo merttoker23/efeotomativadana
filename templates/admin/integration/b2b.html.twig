@@ -1,0 +1,131 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}B2B synchronization{% endblock %}
+
+{% block body %}
+    <section class="panel b2b-panel" data-controller="b2b-dashboard" data-b2b-dashboard-interval-value="{{ activeRun ? 5 : 0 }}">
+        <header class="page-heading">
+            <div>
+                <p class="eyebrow">Integration</p>
+                <h1>B2B synchronization</h1>
+            </div>
+            <div class="integration-actions" aria-label="Synchronization actions">
+                <form method="post" action="{{ path('admin_integration_b2b_full') }}" data-testid="b2b-full-form">
+                    <input type="hidden" name="_token" value="{{ csrf_token('b2b_sync') }}">
+                    <button type="submit" {{ not actionsEnabled ? 'disabled' }}>Queue FULL sync</button>
+                </form>
+                <form method="post" action="{{ path('admin_integration_b2b_daily') }}" data-testid="b2b-daily-form">
+                    <input type="hidden" name="_token" value="{{ csrf_token('b2b_sync') }}">
+                    <button type="submit" {{ not actionsEnabled ? 'disabled' }}>Queue DAILY sync</button>
+                </form>
+            </div>
+        </header>
+
+        <dl class="integration-status-grid">
+            <div>
+                <dt>Integration</dt>
+                <dd><span class="status-badge {{ enabled ? 'status-success' : 'status-muted' }}">{{ enabled ? 'Enabled' : 'Disabled' }}</span></dd>
+            </div>
+            <div>
+                <dt>Provider</dt>
+                <dd>{{ providerKey ?? 'Not configured' }}</dd>
+            </div>
+            <div>
+                <dt>Endpoint host</dt>
+                <dd data-testid="provider-host">{{ providerStatus ? providerStatus.endpointHost : 'Unavailable' }}</dd>
+            </div>
+            <div>
+                <dt>Endpoint status</dt>
+                <dd>{{ providerStatus and providerStatus.configured ? 'Configured' : 'Not configured safely' }}</dd>
+            </div>
+        </dl>
+
+        {% if activeRun %}
+            <section class="integration-section" data-testid="active-run" aria-labelledby="active-run-heading">
+                <h2 id="active-run-heading">Active run</h2>
+                <dl class="detail-grid">
+                    <div><dt>Run</dt><dd>#{{ activeRun.id }}</dd></div>
+                    <div><dt>Mode</dt><dd>{{ activeRun.mode.value|upper }}</dd></div>
+                    <div><dt>State</dt><dd>{{ activeRun.state.value|capitalize }}</dd></div>
+                    <div><dt>Checkpoint</dt><dd>{{ activeRun.checkpoint }}{% if activeRun.declaredCount is not null %} / {{ activeRun.declaredCount }}{% endif %}</dd></div>
+                </dl>
+                {% if activeRun.declaredCount %}
+                    <progress max="{{ activeRun.declaredCount }}" value="{{ activeRun.checkpoint }}">{{ activeRun.checkpoint }} of {{ activeRun.declaredCount }}</progress>
+                {% endif %}
+                {% if activeRun.latestError %}<p class="b2b-latest-error">{{ activeRun.latestError }}</p>{% endif %}
+            </section>
+        {% endif %}
+
+        <section class="integration-section" aria-labelledby="last-success-heading">
+            <h2 id="last-success-heading">Last successful runs</h2>
+            <dl class="detail-grid">
+                <div>
+                    <dt>FULL</dt>
+                    <dd>{{ latestFull ? latestFull.finishedAt ? latestFull.finishedAt|date('Y-m-d H:i') : 'In progress' : 'No successful run' }}</dd>
+                </div>
+                <div>
+                    <dt>DAILY</dt>
+                    <dd>{{ latestDaily ? latestDaily.finishedAt ? latestDaily.finishedAt|date('Y-m-d H:i') : 'In progress' : 'No successful run' }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        {% if selectedRun %}
+            {% set counters = selectedRun.counters.toArray %}
+            <section class="integration-section" aria-labelledby="selected-run-heading">
+                <h2 id="selected-run-heading">Run #{{ selectedRun.id }} counters</h2>
+                <p class="run-state">{{ selectedRun.mode.value|upper }} / {{ selectedRun.state.value|capitalize }} / checkpoint {{ selectedRun.checkpoint }}</p>
+                {% if selectedRun.latestError %}<p class="b2b-latest-error" data-testid="selected-run-error">{{ selectedRun.latestError }}</p>{% endif %}
+                <dl class="counter-grid">
+                    <div><dt>Scanned</dt><dd data-testid="counter-scanned">{{ counters.scanned }}</dd></div>
+                    <div><dt>Created</dt><dd data-testid="counter-created">{{ counters.created }}</dd></div>
+                    <div><dt>Updated</dt><dd data-testid="counter-updated">{{ counters.updated }}</dd></div>
+                    <div><dt>Skipped</dt><dd data-testid="counter-skipped">{{ counters.skipped }}</dd></div>
+                    <div><dt>Conflicts</dt><dd data-testid="counter-conflicts">{{ counters.conflicts }}</dd></div>
+                    <div><dt>Categories created</dt><dd data-testid="counter-categories_created">{{ counters.categories_created }}</dd></div>
+                    <div><dt>Categories reused</dt><dd data-testid="counter-categories_reused">{{ counters.categories_reused }}</dd></div>
+                    <div><dt>Identifiers imported</dt><dd data-testid="counter-identifiers_imported">{{ counters.identifiers_imported }}</dd></div>
+                    <div><dt>Images imported</dt><dd data-testid="counter-images_imported">{{ counters.images_imported }}</dd></div>
+                    <div><dt>Images failed</dt><dd data-testid="counter-images_failed">{{ counters.images_failed }}</dd></div>
+                    <div><dt>Stock updated</dt><dd data-testid="counter-stock_updated">{{ counters.stock_updated }}</dd></div>
+                    <div><dt>Stock failed</dt><dd data-testid="counter-stock_failed">{{ counters.stock_failed }}</dd></div>
+                    <div><dt>Prices updated</dt><dd data-testid="counter-price_updated">{{ counters.price_updated }}</dd></div>
+                    <div><dt>Prices failed</dt><dd data-testid="counter-price_failed">{{ counters.price_failed }}</dd></div>
+                    <div><dt>DAILY new products</dt><dd data-testid="counter-daily_new_products">{{ counters.daily_new_products }}</dd></div>
+                </dl>
+            </section>
+        {% endif %}
+
+        <section class="integration-section" aria-labelledby="run-history-heading">
+            <h2 id="run-history-heading">Run history</h2>
+            <p>{{ runPage.total }} runs</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr><th>Run</th><th>Provider</th><th>Mode</th><th>State</th><th>Checkpoint</th><th>Created</th><th>Finished</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for run in runPage.items %}
+                            <tr>
+                                <td><a href="{{ path('admin_integration_b2b', {run_id: run.id}) }}">#{{ run.id }}</a></td>
+                                <td>{{ run.providerKey }}</td>
+                                <td>{{ run.mode.value|upper }}</td>
+                                <td>{{ run.state.value|capitalize }}</td>
+                                <td>{{ run.checkpoint }}</td>
+                                <td>{{ run.createdAt|date('Y-m-d H:i') }}</td>
+                                <td>{{ run.finishedAt ? run.finishedAt|date('Y-m-d H:i') : '-' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="7">No synchronization runs recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% include 'admin/_pagination.html.twig' with {
+                page: runPage,
+                route: 'admin_integration_b2b',
+                query: selectedRun ? {run_id: selectedRun.id} : {}
+            } only %}
+        </section>
+    </section>
+{% endblock %}

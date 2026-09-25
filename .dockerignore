@@ -6,3 +6,9 @@ vendor/
 .phpunit.cache/
 .idea/
 .vscode/
+AGENTS.md
+PROMPT.md
+docs/
+.superpowers/
+tema/
+public/uploads/

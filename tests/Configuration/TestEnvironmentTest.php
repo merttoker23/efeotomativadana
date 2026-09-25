@@ -22,7 +22,9 @@ final class TestEnvironmentTest extends KernelTestCase
         $parameters = $connection->getParams();
 
         self::assertSame('database', $parameters['host'] ?? null);
-        self::assertSame('app_test', $parameters['dbname'] ?? null);
+        $database = $parameters['dbname'] ?? null;
+        self::assertIsString($database);
+        self::assertMatchesRegularExpression('/^app_test[a-zA-Z0-9_]*$/D', $database);
     }
 
     public function testDedicatedTestDatabaseAcceptsConnections(): void

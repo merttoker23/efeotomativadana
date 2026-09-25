@@ -20,6 +20,11 @@ services:
       MAILER_DSN: ${MAILER_DSN:-smtp://mailer:1025}
       MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
       DEFAULT_URI: ${DEFAULT_URI:-http://localhost:8080}
+      EFE_B2B_FEED_URL: ${EFE_B2B_FEED_URL:-https://b2b.efeotoyedekparca.com.tr/json-tum-gercek-stoklar.php}
+      EFE_B2B_ALLOWED_HOSTS: ${EFE_B2B_ALLOWED_HOSTS:-b2b.efeotoyedekparca.com.tr}
+      EFE_B2B_CA_BUNDLE: ${EFE_B2B_CA_BUNDLE:-}
+      EFE_B2B_SNAPSHOT_DIR: ${EFE_B2B_SNAPSHOT_DIR:-var/b2b-snapshots}
+      EFE_B2B_PRODUCT_MEDIA_DIR: ${EFE_B2B_PRODUCT_MEDIA_DIR:-public/uploads/products}
     ports:
       - "${HTTP_PORT:-8080}:80"
       - "${HTTPS_PORT:-8443}:443"
@@ -31,6 +36,40 @@ services:
       - caddy_data:/data
       - caddy_config:/config
       - cms_media:/app/public/uploads/cms
+      - product_media:/app/public/uploads/products
+      - b2b_snapshots:/app/var/b2b-snapshots
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    restart: unless-stopped
+    command: ["php", "-d", "memory_limit=512M", "bin/console", "messenger:consume", "async", "--time-limit=3600", "--memory-limit=480M", "--sleep=1"]
+    environment:
+      APP_ENV: ${APP_ENV:-prod}
+      DATABASE_URL: mysql://${MYSQL_USER:-app}:${MYSQL_PASSWORD:-!ChangeMe!}@database:3306/${MYSQL_DATABASE:-app}?serverVersion=8.4&charset=utf8mb4
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
+      DEFAULT_URI: ${DEFAULT_URI:-http://localhost:8080}
+      EFE_B2B_FEED_URL: ${EFE_B2B_FEED_URL:-https://b2b.efeotoyedekparca.com.tr/json-tum-gercek-stoklar.php}
+      EFE_B2B_ALLOWED_HOSTS: ${EFE_B2B_ALLOWED_HOSTS:-b2b.efeotoyedekparca.com.tr}
+      EFE_B2B_CA_BUNDLE: ${EFE_B2B_CA_BUNDLE:-}
+      EFE_B2B_SNAPSHOT_DIR: ${EFE_B2B_SNAPSHOT_DIR:-var/b2b-snapshots}
+      EFE_B2B_PRODUCT_MEDIA_DIR: ${EFE_B2B_PRODUCT_MEDIA_DIR:-public/uploads/products}
+    depends_on:
+      app:
+        condition: service_started
+      database:
+        condition: service_healthy
+    volumes:
+      - product_media:/app/public/uploads/products
+      - b2b_snapshots:/app/var/b2b-snapshots
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit((int) !str_contains(file_get_contents('/proc/1/cmdline'), 'messenger:consume'));"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
 
   database:
     image: mysql:8.4
@@ -63,3 +102,5 @@ volumes:
   caddy_data:
   caddy_config:
   cms_media:
+  product_media:
+  b2b_snapshots:

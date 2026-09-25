@@ -17,5 +17,13 @@ RewriteCond %{REQUEST_URI} ^/yeni/assets/(.+)$
 RewriteCond %{DOCUMENT_ROOT}/yeni/public/assets/%1 -f
 RewriteRule ^.*$ public/assets/%1 [L]
 
+# Serve uploaded media from public/uploads/ if they exist. B2B product images and CMS
+# images are stored below public/ while the document root is one level above the
+# application, so without this rule every stored image answers 404. The storefront emits
+# these URLs through the media_url Twig function, which applies the same /yeni base path.
+RewriteCond %{REQUEST_URI} ^/yeni/uploads/(.+)$
+RewriteCond %{DOCUMENT_ROOT}/yeni/public/uploads/%1 -f
+RewriteRule ^.*$ public/uploads/%1 [L]
+
 # Route all remaining /yeni/ requests to Symfony front controller
 RewriteRule ^.*$ public/index.php [L]

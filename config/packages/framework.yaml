@@ -3,7 +3,7 @@ framework:
     secret: '%env(APP_SECRET)%'
 
     assets:
-        base_path: '/yeni'
+        base_path: '%app.public_base_path%'
 
     # Note that the session will be started ONLY if you read or write from it.
     session: true

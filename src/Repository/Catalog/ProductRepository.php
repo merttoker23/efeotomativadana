@@ -25,6 +25,50 @@ final class ProductRepository extends ServiceEntityRepository implements Product
         return $this->findOneBy(['sku' => mb_strtoupper(trim($sku))]);
     }
 
+    /**
+     * @param list<string> $skus
+     * @return list<Product>
+     */
+    public function findBySkus(array $skus): array
+    {
+        $skus = array_values(array_unique(array_filter(array_map(static fn (string $sku): string => mb_strtoupper(trim($sku)), $skus), static fn (string $sku): bool => '' !== $sku)));
+        if ([] === $skus) {
+            return [];
+        }
+
+        /** @var list<Product> $products */
+        $products = $this->createQueryBuilder('product')
+            ->andWhere('product.sku IN (:skus)')
+            ->setParameter('skus', $skus)
+            ->orderBy('product.sku', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $products;
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return list<Product>
+     */
+    public function findByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        if ([] === $ids) {
+            return [];
+        }
+
+        /** @var list<Product> $products */
+        $products = $this->createQueryBuilder('product')
+            ->andWhere('product.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->orderBy('product.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $products;
+    }
+
     public function findOneBySlug(string $slug): ?Product
     {
         return $this->findOneBy(['slug' => mb_strtolower(trim($slug))]);

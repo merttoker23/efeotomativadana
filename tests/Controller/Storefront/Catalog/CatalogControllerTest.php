@@ -180,6 +180,42 @@ final class CatalogControllerTest extends WebTestCase
         }
     }
 
+    public function testStoredProductImagesResolveUnderTheApplicationPathAndMissingOnesUseThePlaceholder(): void
+    {
+        $storedPath = '/uploads/products/0123456789abcdef0123456789abcdef.jpg';
+        $withImage = $this->product('IMG-001', 'Görselli Ürün', 'gorselli-urun', true);
+        $withImage->addImage($storedPath, 'Görselli ürün fotoğrafı');
+        $this->product('IMG-002', 'Görselsiz Ürün', 'gorselsiz-urun', true);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/yeni/urun/gorselli-urun');
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            '/yeni'.$storedPath,
+            $crawler->filter('.product-gallery img')->first()->attr('src'),
+        );
+
+        $crawler = $this->client->request('GET', '/yeni/urun/gorselsiz-urun');
+        self::assertResponseIsSuccessful();
+        $detailPlaceholder = (string) $crawler->filter('.product-gallery img')->first()->attr('src');
+        self::assertStringStartsWith('/yeni/assets/storefront/images/product-placeholder-', $detailPlaceholder);
+
+        $crawler = $this->client->request('GET', '/yeni/katalog?sort=name-asc');
+        self::assertResponseIsSuccessful();
+        $sources = $crawler->filter('.product-card .product-thumb img')->each(
+            static fn ($node): string => (string) $node->attr('src'),
+        );
+        self::assertCount(2, $sources);
+        self::assertContains('/yeni'.$storedPath, $sources);
+        self::assertSame(1, count(array_filter(
+            $sources,
+            static fn (string $source): bool => str_contains($source, 'product-placeholder'),
+        )));
+        foreach ($sources as $source) {
+            self::assertStringStartsWith('/yeni/', $source);
+        }
+    }
+
     private function product(
         string $sku,
         string $name,

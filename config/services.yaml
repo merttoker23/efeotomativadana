@@ -7,6 +7,10 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Public URL prefix the storefront is published under. Single source of truth for
+    # compiled assets (framework.assets.base_path) and stored media URLs
+    # (App\Twig\StorefrontMediaExtension).
+    app.public_base_path: '/yeni'
 
 services:
     # default configuration for services in *this* file
@@ -23,6 +27,59 @@ services:
         arguments:
             $directory: '%kernel.project_dir%/public/uploads/cms'
 
+    # Stored media paths are absolute ("/uploads/..."), so the storefront must be told the
+    # public base path to keep them reachable from the application directory.
+    App\Twig\StorefrontMediaExtension:
+        arguments:
+            $assetsBasePath: '%app.public_base_path%'
+
+    App\Module\Integration\B2b\ProductMediaStorageInterface:
+        alias: App\Module\Integration\B2b\ProductMediaStorage
+
+    App\Module\Integration\B2b\B2bRunProcessorInterface:
+        alias: App\Module\Integration\B2b\B2bRunProcessor
+
+    App\Module\Integration\B2b\B2bRunProcessor:
+        arguments:
+            $snapshotDirectory: '%env(EFE_B2B_SNAPSHOT_DIR)%'
+            $batchSize: 250
+
+    App\Module\Integration\B2b\Provider\Efe\EfeSnapshotDownloader:
+        arguments:
+            $endpointUrl: '%env(EFE_B2B_FEED_URL)%'
+            $allowedHosts: '%env(csv:EFE_B2B_ALLOWED_HOSTS)%'
+            $snapshotDirectory: '%env(EFE_B2B_SNAPSHOT_DIR)%'
+            $maxBytes: 268435456
+            $maxConnectDuration: 20
+            $readTimeout: 120
+            $overallTimeout: 600
+            $maxRedirects: 3
+            $caBundle: '%env(EFE_B2B_CA_BUNDLE)%'
+
+    App\Module\Integration\B2b\Provider\Efe\EfeFeedNormalizer:
+        arguments:
+            $allowedHosts: '%env(csv:EFE_B2B_ALLOWED_HOSTS)%'
+
+    App\Module\Integration\B2b\Provider\Efe\EfeFeedProvider:
+        arguments:
+            $endpointUrl: '%env(EFE_B2B_FEED_URL)%'
+            $allowedHosts: '%env(csv:EFE_B2B_ALLOWED_HOSTS)%'
+
+    App\Module\Integration\B2b\ProductMediaStorage:
+        arguments:
+            $directory: '%env(EFE_B2B_PRODUCT_MEDIA_DIR)%'
+            $allowedHosts: '%env(csv:EFE_B2B_ALLOWED_HOSTS)%'
+            $maxBytes: 5000000
+            $maxConnectDuration: 10
+            $readTimeout: 30
+            $overallTimeout: 60
+            $maxRedirects: 3
+            $caBundle: '%env(EFE_B2B_CA_BUNDLE)%'
+
+    App\Module\Integration\B2b\B2bSnapshotCleaner:
+        arguments:
+            $rootDirectory: '%env(EFE_B2B_SNAPSHOT_DIR)%'
+
     # Override the default AssetMapper dev server subscriber to only intercept /yeni/assets/ requests.
     # The default public_prefix='/yeni' would cause the base subscriber to intercept ALL /yeni/
     # requests including application routes. This custom subscriber only handles asset paths.
@@ -36,6 +93,10 @@ services:
 when@test:
     services:
         App\Module\Checkout\CheckoutManager:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Integration\B2b\B2bResourceResolver:
             autowire: true
             autoconfigure: true
             public: true

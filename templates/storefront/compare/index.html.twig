@@ -17,7 +17,7 @@
                             {% for product in comparison.products %}
                                 <th scope="col">
                                     <div class="compare-product">
-                                        <img src="{{ asset(product.imagePath ?? 'storefront/images/hero-automotive.svg') }}" alt="">
+                                        <img src="{{ product_image_url(product.imagePath) }}" alt="">
                                         <a href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">{{ product.name }}</a>
                                         <small>{{ product.sku }}</small>
                                         <form method="post" action="{{ path('storefront_compare_remove', {id: product.productId}) }}">

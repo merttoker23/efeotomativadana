@@ -12,9 +12,9 @@
     <article class="container product-detail">
         <section class="product-gallery" aria-label="Ürün görselleri">
             {% if product.images is empty %}
-                <img src="{{ asset('storefront/images/hero-automotive.svg') }}" alt="{{ product.name }} için temsili görsel">
+                <img src="{{ product_image_url(null) }}" alt="{{ product.name }} için temsili görsel">
             {% else %}
-                {% for image in product.images %}<img src="{{ asset(image.path) }}" alt="{{ image.alt }}"{% if not loop.first %} loading="lazy"{% endif %}>{% endfor %}
+                {% for image in product.images %}<img src="{{ media_url(image.path) }}" alt="{{ image.alt }}"{% if not loop.first %} loading="lazy"{% endif %}>{% endfor %}
             {% endif %}
         </section>
 

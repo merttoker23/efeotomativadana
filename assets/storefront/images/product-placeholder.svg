@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Product placeholder shown by the storefront whenever a product has no stored image.
+  Most Efe B2B feed rows carry an empty "urunresimleri" list, so a neutral automotive
+  icon sheet keeps catalogue, product, cart, wishlist and comparison grids from showing
+  a broken or unrelated image. 5 columns x 4 rows on a light card background.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 320" width="400" height="320" role="img" aria-label="Otomotiv yedek parça görseli bulunamadı">
+  <rect width="400" height="320" fill="#f6f7f5"/>
+  <g fill="none" stroke="#5a6068" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- 1. engine -->
+    <g transform="translate(8 8)">
+      <rect x="8" y="28" width="34" height="16" rx="2"/>
+      <path d="M17 28v-7h16v7M13 15h24M21 21v-6M29 21v-6M37 21v-6"/>
+      <path d="M42 34h7a7 7 0 0 1 7 7v3H42"/>
+      <path d="M8 44l6 8h26l6-8M19 32h7v8h-7z"/>
+    </g>
+
+    <!-- 2. car wash -->
+    <g transform="translate(88 8)">
+      <path d="M6 46h38l5-12h8l5 12h4v6H6z"/>
+      <circle cx="17" cy="52" r="4"/>
+      <circle cx="49" cy="52" r="4"/>
+      <path d="M18 12h22v10H18zM24 12V7h10v5M14 17H8M50 17h6M20 30h-4M44 30h4"/>
+    </g>
+
+    <!-- 3. tyre -->
+    <g transform="translate(168 8)">
+      <circle cx="32" cy="32" r="24"/>
+      <circle cx="32" cy="32" r="11"/>
+      <path d="M32 8v13M32 43v13M8 32h13M43 32h13M15 15l9 9M40 40l9 9M49 15l-9 9M24 40l-9 9"/>
+    </g>
+
+    <!-- 4. battery -->
+    <g transform="translate(248 8)">
+      <rect x="8" y="20" width="48" height="30" rx="3"/>
+      <path d="M18 20v-6h8v6M38 20v-6h8v6M16 28h-5v14h5M48 28h5v14h-5"/>
+      <path d="M36 24l-11 12h9l-4 10 12-13h-9z"/>
+    </g>
+
+    <!-- 5. wrench and screwdriver -->
+    <g transform="translate(328 8)">
+      <path d="M14 52l24-24a10 10 0 0 1-11-13l6 6 5-5-6-6a10 10 0 0 1 13 11L21 45z"/>
+      <path d="M46 12l-6 6 5 5 6-6M45 18L19 44"/>
+    </g>
+
+    <!-- 6. checklist -->
+    <g transform="translate(8 88)">
+      <rect x="12" y="12" width="40" height="46" rx="4"/>
+      <path d="M24 12V8h16v4M32 8h-8"/>
+      <path d="M20 28l4 4 7-7M20 42l4 4 7-7M38 28h8M38 42h8"/>
+    </g>
+
+    <!-- 7. oil can -->
+    <g transform="translate(88 88)">
+      <path d="M10 30h28v22H10zM10 30l-4-6h32l-6 6"/>
+      <path d="M24 30v-8h12v8M38 24l10-8v6"/>
+      <path d="M50 30c4 5 5 8 5 11a5 5 0 0 1-10 0c0-3 1-6 5-11z"/>
+    </g>
+
+    <!-- 8. car under a roof -->
+    <g transform="translate(168 88)">
+      <path d="M8 30L32 10l24 20M14 27v27h36V27"/>
+      <path d="M18 40h28l3-7h6l3 7h2v6H18z"/>
+      <circle cx="25" cy="48" r="3"/>
+      <circle cx="45" cy="48" r="3"/>
+    </g>
+
+    <!-- 9. pouring oil can -->
+    <g transform="translate(248 88)">
+      <path d="M12 26h26l-6 26H18zM12 26l-4-6h26l-4 6"/>
+      <path d="M24 26v-6h10v6M34 20l8-6"/>
+      <path d="M46 22c3 4 4 7 4 9a4 4 0 0 1-8 0c0-2 1-5 4-9zM54 40c2 3 3 5 3 7a3 3 0 0 1-6 0c0-2 1-4 3-7z"/>
+    </g>
+
+    <!-- 10. gears -->
+    <g transform="translate(328 88)">
+      <circle cx="24" cy="26" r="11"/>
+      <circle cx="24" cy="26" r="4"/>
+      <path d="M24 9v6M24 37v6M7 26h6M35 26h6M12 14l4 4M32 34l4 4M36 14l-4 4M16 34l-4 4"/>
+      <circle cx="44" cy="44" r="9"/>
+      <circle cx="44" cy="44" r="3"/>
+      <path d="M44 31v5M44 52v5M31 44h5M52 44h5M35 35l3 3M50 50l3 3M53 35l-3 3M38 50l-3 3"/>
+    </g>
+
+    <!-- 11. car front -->
+    <g transform="translate(8 168)">
+      <path d="M12 40V26l8-12h24l8 12v14z"/>
+      <path d="M20 14v-5h24v5M12 32h40"/>
+      <rect x="18" y="34" width="10" height="6" rx="2"/>
+      <rect x="36" y="34" width="10" height="6" rx="2"/>
+      <path d="M20 46h8M36 46h8"/>
+    </g>
+
+    <!-- 12. steering wheel -->
+    <g transform="translate(88 168)">
+      <circle cx="32" cy="32" r="24"/>
+      <circle cx="32" cy="32" r="8"/>
+      <path d="M32 24V8M25 37L13 46M39 37l12 9M32 40v14"/>
+    </g>
+
+    <!-- 13. shock absorber -->
+    <g transform="translate(168 168)">
+      <path d="M32 6v8M22 14h20M26 14v30h12V14"/>
+      <path d="M20 22h24M20 30h24M20 38h24"/>
+      <path d="M32 44v8M24 52h16M22 58h20"/>
+    </g>
+
+    <!-- 14. brake disc -->
+    <g transform="translate(248 168)">
+      <circle cx="32" cy="32" r="24"/>
+      <circle cx="32" cy="32" r="10"/>
+      <circle cx="32" cy="32" r="3"/>
+      <path d="M32 20v6M32 38v6M20 32h6M38 32h6"/>
+      <path d="M44 8h10v14H44a7 7 0 0 1 0-14z"/>
+    </g>
+
+    <!-- 15. wrench -->
+    <g transform="translate(328 168)">
+      <path d="M12 50l22-22a11 11 0 0 1-12-14l7 7 5-5-7-7a11 11 0 0 1 14 12L19 43z"/>
+      <circle cx="17" cy="45" r="3"/>
+    </g>
+
+    <!-- 16. tow truck -->
+    <g transform="translate(8 248)">
+      <path d="M6 44V24h22v20M28 32h12l6 8v4H28z"/>
+      <circle cx="16" cy="48" r="5"/>
+      <circle cx="40" cy="48" r="5"/>
+      <path d="M36 32V14h8v10M44 14a6 6 0 1 1 0 10"/>
+    </g>
+
+    <!-- 17. speedometer -->
+    <g transform="translate(88 248)">
+      <path d="M8 44a24 24 0 1 1 48 0"/>
+      <path d="M32 44l14-16"/>
+      <circle cx="32" cy="44" r="3"/>
+      <path d="M14 34l4 2M32 26v4M50 34l-4 2M8 44h5M51 44h5"/>
+    </g>
+
+    <!-- 18. arrows around a car -->
+    <g transform="translate(168 248)">
+      <path d="M20 30V8M14 14l6-6 6 6M20 22l-10 10h20z"/>
+      <path d="M46 34v22M40 50l6 6 6-6M46 42l-10-10h20z"/>
+      <path d="M28 30h12l3-6h5l2 6v8H28z"/>
+    </g>
+
+    <!-- 19. snowflake -->
+    <g transform="translate(248 248)">
+      <path d="M32 6v52M8 19l48 26M56 19L8 45"/>
+      <path d="M26 12l6 6 6-6M26 52l6-6 6 6M12 26l8 1-3 7M52 26l-8 1 3 7M12 38l8-1-3-7M52 38l-8-1 3-7"/>
+    </g>
+
+    <!-- 20. fuel pump -->
+    <g transform="translate(328 248)">
+      <rect x="10" y="8" width="28" height="46" rx="3"/>
+      <path d="M16 18h16v10H16zM10 34h28"/>
+      <path d="M38 20h8a6 6 0 0 1 6 6v18a5 5 0 0 1-10 0V38h-4"/>
+      <path d="M16 54v-6M24 54v-6"/>
+    </g>
+  </g>
+</svg>

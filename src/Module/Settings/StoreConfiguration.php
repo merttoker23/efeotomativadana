@@ -2,8 +2,11 @@
 
 namespace App\Module\Settings;
 
+use App\Module\Integration\B2b\B2bProviderRegistry;
 use App\Repository\Commerce\StoreSettingRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -13,6 +16,7 @@ final readonly class StoreConfiguration
         private StoreSettingRepository $settings,
         private EntityManagerInterface $entityManager,
         private ValidatorInterface $validator,
+        private B2bProviderRegistry $b2bProviders,
     ) {
     }
 
@@ -42,6 +46,17 @@ final readonly class StoreConfiguration
         $configuration->defaultLocale = str_replace('_', '-', trim($configuration->defaultLocale));
 
         $violations = $this->validator->validate($configuration);
+        if ($configuration->b2bEnabled && (null === $configuration->b2bProvider || !$this->b2bProviders->supports($configuration->b2bProvider))) {
+            $violations->add(new ConstraintViolation(
+                message: 'Enable a supported B2B provider when B2B integration is enabled.',
+                messageTemplate: null,
+                parameters: [],
+                root: $configuration,
+                propertyPath: 'b2bProvider',
+                invalidValue: $configuration->b2bProvider,
+                constraint: new NotBlank(),
+            ));
+        }
         if (count($violations) > 0) {
             throw new ValidationFailedException($configuration, $violations);
         }

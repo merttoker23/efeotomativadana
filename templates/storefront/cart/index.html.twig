@@ -16,7 +16,7 @@
                 <div class="cart-lines">
                     {% for item in cart.items %}
                         <article class="cart-line">
-                            <img src="{{ asset(item.imagePath ?? 'storefront/images/hero-automotive.svg') }}" alt="">
+                            <img src="{{ product_image_url(item.imagePath) }}" alt="">
                             <div>
                                 <a href="{{ path('storefront_catalog_product', {slug: item.slug}) }}"><strong>{{ item.name }}</strong></a>
                                 <small>{{ item.sku }}</small>

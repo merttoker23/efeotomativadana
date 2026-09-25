@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+umask 077
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+APP_DIR="${EFE_B2B_APP_DIR:-$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)}"
+PHP_BIN="${PHP_BIN:-/usr/bin/php}"
+MESSENGER_TRANSPORT="${MESSENGER_TRANSPORT:-async}"
+MESSENGER_LIMIT="${MESSENGER_LIMIT:-1}"
+MESSENGER_TIME_LIMIT="${MESSENGER_TIME_LIMIT:-3300}"
+MESSENGER_MEMORY_LIMIT="${MESSENGER_MEMORY_LIMIT:-480M}"
+LOCK_FILE="${MESSENGER_LOCK_FILE:-$APP_DIR/var/messenger-worker.lock}"
+LOG_FILE="${MESSENGER_LOG_FILE:-$APP_DIR/var/log/messenger-worker.log}"
+
+if [ ! -d "$APP_DIR" ]; then
+    printf 'B2B Messenger application directory not found: %s\n' "$APP_DIR" >&2
+    exit 78
+fi
+if ! command -v "$PHP_BIN" >/dev/null 2>&1; then
+    printf 'PHP binary not found: %s\n' "$PHP_BIN" >&2
+    exit 78
+fi
+if ! command -v flock >/dev/null 2>&1; then
+    printf 'flock is required to prevent overlapping Messenger workers.\n' >&2
+    exit 78
+fi
+
+mkdir -p "$(dirname -- "$LOCK_FILE")" "$(dirname -- "$LOG_FILE")"
+cd "$APP_DIR"
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    exit 0
+fi
+
+"$PHP_BIN" bin/console messenger:consume "$MESSENGER_TRANSPORT" \
+    --limit="$MESSENGER_LIMIT" \
+    --time-limit="$MESSENGER_TIME_LIMIT" \
+    --memory-limit="$MESSENGER_MEMORY_LIMIT" \
+    --sleep=1 \
+    --env=prod \
+    --no-interaction \
+    >>"$LOG_FILE" 2>&1

@@ -6,6 +6,9 @@
         <meta name="robots" content="noindex, nofollow">
         <title>{% block title %}Administration{% endblock %} | Efe Otomotiv Adana</title>
         <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
+        {% block javascripts %}
+            {{ importmap('app') }}
+        {% endblock %}
     </head>
     <body class="admin-page">
         <header class="admin-header">
@@ -20,6 +23,7 @@
                 <a href="{{ path('admin_cms_home_index') }}">Homepage</a>
                 <a href="{{ path('admin_cms_content_index', {kind: 'blog'}) }}">Blog</a>
                 <a href="{{ path('admin_cms_content_index', {kind: 'pages'}) }}">Pages</a>
+                <a href="{{ path('admin_integration_b2b') }}">B2B sync</a>
                 <a href="{{ path('admin_settings') }}">Store settings</a>
                 <form method="post" action="{{ path('admin_logout') }}">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">

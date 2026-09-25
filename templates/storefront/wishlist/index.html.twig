@@ -12,7 +12,7 @@
             <div class="selection-grid">
                 {% for item in wishlist %}
                     <article class="wishlist-item selection-card">
-                        <img src="{{ asset(item.imagePath ?? 'storefront/images/hero-automotive.svg') }}" alt="">
+                        <img src="{{ product_image_url(item.imagePath) }}" alt="">
                         <div><a href="{{ path('storefront_catalog_product', {slug: item.slug}) }}"><strong>{{ item.name }}</strong></a><small>{{ item.sku }}</small></div>
                         <p>{{ item.price ? item.price|storefront_money : 'Fiyat için iletişime geçin' }}</p>
                         <span class="stock-state {{ item.sellable ? 'is-available' : 'is-unavailable' }}">{{ item.sellable ? 'Stokta' : 'Stokta yok' }}</span>

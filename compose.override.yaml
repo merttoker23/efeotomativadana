@@ -20,6 +20,18 @@ services:
       # OneDrive senkronunu ve kilitleri azaltmak için önbellek konteynerde kalır:
       - app_cache:/app/var/cache
       - ./public/uploads/cms:/app/public/uploads/cms
+      - ./public/uploads/products:/app/public/uploads/products
+
+  worker:
+    build:
+      target: dev
+    environment:
+      APP_ENV: dev
+    volumes:
+      - ./:/app
+      - app_vendor:/app/vendor
+      - app_cache:/app/var/cache
+      - ./public/uploads/products:/app/public/uploads/products
 
   database:
     ports:

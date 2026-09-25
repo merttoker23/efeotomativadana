@@ -1,5 +1,5 @@
 <section class="container home-section cms-heroes" aria-label="{{ section.title }}">
     {% for slide in section.data.slides %}
-        <article class="hero-panel cms-hero"><div class="hero-copy"><p class="hero-eyebrow">{{ section.title }}</p><h2>{{ slide.title }}</h2><p>{{ slide.description }}</p><a class="hero-cta" href="{{ slide.link }}">Keşfet</a></div><img class="hero-image" src="{{ slide.image }}" alt="{{ slide.title }}"></article>
+        <article class="hero-panel cms-hero"><div class="hero-copy"><p class="hero-eyebrow">{{ section.title }}</p><h2>{{ slide.title }}</h2><p>{{ slide.description }}</p><a class="hero-cta" href="{{ slide.link }}">Keşfet</a></div><img class="hero-image" src="{{ media_url(slide.image) }}" alt="{{ slide.title }}"></article>
     {% endfor %}
 </section>

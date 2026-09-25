@@ -37,6 +37,41 @@ final class TaxCalculatorTest extends TestCase
         self::assertSame(1, $breakdown->tax()->minorAmount());
     }
 
+    public function testItConvertsTaxExclusiveNetAmountToGrossWithHalfUpRounding(): void
+    {
+        $breakdown = (new TaxCalculator())->fromTaxExclusive(Money::ofMinor(83_887, 'TRY'), TaxRate::fromPercentage(20));
+
+        self::assertSame(83_887, $breakdown->net()->minorAmount());
+        self::assertSame(100_664, $breakdown->gross()->minorAmount());
+        self::assertSame(16_777, $breakdown->tax()->minorAmount());
+    }
+
+    public function testItRoundsTaxExclusiveGrossAtTheHalfMinorUnitBoundary(): void
+    {
+        $calculator = new TaxCalculator();
+
+        self::assertSame(2, $calculator->fromTaxExclusive(Money::ofMinor(1, 'TRY'), TaxRate::fromPercentage(50))->gross()->minorAmount());
+        self::assertSame(1, $calculator->fromTaxExclusive(Money::ofMinor(1, 'TRY'), TaxRate::fromPercentage(49))->gross()->minorAmount());
+    }
+
+    public function testItKeepsTaxExclusiveZeroTaxAmountUnchanged(): void
+    {
+        $breakdown = (new TaxCalculator())->fromTaxExclusive(Money::ofMinor(12_345, 'TRY'), TaxRate::fromPercentage(0));
+
+        self::assertSame(12_345, $breakdown->gross()->minorAmount());
+        self::assertSame(0, $breakdown->tax()->minorAmount());
+    }
+
+    public function testItRejectsTaxExclusiveGrossOverflowAtTheAdditionBoundary(): void
+    {
+        $this->expectException(\OverflowException::class);
+
+        (new TaxCalculator())->fromTaxExclusive(
+            Money::ofMinor(9_222_449_791_875_589_999, 'TRY'),
+            TaxRate::fromBasisPoints(1),
+        );
+    }
+
     public function testItExpressesPercentageRatesAsBasisPoints(): void
     {
         self::assertSame(2000, TaxRate::fromPercentage(20)->basisPoints());
