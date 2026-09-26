@@ -50,6 +50,12 @@ security:
     access_control:
         - { path: ^/yeni/admin/login$, roles: PUBLIC_ACCESS }
         - { path: ^/yeni/admin, roles: ROLE_ADMIN }
+        # Provider return and cancel addresses are reached by the gateway, not by a customer:
+        # a server-to-server webhook has no session at all. Their safety comes from the
+        # unguessable 64-hex return token plus the gateway's own signature check, so these
+        # must be declared public or a charged order could never be confirmed.
+        - { path: ^/yeni/odeme/sonuc/, roles: PUBLIC_ACCESS }
+        - { path: ^/yeni/odeme/iptal/, roles: PUBLIC_ACCESS }
         - { path: ^/yeni/(odeme|siparis/), roles: ROLE_CUSTOMER }
         - { path: ^/yeni/hesabim, roles: ROLE_CUSTOMER }
 

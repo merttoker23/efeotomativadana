@@ -2013,6 +2013,9 @@ select:focus-visible {
 .checkout-summary small { color: #66717d; display: block; margin-top: 14px; }
 .cart-checkout-link { margin-top: 16px; width: 100%; }
 .order-success-card { text-align: center; }
+/* The payment status page reuses the order card but carries forms and money figures, which
+   read badly centred, so it opts out of the inherited centring. */
+.payment-status-card { text-align: left; }
 .order-success-mark { align-items: center; background: #e7f7ed; border-radius: 50%; color: #23854a; display: inline-flex; font-size: 2rem; height: 64px; justify-content: center; width: 64px; }
 .order-success-grid { display: grid; gap: 28px; grid-template-columns: minmax(0, 1.4fr) minmax(260px, .6fr); margin: 30px 0; text-align: left; }
 .order-line { align-items: center; border-bottom: 1px solid #e7ebef; display: flex; justify-content: space-between; padding: 14px 0; }

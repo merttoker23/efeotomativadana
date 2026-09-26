@@ -80,6 +80,12 @@ services:
         arguments:
             $rootDirectory: '%env(EFE_B2B_SNAPSHOT_DIR)%'
 
+    # Payment providers are redirected back to this base; it is configuration, never the
+    # incoming request, so a Host header cannot aim a provider's redirect elsewhere.
+    App\Module\Payment\PaymentPublicUrlFactory:
+        arguments:
+            $publicBaseUri: '%env(DEFAULT_URI)%'
+
     # Override the default AssetMapper dev server subscriber to only intercept /yeni/assets/ requests.
     # The default public_prefix='/yeni' would cause the base subscriber to intercept ALL /yeni/
     # requests including application routes. This custom subscriber only handles asset paths.
@@ -90,6 +96,15 @@ services:
             $profiler: '@?profiler'
         tags: [kernel.event_subscriber]
 
+# The test-only fake gateway is autoconfigured only in the test environment, and
+# PaymentGatewayRegistry independently refuses a non-production-ready adapter in prod.
+# Together these make it impossible for the fake to quietly settle a real payment.
+when@!test:
+    services:
+        App\Module\Payment\FakePaymentGateway:
+            autowire: false
+            autoconfigure: false
+
 when@test:
     services:
         App\Module\Checkout\CheckoutManager:
@@ -97,6 +112,32 @@ when@test:
             autoconfigure: true
             public: true
         App\Module\Integration\B2b\B2bResourceResolver:
+            autowire: true
+            autoconfigure: true
+            public: true
+        # Functional tests queue deterministic outcomes on the fake and read the payment
+        # services back directly.
+        App\Module\Payment\FakePaymentGateway:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Payment\PaymentGatewayRegistry:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Payment\PaymentInitiationService:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Payment\PaymentCallbackHandler:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Payment\PaymentRefundService:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Payment\PaymentAdminManager:
             autowire: true
             autoconfigure: true
             public: true

@@ -1,0 +1,144 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Payment {{ order.orderNumber }}{% endblock %}
+
+{% block body %}
+<h1>Payment</h1>
+
+<dl class="admin-summary">
+    <dt>Order</dt>
+    <dd><a href="{{ path('admin_order_show', {orderNumber: order.orderNumber}) }}">{{ order.orderNumber }}</a></dd>
+    <dt>Customer</dt>
+    <dd>{{ order.customerEmail }} — {{ order.customerName }}</dd>
+    <dt>Status</dt>
+    <dd><span class="admin-badge">{{ payment.state.value }}</span></dd>
+    <dt>Method</dt>
+    <dd>{{ payment.methodLabel }} ({{ payment.methodKey }})</dd>
+    <dt>Provider</dt>
+    <dd>{{ payment.providerKey }}</dd>
+    <dt>Amount</dt>
+    <dd>{{ payment.amount|storefront_money }} <small>({{ payment.amount.minorAmount }} minor units)</small></dd>
+    <dt>Captured</dt>
+    <dd>{{ payment.capturedAmount|storefront_money }} <small>({{ payment.capturedAmount.minorAmount }} minor units)</small></dd>
+    <dt>Refunded</dt>
+    <dd>{{ payment.refundedAmount|storefront_money }} <small>({{ payment.refundedAmount.minorAmount }} minor units)</small></dd>
+    <dt>Refundable</dt>
+    <dd>{{ payment.refundableAmount|storefront_money }} <small>({{ payment.refundableAmount.minorAmount }} minor units)</small></dd>
+    <dt>Order status</dt>
+    <dd>{{ order.state.value }}</dd>
+</dl>
+
+{% if payment.failure %}
+    <h2>Last failure</h2>
+    <p class="alert alert-error" role="alert">
+        <strong>{{ payment.failure.code }}</strong>
+        {% if payment.failure.message %}<br>{{ payment.failure.message }}{% endif %}
+    </p>
+{% endif %}
+
+<h2>Attempts</h2>
+<div class="table-wrap">
+    <table class="admin-table">
+    <caption class="visually-hidden">Payment attempts</caption>
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col">Status</th>
+            <th scope="col">Provider reference</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Started</th>
+            <th scope="col">Captured</th>
+            <th scope="col">Failure</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attempt in attempts %}
+            <tr>
+                <td>{{ attempt.sequence }}</td>
+                <td>{{ attempt.state.value }}</td>
+                <td>{{ attempt.providerReference ?? '—' }}</td>
+                <td>{{ attempt.amount|storefront_money }}</td>
+                <td>{{ attempt.createdAt|date('Y-m-d H:i') }}</td>
+                <td>{{ attempt.succeededAt ? attempt.succeededAt|date('Y-m-d H:i') : '—' }}</td>
+                <td>{{ attempt.failure ? attempt.failure.code : '—' }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="7">No attempts yet.</td></tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</div>
+
+<h2>Refunds</h2>
+<div class="table-wrap">
+    <table class="admin-table">
+    <caption class="visually-hidden">Refunds</caption>
+    <thead>
+        <tr>
+            <th scope="col">Status</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Provider reference</th>
+            <th scope="col">Reason</th>
+            <th scope="col">Recorded</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for refund in refunds %}
+            <tr>
+                <td>{{ refund.state.value }}</td>
+                <td>{{ refund.amount|storefront_money }}</td>
+                <td>{{ refund.providerReference }}</td>
+                <td>{{ refund.reason }}</td>
+                <td>{{ refund.createdAt|date('Y-m-d H:i') }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="5">No refunds.</td></tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</div>
+
+<h2>Payment history</h2>
+<p>Provider-side facts about this payment. The order timeline stays on
+   <a href="{{ path('admin_order_show', {orderNumber: order.orderNumber}) }}">the order page</a>.</p>
+<div class="table-wrap">
+    <table class="admin-table">
+    <caption class="visually-hidden">Payment history</caption>
+    <thead>
+        <tr>
+            <th scope="col">State</th>
+            <th scope="col">Source</th>
+            <th scope="col">Attempt</th>
+            <th scope="col">Detail</th>
+            <th scope="col">When</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for event in events %}
+            <tr>
+                <td>{{ event.toState.value }}</td>
+                <td>{{ event.source }}</td>
+                <td>{{ event.attemptSequence ?? '—' }}</td>
+                <td>{{ event.detail ?? '—' }}</td>
+                <td>{{ event.occurredAt|date('Y-m-d H:i') }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</div>
+
+<h2>Actions</h2>
+{% if isActionable %}
+    <p>No money has been captured yet, so this payment can be restarted or cancelled by hand.</p>
+    {{ form(retryForm) }}
+
+    {{ form_start(cancelForm) }}
+        {{ form_widget(cancelForm) }}
+    {{ form_end(cancelForm) }}
+{% else %}
+    <p>
+        This payment holds captured funds, so it can no longer be restarted or cancelled by hand.
+        Move the money with a refund and let the provider confirm it.
+    </p>
+{% endif %}
+{% endblock %}

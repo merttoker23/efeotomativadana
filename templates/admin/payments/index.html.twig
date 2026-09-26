@@ -1,0 +1,59 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Payments{% endblock %}
+
+{% block body %}
+<h1>Payments</h1>
+<p>Order payments, kept separate from the order timeline. A refund or a retry appears here and never rewrites order history.</p>
+
+<form method="get" action="{{ path('admin_payment_index') }}" class="admin-filters">
+    <label for="payment-query">Search</label>
+    <input type="search" id="payment-query" name="q" value="{{ query }}" placeholder="Order number, customer email or provider reference">
+    <label for="payment-state">Status</label>
+    <select id="payment-state" name="state">
+        <option value="">All</option>
+        {% for state in states %}
+            <option value="{{ state.value }}"{{ state.value == state_filter ? ' selected' : '' }}>{{ state.value }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+</form>
+
+<div class="table-wrap">
+    <table class="admin-table">
+    <caption class="visually-hidden">Payments</caption>
+    <thead>
+        <tr>
+            <th scope="col">Order</th>
+            <th scope="col">Customer</th>
+            <th scope="col">Status</th>
+            <th scope="col">Provider</th>
+            <th scope="col">Reference</th>
+            <th scope="col">Amount</th>
+            <th scope="col">Captured</th>
+            <th scope="col">Refunded</th>
+            <th scope="col">Updated</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for payment in page.items %}
+            <tr>
+                <td><a href="{{ path('admin_payment_show', {orderNumber: payment.order.orderNumber}) }}">{{ payment.order.orderNumber }}</a></td>
+                <td>{{ payment.order.customerEmail }}</td>
+                <td><span class="admin-badge">{{ payment.state.value }}</span></td>
+                <td>{{ payment.providerKey }}</td>
+                <td>{{ payment.latestAttempt ? payment.latestAttempt.providerReference : '—' }}</td>
+                <td>{{ payment.amount|storefront_money }}</td>
+                <td>{{ payment.capturedAmount|storefront_money }}</td>
+                <td>{{ payment.refundedAmount|storefront_money }}</td>
+                <td>{{ payment.updatedAt|date('Y-m-d H:i') }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="9">No payments yet.</td></tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</div>
+
+{% include 'admin/_pagination.html.twig' with {page: page, route: 'admin_payment_index', query: {q: query, state: state_filter}} %}
+{% endblock %}

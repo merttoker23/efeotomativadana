@@ -1,0 +1,51 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Ödeme durumu | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <section class="container order-success-card payment-status-card">
+        <p class="checkout-kicker">Sipariş {{ order.orderNumber }}</p>
+        <h1>Ödeme durumu</h1>
+
+        <p class="order-number">Sipariş numarası: <strong>{{ order.orderNumber }}</strong></p>
+        <p class="order-payment">Ödeme yöntemi: {{ order.paymentOptionLabel }}</p>
+        <p class="order-totals grand"><span>Toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></p>
+
+        {% if payment is null %}
+            {# The order exists and the stock is reserved, so the payment can still be started. #}
+            <p>Ödemeniz henüz başlatılmadı. Aşağıdaki düğmeyle ödemeyi şimdi başlatabilirsiniz.</p>
+            <form method="post" action="{{ path('storefront_payment_retry', {orderNumber: order.orderNumber}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('payment_retry') }}">
+                <button type="submit" class="checkout-primary">Ödemeyi başlat</button>
+            </form>
+        {% else %}
+            <p>Ödeme durumu: <strong>{{ payment.state.value }}</strong></p>
+            {% if payment.capturedAmount().minorAmount > 0 %}
+                <p>Tahsil edilen: <strong>{{ payment.capturedAmount|storefront_money }}</strong></p>
+            {% endif %}
+            {% if payment.refundedAmount().minorAmount > 0 %}
+                <p>İade edilen: <strong>{{ payment.refundedAmount|storefront_money }}</strong></p>
+            {% endif %}
+            {% if payment.failure() is not null and payment.failure().code is defined %}
+                <p class="alert alert-error" role="alert">Son ödeme hatası: {{ payment.failure().code }}</p>
+            {% endif %}
+
+            {% if payment.state.value in ['pending', 'requires_action', 'failed'] %}
+                <form method="post" action="{{ path('storefront_payment_retry', {orderNumber: order.orderNumber}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('payment_retry') }}">
+                    <button type="submit" class="checkout-primary">Ödemeyi yeniden dene</button>
+                </form>
+                {% if payment.latestAttempt %}
+                    <form method="post" action="{{ path('storefront_payment_cancel', {token: payment.latestAttempt.returnToken}) }}">
+                        <input type="hidden" name="payment_cancel[_token]" value="{{ csrf_token('payment_cancel') }}">
+                        <button type="submit">Ödemeyi iptal et</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+
+        <a class="account-primary-link" href="{{ path('storefront_catalog_index') }}">Alışverişe devam et</a>
+    </section>
+</main>
+{% endblock %}

@@ -11,6 +11,7 @@
         <dt>Shipping</dt><dd>{{ order.shippingOptionLabel }}</dd>
         <dt>Payment</dt><dd>{{ order.paymentOptionLabel }}</dd>
     </dl>
+    <p><a href="{{ path('admin_payment_show', {orderNumber: order.orderNumber}) }}">Payment history</a></p>
     <div class="form-grid">
         <article class="subpanel">
             <h2>Shipping address</h2>
