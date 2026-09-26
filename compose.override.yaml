@@ -10,7 +10,9 @@ services:
       APP_ENV: dev
       # .env dosyasındaki null://null değerini ezer, mailler Mailpit'e düşer:
       MAILER_DSN: smtp://mailer:1025
-      DEFAULT_URI: http://localhost:8080
+      # 8443 is where Caddy publishes TLS below. The https scheme is required, not cosmetic:
+      # PublicUrlGenerator and PaymentPublicUrlFactory refuse a plain http base.
+      DEFAULT_URI: https://localhost:8443
     volumes:
       - ./:/app
       # Windows bind-mount üzerinden vendor okumak on binlerce yavaş stat

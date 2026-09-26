@@ -317,7 +317,9 @@ final class PaymentPersistenceTest extends KernelTestCase
 
     public function testGatewayCheckoutOptionKeyIsStable(): void
     {
-        self::assertSame('gateway_checkout', (new GatewayCheckoutPaymentOption())->key());
+        $option = self::getContainer()->get(GatewayCheckoutPaymentOption::class);
+        self::assertInstanceOf(GatewayCheckoutPaymentOption::class, $option);
+        self::assertSame('gateway_checkout', $option->key());
     }
 
     private function repository(): \App\Repository\Commerce\PaymentRepository

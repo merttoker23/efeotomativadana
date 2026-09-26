@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Checkout;
 
+use App\Module\Payment\PaymentGatewayRegistry;
+use App\Module\Settings\StoreConfiguration;
+
 /**
  * The single checkout payment option that routes a customer into gateway orchestration.
  *
@@ -12,11 +15,22 @@ namespace App\Module\Checkout;
  */
 final readonly class GatewayCheckoutPaymentOption implements GatewayPaymentOptionInterface
 {
+    public function __construct(
+        private StoreConfiguration $configuration,
+        private PaymentGatewayRegistry $gateways,
+    ) {
+    }
+
     public function key(): string { return self::CHECKOUT_KEY; }
 
     public function label(): string { return 'Kredi kartı ile ödeme'; }
 
-    public function available(): bool { return true; }
+    public function available(): bool
+    {
+        $provider = $this->configuration->paymentProvider();
+
+        return null !== $provider && in_array($provider, $this->gateways->selectableKeys(), true);
+    }
 
     public function productionReady(): bool { return true; }
 

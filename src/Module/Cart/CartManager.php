@@ -129,7 +129,17 @@ final class CartManager implements ResetInterface
             $sellable = $updatable && $item->quantity() <= $inventory->quantity();
             if ($sellable && null !== $lineTotal) {
                 $total ??= \App\Shared\Money\Money::ofMinor(0, $unitPrice->currency());
-                $total = $total->add($lineTotal);
+                try {
+                    $total = $total->add($lineTotal);
+                } catch (\InvalidArgumentException) {
+                    // Two products priced in different currencies cannot be added, and the store's
+                    // own currency is not checked per product. Surfacing this as an unavailable
+                    // line keeps the basket page answering, which is what the other two readers
+                    // of a mixed-currency cart already do; adding it here would have turned a
+                    // pricing mistake into a 500 for the customer.
+                    $hasUnavailableLine = true;
+                    $total = null;
+                }
             } else {
                 $hasUnavailableLine = true;
             }

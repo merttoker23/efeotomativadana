@@ -59,6 +59,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Ödeme ve sipariş');
         self::assertSelectorTextContains('.checkout-payment-warning', 'üretim dışı');
+        self::assertSelectorNotExists('input[name="payment_option"][value="gateway_checkout"]');
         $token = $crawler->filter('input[name="_token"]')->attr('value');
         self::assertIsString($token);
         $this->client->request('POST', '/yeni/odeme', [

@@ -54,6 +54,15 @@ final class Payment
     #[ORM\Column(type: Types::BIGINT)]
     private int $capturedMinorAmount = 0;
 
+    /**
+     * What the customer handed the processor, when that was more than the order total.
+     *
+     * Zero for an ordinary payment. It only ever widens the refund ceiling, so it is never
+     * smaller than the captured figure once an instalment payment has been recorded.
+     */
+    #[ORM\Column(type: Types::BIGINT)]
+    private int $collectedMinorAmount = 0;
+
     #[ORM\Column(type: Types::BIGINT)]
     private int $refundedMinorAmount = 0;
 
@@ -152,7 +161,30 @@ final class Payment
 
     public function refundableAmount(): Money
     {
-        return $this->capturedAmount()->subtract($this->refundedAmount());
+        return $this->refundableCeiling()->subtract($this->refundedAmount());
+    }
+
+    /**
+     * The most that may be given back.
+     *
+     * Normally this is what was captured. When the customer handed the processor more than the
+     * order was worth — an instalment plan, where the difference is interest — that larger figure
+     * is the ceiling instead, because it is what the customer can actually be given back. The
+     * store's own revenue is unaffected: it is always the order total that settled the order.
+     */
+    public function refundableCeiling(): Money
+    {
+        if ($this->collectedMinorAmount > $this->capturedMinorAmount) {
+            return Money::ofMinor($this->collectedMinorAmount, $this->currency);
+        }
+
+        return $this->capturedAmount();
+    }
+
+    /** The larger figure a customer actually paid, when it exceeded the order total. */
+    public function collectedAmount(): Money
+    {
+        return Money::ofMinor($this->collectedMinorAmount, $this->currency);
     }
 
     /** Whether everything that was captured has been given back. */
@@ -198,6 +230,22 @@ final class Payment
         $this->clearFailure();
         $this->record(PaymentState::RequiresAction, 'gateway', 'Cardholder action required.');
         $this->updatedAt = $at;
+    }
+
+    /**
+     * Records that the customer handed over more than the order was worth.
+     *
+     * Called after the order itself has been settled at the order total. The larger figure only
+     * widens what may later be refunded to the customer; it never changes what the store earned,
+     * and it is ignored when it is not actually larger than the captured amount.
+     */
+    public function recordCollectedAboveOrder(Money $collected): void
+    {
+        if ($collected->currency() !== $this->currency || $collected->minorAmount() <= $this->capturedMinorAmount) {
+            return;
+        }
+
+        $this->collectedMinorAmount = $collected->minorAmount();
     }
 
     public function markSucceeded(PaymentAttempt $attempt, string $providerReference, Money $captured, \DateTimeImmutable $at): void
@@ -251,7 +299,14 @@ final class Payment
         $attempt->markFailed($failure);
         $this->failureCode = $failure->code();
         $this->failureMessage = '' === $failure->message() ? null : $failure->message();
-        $this->transition(PaymentState::Failed, 'gateway', $failure->code());
+        // A retry the provider then refuses arrives here with the payment already failed, because
+        // starting an attempt does not by itself lift a failure. Recording the new reason is the
+        // whole point; there is no second failed-to-failed transition to make.
+        if (PaymentState::Failed !== $this->state) {
+            $this->transition(PaymentState::Failed, 'gateway', $failure->code());
+        } else {
+            $this->record(PaymentState::Failed, 'gateway', $failure->code());
+        }
         $this->updatedAt = $at;
     }
 

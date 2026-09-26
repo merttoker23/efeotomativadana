@@ -28,6 +28,10 @@ security:
                 check_path: admin_login
                 enable_csrf: true
                 default_target_path: admin_dashboard
+                # A request-supplied _target_path would otherwise be honoured after a successful
+                # login, so a victim who signs in to the genuine store could be redirected to a
+                # lookalike that asks for their credentials a second time.
+                always_use_default_target_path: true
             logout:
                 path: admin_logout
                 target: admin_login
@@ -41,6 +45,9 @@ security:
                 check_path: customer_login
                 enable_csrf: true
                 default_target_path: customer_account_dashboard
+                # See the admin firewall above: the post-login destination is never taken from
+                # the request.
+                always_use_default_target_path: true
             logout:
                 path: customer_logout
                 target: customer_login
@@ -56,6 +63,12 @@ security:
         # must be declared public or a charged order could never be confirmed.
         - { path: ^/yeni/odeme/sonuc/, roles: PUBLIC_ACCESS }
         - { path: ^/yeni/odeme/iptal/, roles: PUBLIC_ACCESS }
+        # PayTR's notification URL is called by PayTR's own servers, with no session and no
+        # cookie. It is addressed by the provider's order reference rather than a return token,
+        # and its safety comes from the gateway's signature check over the raw post: nothing is
+        # settled until that hash verifies. Declaring it public is what lets a real charge be
+        # confirmed at all, and it must stay a POST-only endpoint that answers a plain `OK`.
+        - { path: ^/yeni/odeme/paytr/bildirim$, roles: PUBLIC_ACCESS }
         - { path: ^/yeni/(odeme|siparis/), roles: ROLE_CUSTOMER }
         - { path: ^/yeni/hesabim, roles: ROLE_CUSTOMER }
 

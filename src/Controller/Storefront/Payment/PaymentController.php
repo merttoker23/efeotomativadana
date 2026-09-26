@@ -21,10 +21,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * The customer-facing payment entry points.
  *
- * The callback and cancel routes are intentionally reachable without a session: a provider
- * redirect arrives in the customer's browser and a server-to-server webhook arrives with no
- * session at all. Their safety comes from the unguessable 64-hex return token in the path
- * plus the gateway's own signature verification — never from authentication.
+ * The browser return route is reachable without a session because the provider may redirect
+ * after the customer's session has expired. A return token identifies an attempt, but only a
+ * signed provider notification can settle PayTR payment state. Customer cancellation remains
+ * authenticated and CSRF-protected.
  */
 final class PaymentController extends AbstractController
 {
@@ -68,9 +68,58 @@ final class PaymentController extends AbstractController
         return $this->respondToStart($start, $order->orderNumber());
     }
 
+    /**
+     * Renders the form a gateway wants the customer's browser to post, and nothing else.
+     *
+     * Provider-neutral on purpose: any gateway that answers with a hosted form is rendered by
+     * this one template, so a provider's own vocabulary never reaches the storefront. Reached by
+     * a POST rather than a link, because building the form starts a payment attempt, and the
+     * fields are deliberately not stored — a refresh cannot replay a provider session, and the
+     * order page simply offers the action again.
+     */
+    #[Route('/odeme/{orderNumber}/odeme-formu', name: 'storefront_payment_form', requirements: ['orderNumber' => 'EOA-\d{8}-[0-9A-F]{12}'], methods: ['POST'])]
+    #[IsGranted('ROLE_CUSTOMER')]
+    public function form(string $orderNumber, Request $request, StorefrontPageContext $context, OrderRepositoryInterface $orders, PaymentInitiationService $initiation): Response
+    {
+        $order = $orders->findOneByNumberForCustomer($orderNumber, $this->customer());
+        if (null === $order) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->isCsrfTokenValid('payment_form', $request->request->getString('_token'))) {
+            throw new AccessDeniedHttpException('Geçersiz ödeme isteği.');
+        }
+
+        try {
+            $start = $initiation->retry($order);
+        } catch (\DomainException|\InvalidArgumentException|\RuntimeException) {
+            $start = null;
+        }
+
+        $actionUrl = null === $start ? null : $start->redirectUrl();
+        if (null === $start || !$start->isHostedForm() || null === $actionUrl) {
+            $this->addFlash('error', 'Ödeme başlatılamadı. Lütfen tekrar deneyin.');
+
+            return $this->redirectToRoute('storefront_payment_show', ['orderNumber' => $order->orderNumber()]);
+        }
+
+        return $this->render('storefront/payment/gateway_form.html.twig', $context->withLayout([
+            'order' => $order,
+            'action_url' => $actionUrl,
+            'fields' => $start->hostedFormFields(),
+        ]));
+    }
+
     #[Route('/odeme/sonuc/{token}', name: 'storefront_payment_callback', requirements: ['token' => '[0-9a-f]{64}'], methods: ['GET', 'POST'])]
     public function callback(string $token, Request $request, PaymentCallbackHandler $handler): Response
     {
+        $attempt = $handler->attemptFor($token);
+        if (null !== $attempt && 'paytr' === $attempt->payment()->providerKey()) {
+            // PayTR's browser return is unsigned and may arrive before its separate server
+            // notification. Show the order's current state without attempting settlement or
+            // claiming the payment failed.
+            return $this->redirectToRoute('storefront_payment_show', ['orderNumber' => $attempt->orderNumber()]);
+        }
+
         $result = $handler->handle($token, new IncomingPaymentCallback(
             (string) $request->getContent(),
             $this->singleValueHeaders($request),
@@ -101,10 +150,8 @@ final class PaymentController extends AbstractController
     /**
      * The customer walked away at the provider.
      *
-     * POST-only and CSRF-protected on purpose. This URL is handed to the provider and then
-     * travels through the address bar, browser history and proxy logs, so a bare GET — or a
-     * forwarded link — must not be able to cancel somebody's in-flight payment. The customer
-     * must still be logged in and must own the order.
+     * POST-only and CSRF-protected on purpose. A bare GET or forwarded link must not be able to
+     * cancel somebody's in-flight payment. The customer must be logged in and own the order.
      */
     #[Route('/odeme/iptal/{token}', name: 'storefront_payment_cancel', requirements: ['token' => '[0-9a-f]{64}'], methods: ['POST'])]
     #[IsGranted('ROLE_CUSTOMER')]

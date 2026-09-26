@@ -17,6 +17,18 @@ use Doctrine\DBAL\Types\Types;
  */
 final readonly class GatewayInitiationInstruction
 {
+    private ?string $customerName;
+
+    private ?string $customerPhone;
+
+    private ?string $customerAddress;
+
+    /** @var list<array{string, string, int}> */
+    private array $basketLines;
+
+    /**
+     * @param list<array{string, string, int}> $basketLines label, dot-decimal unit price, quantity
+     */
     public function __construct(
         private string $orderNumber,
         private string $attemptSequence,
@@ -26,6 +38,10 @@ final readonly class GatewayInitiationInstruction
         private string $cancelUrl,
         private string $customerEmail,
         private string $locale,
+        ?string $customerName = null,
+        ?string $customerPhone = null,
+        ?string $customerAddress = null,
+        array $basketLines = [],
     ) {
         if (1 !== preg_match('/^EOA-\d{8}-[0-9A-F]{12}$/', trim($this->orderNumber))) {
             throw new \InvalidArgumentException('Payment initiation order number has an invalid format.');
@@ -41,6 +57,11 @@ final readonly class GatewayInitiationInstruction
         if (false === filter_var(trim($this->customerEmail), FILTER_VALIDATE_EMAIL)) {
             throw new \InvalidArgumentException('Payment initiation customer email is invalid.');
         }
+
+        $this->customerName = self::optionalText($customerName);
+        $this->customerPhone = self::optionalText($customerPhone);
+        $this->customerAddress = self::optionalText($customerAddress);
+        $this->basketLines = self::validatedBasketLines($basketLines);
     }
 
     public function orderNumber(): string { return $this->orderNumber; }
@@ -60,6 +81,68 @@ final readonly class GatewayInitiationInstruction
     public function customerEmail(): string { return mb_strtolower(trim($this->customerEmail)); }
 
     public function locale(): string { return trim($this->locale); }
+
+    /** Full name, for a provider that requires one. Absent when the order did not capture it. */
+    public function customerName(): ?string { return $this->customerName; }
+
+    /** Contact phone, for a provider that requires one. */
+    public function customerPhone(): ?string { return $this->customerPhone; }
+
+    /** Delivery address as a single line, for a provider that requires one. */
+    public function customerAddress(): ?string { return $this->customerAddress; }
+
+    /**
+     * The order's own lines, so a provider receives a real basket.
+     *
+     * @return list<array{string, string, int}>
+     */
+    public function basketLines(): array { return $this->basketLines; }
+
+    /** A blank optional value is absent, never an empty string a provider would have to guess at. */
+    private static function optionalText(?string $value): ?string
+    {
+        if (null === $value) {
+            return null;
+        }
+        $value = trim($value);
+
+        return '' === $value ? null : $value;
+    }
+
+    /**
+     * @param array<mixed> $lines
+     *
+     * @return list<array{string, string, int}>
+     */
+    private static function validatedBasketLines(array $lines): array
+    {
+        $validated = [];
+        foreach ($lines as $line) {
+            if (!\is_array($line) || 3 !== \count($line)) {
+                throw new \InvalidArgumentException('A payment basket line must be a name, a unit price and a quantity.');
+            }
+            $values = array_values($line);
+            $name = trim((string) $values[0]);
+            $price = trim((string) $values[1]);
+            $quantity = $values[2];
+
+            if ('' === $name) {
+                throw new \InvalidArgumentException('A payment basket line must be named.');
+            }
+            // A dot-decimal price with at most two places: the shape every documented provider
+            // expects, and the only one that cannot be misread as a thousands separator.
+            if (1 !== preg_match('/^\d{1,12}(?:\.\d{1,2})?$/', $price)) {
+                throw new \InvalidArgumentException('A payment basket line needs a dot-decimal unit price.');
+            }
+            if (!\is_int($quantity) || $quantity < 1) {
+                throw new \InvalidArgumentException('A payment basket line needs a positive whole quantity.');
+            }
+
+            $validated[] = [$name, $price, $quantity];
+        }
+
+        return $validated;
+    }
 
     private function assertHttpsUrl(string $url, string $role): void
     {
