@@ -68,6 +68,47 @@ final class PaymentController extends AbstractController
         return $this->respondToStart($start, $order->orderNumber());
     }
 
+    /**
+     * Renders the form a gateway wants the customer's browser to post, and nothing else.
+     *
+     * Provider-neutral on purpose: any gateway that answers with a hosted form is rendered by
+     * this one template, so a provider's own vocabulary never reaches the storefront. Reached by
+     * a POST rather than a link, because building the form starts a payment attempt, and the
+     * fields are deliberately not stored — a refresh cannot replay a provider session, and the
+     * order page simply offers the action again.
+     */
+    #[Route('/odeme/{orderNumber}/odeme-formu', name: 'storefront_payment_form', requirements: ['orderNumber' => 'EOA-\d{8}-[0-9A-F]{12}'], methods: ['POST'])]
+    #[IsGranted('ROLE_CUSTOMER')]
+    public function form(string $orderNumber, Request $request, StorefrontPageContext $context, OrderRepositoryInterface $orders, PaymentInitiationService $initiation): Response
+    {
+        $order = $orders->findOneByNumberForCustomer($orderNumber, $this->customer());
+        if (null === $order) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->isCsrfTokenValid('payment_form', $request->request->getString('_token'))) {
+            throw new AccessDeniedHttpException('Geçersiz ödeme isteği.');
+        }
+
+        try {
+            $start = $initiation->retry($order);
+        } catch (\DomainException|\InvalidArgumentException|\RuntimeException) {
+            $start = null;
+        }
+
+        $actionUrl = null === $start ? null : $start->redirectUrl();
+        if (null === $start || !$start->isHostedForm() || null === $actionUrl) {
+            $this->addFlash('error', 'Ödeme başlatılamadı. Lütfen tekrar deneyin.');
+
+            return $this->redirectToRoute('storefront_payment_show', ['orderNumber' => $order->orderNumber()]);
+        }
+
+        return $this->render('storefront/payment/gateway_form.html.twig', $context->withLayout([
+            'order' => $order,
+            'action_url' => $actionUrl,
+            'fields' => $start->hostedFormFields(),
+        ]));
+    }
+
     #[Route('/odeme/sonuc/{token}', name: 'storefront_payment_callback', requirements: ['token' => '[0-9a-f]{64}'], methods: ['GET', 'POST'])]
     public function callback(string $token, Request $request, PaymentCallbackHandler $handler): Response
     {

@@ -42,7 +42,34 @@ final readonly class PaymentCallbackHandler
         if ('' === $returnToken) {
             return PaymentCallbackResult::rejected('unknown_attempt');
         }
-        $attempt = $this->payments->findAttemptByReturnToken($returnToken);
+
+        return $this->applyTo($this->payments->findAttemptByReturnToken($returnToken), $callback);
+    }
+
+    /**
+     * The same handling for a report that arrives without a return token.
+     *
+     * A server-to-server notification is not a browser redirect: it carries no session and none
+     * of this application's URLs, so the only thing that can address the attempt is the
+     * provider's own reference for it. That reference is a claim until the gateway verifies the
+     * provider's signature, which is why the attempt is only *located* here and nothing is
+     * changed before {@see PaymentGatewayInterface::authenticateCallback()} has agreed.
+     */
+    public function handleProviderReference(string $providerKey, string $providerReference, IncomingPaymentCallback $callback): PaymentCallbackResult
+    {
+        $providerReference = trim($providerReference);
+        if ('' === trim($providerKey) || '' === $providerReference) {
+            return PaymentCallbackResult::rejected('unknown_attempt');
+        }
+
+        return $this->applyTo(
+            $this->payments->findAttemptByProviderReference($providerKey, $providerReference),
+            $callback,
+        );
+    }
+
+    private function applyTo(?PaymentAttempt $attempt, IncomingPaymentCallback $callback): PaymentCallbackResult
+    {
         if (null === $attempt) {
             return PaymentCallbackResult::rejected('unknown_attempt');
         }
@@ -101,25 +128,41 @@ final readonly class PaymentCallbackHandler
 
     private function applyCapture(Payment $payment, PaymentAttempt $attempt, CallbackAuthentication $authentication): PaymentCallbackResult
     {
-        $captured = $authentication->capturedAmount();
-        if (null === $captured) {
+        $collected = $authentication->capturedAmount();
+        if (null === $collected) {
             return PaymentCallbackResult::rejected('missing_amount', $payment->state());
         }
         $now = $this->now();
         $reference = $authentication->providerReference() ?? $attempt->providerReference() ?? '';
+        $expected = $payment->amount();
+
+        // Collecting more than the order total is not a discrepancy: a customer paying by
+        // instalment hands the processor more than the order is worth, and that difference
+        // belongs to the processor and the customer, not to the store. The store is paid the
+        // order total, so that is what settles the order, while the larger figure the customer
+        // actually handed over is kept as the ceiling for a later refund.
+        if ($collected->currency() === $expected->currency() && $collected->minorAmount() > $expected->minorAmount()) {
+            $payment->markSucceeded($attempt, $reference, $expected, $now);
+            $payment->recordCollectedAboveOrder($collected);
+            $this->syncOrder($payment->order(), $now);
+            $this->payments->save($payment);
+            $this->entityManager->flush();
+
+            return PaymentCallbackResult::applied($payment->state());
+        }
 
         // The order total is the only amount that may mark an order paid. A provider that
         // reports a different figure still took real money, so the figure is recorded and the
         // payment stays refundable instead of being written off as "nothing captured".
-        if (!$captured->equals($payment->amount())) {
-            $payment->markCapturedAmountMismatch($attempt, $reference, $captured, $now);
+        if (!$collected->equals($expected)) {
+            $payment->markCapturedAmountMismatch($attempt, $reference, $collected, $now);
             $this->payments->save($payment);
             $this->entityManager->flush();
 
             return PaymentCallbackResult::rejected('amount_mismatch', $payment->state());
         }
 
-        $payment->markSucceeded($attempt, $reference, $captured, $now);
+        $payment->markSucceeded($attempt, $reference, $expected, $now);
         $this->syncOrder($payment->order(), $now);
         $this->payments->save($payment);
         $this->entityManager->flush();

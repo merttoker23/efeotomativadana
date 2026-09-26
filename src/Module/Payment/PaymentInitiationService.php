@@ -11,6 +11,7 @@ use App\Module\Payment\Gateway\GatewayInitiationInstruction;
 use App\Module\Payment\Gateway\PaymentGatewayInterface;
 use App\Module\Settings\StoreConfiguration;
 use App\Repository\Commerce\PaymentRepository;
+use App\Shared\Money\Money;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -213,8 +214,26 @@ final readonly class PaymentInitiationService
         return sprintf('order-%s-attempt-%d', $order->orderNumber(), ($attempt?->sequence() ?? 0) + 1);
     }
 
+    /**
+     * The order's own facts, so a provider that requires the customer's name, phone, address or a
+     * basket receives them without this module knowing any provider's field names.
+     */
     private function instruction(CustomerOrder $order, PaymentAttempt $attempt): GatewayInitiationInstruction
     {
+        $address = $order->address(\App\Module\Order\OrderAddressRole::Shipping)
+            ?? $order->address(\App\Module\Order\OrderAddressRole::Billing);
+
+        $lines = [];
+        foreach ($order->items() as $item) {
+            $lines[] = [$item->productName(), $this->decimal($item->unitGross()), $item->quantity()];
+        }
+        // The provider is paid the whole order total, so a basket that stopped at the items would
+        // not add up to what is being charged.
+        $shipping = $order->shippingTotal();
+        if (!$shipping->isZero()) {
+            $lines[] = [$order->shippingOptionLabel(), $this->decimal($shipping), 1];
+        }
+
         return new GatewayInitiationInstruction(
             $order->orderNumber(),
             (string) $attempt->sequence(),
@@ -224,6 +243,26 @@ final readonly class PaymentInitiationService
             $this->urls->absolute('storefront_payment_cancel', ['token' => $attempt->returnToken()]),
             $order->customerEmail(),
             'tr',
+            $order->customerName(),
+            $order->customerPhone(),
+            null === $address ? null : $this->addressLine($address),
+            $lines,
         );
+    }
+
+    /** A dot-decimal string, because that is the form every documented provider expects. */
+    private function decimal(Money $money): string
+    {
+        return sprintf('%d.%02d', intdiv($money->minorAmount(), 100), $money->minorAmount() % 100);
+    }
+
+    private function addressLine(\App\Entity\Commerce\OrderAddress $address): string
+    {
+        return implode(', ', array_filter([
+            $address->addressLine1(),
+            $address->addressLine2(),
+            $address->district(),
+            $address->city(),
+        ], static fn (?string $part): bool => null !== $part && '' !== trim($part)));
     }
 }

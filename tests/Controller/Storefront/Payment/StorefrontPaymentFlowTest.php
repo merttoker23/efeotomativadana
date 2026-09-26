@@ -157,7 +157,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
         self::assertTrue($this->client->getResponse()->isRedirect());
         $this->client->followRedirect();
-        self::assertStringContainsString('SipariÅŸiniz alÄ±ndÄ±', (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('Siparişiniz alındı', (string) $this->client->getResponse()->getContent());
         self::assertNull($this->paymentFor($this->onlyOrder()));
     }
 
@@ -205,7 +205,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
         self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/yeni/odeme/%s', $order->orderNumber())));
         $this->client->followRedirect();
-        self::assertStringContainsString('Ã–demeniz alÄ±ndÄ±', (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('Ödemeniz alındı', (string) $this->client->getResponse()->getContent());
 
         $this->client->request('GET', sprintf('/yeni/siparis/%s/basarili', $order->orderNumber()));
         self::assertResponseIsSuccessful();
@@ -259,7 +259,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->postCallback($this->tokenFor($order), 'FAKE-FG', 'succeeded', 30_000, 'forged');
 
         $this->client->followRedirect();
-        self::assertStringContainsString('Ã–deme doÄŸrulanamadÄ±', (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('Ödeme doğrulanamadı', (string) $this->client->getResponse()->getContent());
         self::assertSame('placed', $this->reload($order)->state()->value);
         self::assertSame(0, $this->paymentFor($this->reload($order))->capturedAmount()->minorAmount());
     }
@@ -502,7 +502,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
     private function customer(string $email): CustomerUser
     {
-        $customer = new CustomerUser($email, 'Efe', 'YÄ±lmaz');
+        $customer = new CustomerUser($email, 'Efe', 'Yılmaz');
         $customer->setPassword('test-password-hash');
         $this->entityManager->persist($customer);
         $this->entityManager->flush();
@@ -513,7 +513,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
     private function address(CustomerUser $customer): CustomerAddress
     {
         $address = new CustomerAddress($customer);
-        $address->update('Ev', 'Efe YÄ±lmaz', '05000000000', 'AtatÃ¼rk Cad. 1', null, 'Seyhan', 'Adana', '01000', false);
+        $address->update('Ev', 'Efe Yılmaz', '05000000000', 'Atatürk Cad. 1', null, 'Seyhan', 'Adana', '01000', false);
         $this->entityManager->persist($address);
         $this->entityManager->flush();
 
@@ -534,12 +534,12 @@ final class StorefrontPaymentFlowTest extends WebTestCase
             'local_standard',
             'Yerel standart teslimat',
             'gateway_checkout',
-            'Kredi kartÄ± ile Ã¶deme',
+            'Kredi kartı ile ödeme',
             new \DateTimeImmutable(),
         );
-        $order->addItem(null, 'FLOW-SKU', 'Ã–deme ÃœrÃ¼nÃ¼', 1, $gross, 0, $gross, $zero, $gross);
-        $order->addAddress(\App\Module\Order\OrderAddressRole::Shipping, 'Efe YÄ±lmaz', '05000000000', 'AtatÃ¼rk Cad. 1', null, 'Seyhan', 'Adana', null, 'TR');
-        $order->addAddress(\App\Module\Order\OrderAddressRole::Billing, 'Efe YÄ±lmaz', '05000000000', 'AtatÃ¼rk Cad. 1', null, 'Seyhan', 'Adana', null, 'TR');
+        $order->addItem(null, 'FLOW-SKU', 'Ödeme ürünü', 1, $gross, 0, $gross, $zero, $gross);
+        $order->addAddress(\App\Module\Order\OrderAddressRole::Shipping, 'Efe Yılmaz', '05000000000', 'Atatürk Cad. 1', null, 'Seyhan', 'Adana', null, 'TR');
+        $order->addAddress(\App\Module\Order\OrderAddressRole::Billing, 'Efe Yılmaz', '05000000000', 'Atatürk Cad. 1', null, 'Seyhan', 'Adana', null, 'TR');
         $order->sealSnapshots();
         $this->entityManager->persist($order);
         $this->entityManager->flush();
@@ -549,7 +549,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
     private function cartLine(CustomerUser $customer): void
     {
-        $product = new Product('FLOW-SKU-' . bin2hex(random_bytes(6)), 'Ã–deme ÃœrÃ¼nÃ¼', 'odeme-urunu-' . bin2hex(random_bytes(6)));
+        $product = new Product('FLOW-SKU-' . bin2hex(random_bytes(6)), 'Ödeme ürünü', 'odeme-urunu-' . bin2hex(random_bytes(6)));
         $product->publish();
         $price = new ProductPrice($product, Money::ofMinor(30_000, 'TRY'), TaxCategory::of('replacement-part'), TaxRate::fromBasisPoints(0));
         $inventory = new ProductInventory($product, 5);

@@ -1,0 +1,65 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Ödeme | {{ store.name }}{% endblock %}
+
+{#
+    The card form posts straight to the payment provider, not to this application. Every hidden
+    field was produced and signed by the store a moment ago; the customer's card details are
+    typed here and travel from the browser directly to the provider, so this server never sees
+    them. That is also why there is no action on this site and no route that could accept them.
+
+    This template is provider-neutral: any gateway that answers with a hosted form is rendered
+    here, so no provider's vocabulary reaches the storefront.
+#}
+{% block body %}
+<main id="main-content" class="page-shell">
+    <section class="container order-success-card payment-status-card">
+        <p class="checkout-kicker">Sipariş {{ order.orderNumber }}</p>
+        <h1>Ödeme</h1>
+
+        <p class="order-number">Sipariş numarası: <strong>{{ order.orderNumber }}</strong></p>
+        <p class="order-totals grand"><span>Toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></p>
+
+        <form method="post" action="{{ action_url }}" class="payment-card-form" id="gateway-payment-form">
+            {% for name, value in fields %}
+                <input type="hidden" name="{{ name }}" value="{{ value }}">
+            {% endfor %}
+
+            <div class="payment-card-fields">
+                <p class="payment-card-hint">Kart bilgileriniz doğrudan ödeme sağlayıcısına iletilir ve bu mağazaya kaydedilmez.</p>
+
+                <p>
+                    <label for="cc_owner">Kart üzerindeki isim</label>
+                    <input type="text" id="cc_owner" name="cc_owner" autocomplete="cc-name" maxlength="50" required>
+                </p>
+                <p>
+                    <label for="card_number">Kart numarası</label>
+                    <input type="text" id="card_number" name="card_number" autocomplete="cc-number"
+                           inputmode="numeric" maxlength="19" pattern="[0-9 ]+" required>
+                </p>
+                <p>
+                    <label for="expiry_month">Son kullanma ayı</label>
+                    <input type="text" id="expiry_month" name="expiry_month" autocomplete="cc-exp-month"
+                           inputmode="numeric" maxlength="2" pattern="[0-9]{1,2}" required>
+                </p>
+                <p>
+                    <label for="expiry_year">Son kullanma yılı</label>
+                    <input type="text" id="expiry_year" name="expiry_year" autocomplete="cc-exp-year"
+                           inputmode="numeric" maxlength="4" pattern="[0-9]{2,4}" required>
+                </p>
+                <p>
+                    <label for="cvv">CVC / güvenlik kodu</label>
+                    <input type="text" id="cvv" name="cvv" autocomplete="cc-csc"
+                           inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" required>
+                </p>
+            </div>
+
+            {# No script of any kind runs on this page: nothing here may be able to read the card
+               fields, so the form is a plain post and the values are never handled by JavaScript. #}
+            <button type="submit" class="checkout-primary">Ödemeyi tamamla</button>
+        </form>
+
+        <p><a class="account-primary-link" href="{{ path('storefront_payment_show', {orderNumber: order.orderNumber}) }}">Ödeme durumuna dön</a></p>
+    </section>
+</main>
+{% endblock %}

@@ -32,9 +32,15 @@
             {% endif %}
 
             {% if payment.state.value in ['pending', 'requires_action', 'failed'] %}
+                {# A gateway that collects the card itself is reached through a form page, so the
+                   signed provider fields are produced fresh there rather than kept in a link. #}
+                <form method="post" action="{{ path('storefront_payment_form', {orderNumber: order.orderNumber}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('payment_form') }}">
+                    <button type="submit" class="checkout-primary">Ödemeyi tamamla</button>
+                </form>
                 <form method="post" action="{{ path('storefront_payment_retry', {orderNumber: order.orderNumber}) }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('payment_retry') }}">
-                    <button type="submit" class="checkout-primary">Ödemeyi yeniden dene</button>
+                    <button type="submit">Ödemeyi yeniden dene</button>
                 </form>
                 {% if payment.latestAttempt %}
                     <form method="post" action="{{ path('storefront_payment_cancel', {token: payment.latestAttempt.returnToken}) }}">
