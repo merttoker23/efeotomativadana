@@ -6,6 +6,7 @@ namespace App\Controller\Admin\Commerce;
 
 use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Commerce\OrderStatusChange;
+use App\Entity\Commerce\Shipment;
 use App\Entity\Customer\AdminUser;
 use App\Form\Admin\OrderTransitionType;
 use App\Module\Admin\ConcurrentAdminEdit;
@@ -13,6 +14,7 @@ use App\Module\Order\AdminOrderManager;
 use App\Module\Order\OrderAddressRole;
 use App\Module\Order\OrderState;
 use App\Module\Order\OrderTransitionData;
+use App\Module\Shipping\ShipmentTrackingView;
 use App\Repository\Commerce\CustomerOrderRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -70,12 +72,18 @@ final class OrderController extends AbstractController
             $data = new OrderTransitionData(); $data->version = (string) $order->version();
             $form = $this->createForm(OrderTransitionType::class, $data, ['allowed_states' => $this->allowedStates($order->state()), 'action' => $this->generateUrl('admin_order_status', ['orderNumber' => $order->orderNumber()])]);
         }
+        $shipment = $entityManager->getRepository(Shipment::class)->findOneBy(['order' => $order]);
+
         return $this->render('admin/orders/show.html.twig', [
             'order' => $order,
             'shippingAddress' => $order->address(OrderAddressRole::Shipping),
             'billingAddress' => $order->address(OrderAddressRole::Billing),
             'history' => $entityManager->getRepository(OrderStatusChange::class)->findBy(['order' => $order], ['changedAt' => 'DESC', 'id' => 'DESC']),
             'transitionForm' => $form,
+            // The shipment is a separate aggregate with its own state, shown here as a link rather
+            // than folded into the order's own status field.
+            'shipment' => $shipment,
+            'tracking' => $shipment instanceof Shipment ? ShipmentTrackingView::forShipment($shipment) : null,
         ], new Response(status: $status));
     }
 

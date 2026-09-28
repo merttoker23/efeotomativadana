@@ -12,6 +12,15 @@
         <dt>Payment</dt><dd>{{ order.paymentOptionLabel }}</dd>
     </dl>
     <p><a href="{{ path('admin_payment_show', {orderNumber: order.orderNumber}) }}">Payment history</a></p>
+    <p>
+        {% if shipment is not null %}
+            Shipment: <a href="{{ path('admin_shipment_show', {orderNumber: order.orderNumber}) }}">{{ tracking.stateLabel }}{% if tracking.hasTrackingNumber %} — {{ tracking.trackingNumber }}{% endif %}</a>
+        {% elseif order.state.value == 'confirmed' %}
+            <a href="{{ path('admin_shipment_show', {orderNumber: order.orderNumber}) }}">Create the shipment for this order</a>
+        {% else %}
+            <a href="{{ path('admin_shipment_show', {orderNumber: order.orderNumber}) }}">Shipment</a>
+        {% endif %}
+    </p>
     <div class="form-grid">
         <article class="subpanel">
             <h2>Shipping address</h2>

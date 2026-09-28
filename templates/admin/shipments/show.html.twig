@@ -1,0 +1,95 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Shipment {{ order.orderNumber }}{% endblock %}
+
+{% block body %}
+<h1>Shipment</h1>
+
+<p>
+    <a href="{{ path('admin_order_show', {orderNumber: order.orderNumber}) }}">{{ order.orderNumber }}</a>
+    — {{ order.customerEmail }} ({{ order.customerName }})
+</p>
+
+{% if shipment is null %}
+    <h2>No shipment yet</h2>
+    {% if order.state.value == 'confirmed' %}
+        <p>This order is confirmed and waiting to be packed. Creating a shipment here is safe to
+           repeat: a second press returns the shipment that already exists instead of a second parcel.</p>
+        {{ form_start(createForm) }}{{ form_widget(createForm) }}{{ form_end(createForm) }}
+    {% else %}
+        <p>A shipment can only be created once the order is confirmed. This order is
+           <strong>{{ order.state.value }}</strong>.</p>
+    {% endif %}
+{% else %}
+    <dl class="admin-summary">
+        <dt>Status</dt>
+        <dd><span class="admin-badge">{{ shipment.state.value }}</span> — {{ tracking.stateLabel }}</dd>
+        <dt>Method</dt>
+        <dd>{{ tracking.methodLabel }} <small>({{ shipment.methodKey }})</small></dd>
+        <dt>Fulfilled by</dt>
+        <dd>{{ shipment.isHandFulfilledByStore ? 'Mağaza' : shipment.providerKey }}</dd>
+        <dt>Tracking number</dt>
+        <dd>{{ tracking.hasTrackingNumber ? tracking.trackingNumber : '—' }}</dd>
+        <dt>Carrier reference</dt>
+        <dd>{{ shipment.providerReference ?? '—' }}</dd>
+        <dt>Order status</dt>
+        <dd>{{ order.state.value }}</dd>
+        <dt>Created</dt>
+        <dd>{{ shipment.createdAt|date('Y-m-d H:i') }}</dd>
+        <dt>Ready</dt>
+        <dd>{{ shipment.readyAt ? shipment.readyAt|date('Y-m-d H:i') : '—' }}</dd>
+        <dt>In transit</dt>
+        <dd>{{ shipment.inTransitAt ? shipment.inTransitAt|date('Y-m-d H:i') : '—' }}</dd>
+        <dt>Delivered</dt>
+        <dd>{{ shipment.deliveredAt ? shipment.deliveredAt|date('Y-m-d H:i') : '—' }}</dd>
+    </dl>
+
+    {% if shipment.failure %}
+        <h2>Last failure</h2>
+        <p class="alert alert-error" role="alert">
+            <strong>{{ shipment.failure.code }}</strong>
+            {% if shipment.failure.message %}<br>{{ shipment.failure.message }}{% endif %}
+        </p>
+    {% endif %}
+
+    <h2>Actions</h2>
+    {% if handOverForm %}<p>The store hands this parcel over itself, so there is no carrier to ask.</p>{{ form_start(handOverForm) }}{{ form_widget(handOverForm) }}{{ form_end(handOverForm) }}{% endif %}
+    {% if inTransitForm %}{{ form_start(inTransitForm) }}{{ form_widget(inTransitForm) }}{{ form_end(inTransitForm) }}{% endif %}
+    {% if deliverForm %}{{ form_start(deliverForm) }}{{ form_widget(deliverForm) }}{{ form_end(deliverForm) }}{% endif %}
+    {% if statusForm %}<p>Asks the carrier where this parcel is and records whatever it says.</p>{{ form_start(statusForm) }}{{ form_widget(statusForm) }}{{ form_end(statusForm) }}{% endif %}
+    {% if labelForm %}<p>Carriers often issue a tracking number only when the label is printed. The label document itself is never stored or linked from here.</p>{{ form_start(labelForm) }}{{ form_widget(labelForm) }}{{ form_end(labelForm) }}{% endif %}
+    {% if retryForm %}<p>The carrier refused this parcel. Nothing about it has changed, so trying again is a deliberate action.</p>{{ form_start(retryForm) }}{{ form_widget(retryForm) }}{{ form_end(retryForm) }}{% endif %}
+    {% if cancelForm %}{{ form_start(cancelForm) }}{{ form_widget(cancelForm) }}{{ form_end(cancelForm) }}{% endif %}
+    {% if not handOverForm and not inTransitForm and not deliverForm and not statusForm and not labelForm and not retryForm and not cancelForm %}
+        <p>Nothing is left to do for this parcel.</p>
+    {% endif %}
+
+    <h2>Shipment history</h2>
+    <p>What happened to this parcel, including answers that changed nothing and attempts that were
+       refused. The order timeline stays on
+       <a href="{{ path('admin_order_show', {orderNumber: order.orderNumber}) }}">the order page</a>.</p>
+    <div class="table-wrap">
+        <table class="admin-table">
+        <caption class="visually-hidden">Shipment history</caption>
+        <thead>
+            <tr>
+                <th scope="col">State</th>
+                <th scope="col">Source</th>
+                <th scope="col">Detail</th>
+                <th scope="col">When</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+                <tr>
+                    <td>{{ event.toState.value }}</td>
+                    <td>{{ event.source }}</td>
+                    <td>{{ event.detail ?? '—' }}</td>
+                    <td>{{ event.occurredAt|date('Y-m-d H:i') }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}

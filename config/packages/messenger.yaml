@@ -22,6 +22,9 @@ framework:
             Symfony\Component\Notifier\Message\ChatMessage: async
             Symfony\Component\Notifier\Message\SmsMessage: async
             App\Message\RunB2bSync: async
+            # A carrier call is slow, fails transiently and must be retried, so it never happens
+            # inside a web request. The handler is idempotent, so a redelivered message is free.
+            App\Message\CreateShipment: async
 
             # Route your messages to the transports
             # 'App\Message\YourMessage': async

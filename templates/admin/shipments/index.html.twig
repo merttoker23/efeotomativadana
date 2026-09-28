@@ -1,0 +1,55 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Shipments{% endblock %}
+
+{% block body %}
+<h1>Shipments</h1>
+<p>Where each order's parcel is. Shipment states are deliberately separate from the order timeline:
+a carrier can lose a parcel while the order stands confirmed, and a delivered parcel does not
+complete an order.</p>
+
+<form method="get" action="{{ path('admin_shipment_index') }}" class="admin-filters">
+    <label for="shipment-query">Search</label>
+    <input type="search" id="shipment-query" name="q" value="{{ query }}" placeholder="Order number, customer email or tracking number">
+    <label for="shipment-state">Status</label>
+    <select id="shipment-state" name="state">
+        <option value="">All</option>
+        {% for state in states %}
+            <option value="{{ state.value }}"{{ state.value == state_filter ? ' selected' : '' }}>{{ state.value }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+</form>
+
+<div class="table-wrap">
+    <table class="admin-table">
+    <caption class="visually-hidden">Shipments</caption>
+    <thead>
+        <tr>
+            <th scope="col">Order</th>
+            <th scope="col">Customer</th>
+            <th scope="col">Status</th>
+            <th scope="col">Method</th>
+            <th scope="col">Tracking number</th>
+            <th scope="col">Updated</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for shipment in page.items %}
+            <tr>
+                <td><a href="{{ path('admin_shipment_show', {orderNumber: shipment.order.orderNumber}) }}">{{ shipment.order.orderNumber }}</a></td>
+                <td>{{ shipment.order.customerEmail }}</td>
+                <td><span class="admin-badge">{{ shipment.state.value }}</span></td>
+                <td>{{ shipment.methodLabel }}</td>
+                <td>{{ shipment.trackingNumber ?? '—' }}</td>
+                <td>{{ shipment.updatedAt|date('Y-m-d H:i') }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6">No shipments yet.</td></tr>
+        {% endfor %}
+    </tbody>
+    </table>
+</div>
+
+{% include 'admin/_pagination.html.twig' with {page: page, route: 'admin_shipment_index', query: {q: query, state: state_filter}} %}
+{% endblock %}

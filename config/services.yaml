@@ -116,12 +116,18 @@ services:
             $profiler: '@?profiler'
         tags: [kernel.event_subscriber]
 
-# The test-only fake gateway is autoconfigured only in the test environment, and
-# PaymentGatewayRegistry independently refuses a non-production-ready adapter in prod.
-# Together these make it impossible for the fake to quietly settle a real payment.
+# The test-only fake carrier and the carrier-backed method that names it are autoconfigured only in
+# the test environment, and ShippingProviderRegistry independently refuses a non-production-ready
+# adapter in prod. Together these make it impossible for the fake to quietly move a real parcel.
 when@!test:
     services:
         App\Module\Payment\FakePaymentGateway:
+            autowire: false
+            autoconfigure: false
+        App\Module\Shipping\FakeShippingProvider:
+            autowire: false
+            autoconfigure: false
+        App\Module\Shipping\TestCarrierShippingMethod:
             autowire: false
             autoconfigure: false
 
@@ -158,6 +164,27 @@ when@test:
             autoconfigure: true
             public: true
         App\Module\Payment\PaymentAdminManager:
+            autowire: true
+            autoconfigure: true
+            public: true
+        # Functional tests read the shipping services back directly and drive the fake carrier.
+        App\Module\Shipping\FakeShippingProvider:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Shipping\ShippingProviderRegistry:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Shipping\ShippingMethodRegistry:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Shipping\ShipmentOrchestrator:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\MessageHandler\CreateShipmentHandler:
             autowire: true
             autoconfigure: true
             public: true
