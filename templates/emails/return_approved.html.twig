@@ -1,0 +1,11 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    {% if recipient_name is not empty %}<p>Merhaba {{ recipient_name }},</p>{% endif %}
+    <p><strong>{{ payload.return_number }}</strong> numaralı iade talebiniz onaylandı.</p>
+    {% if payload.staff_note is defined and payload.staff_note is not empty %}
+        <p>{{ payload.staff_note }}</p>
+    {% else %}
+        <p>Ürünü iade etmek için bizimle iletişime geçin.</p>
+    {% endif %}
+{% endblock %}

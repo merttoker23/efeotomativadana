@@ -1,0 +1,61 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Siparişlerim | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <div class="container">
+        {% include 'storefront/account/_nav.html.twig' %}
+        <nav class="breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><span>Siparişlerim</span>
+        </nav>
+
+        <section class="account-card" aria-labelledby="orders-heading">
+            <div class="account-heading">
+                <h1 id="orders-heading">Siparişlerim</h1>
+            </div>
+
+            {% if page.items is empty %}
+                <div class="cart-empty" role="status">
+                    <p>Henüz siparişiniz yok.</p>
+                    <a class="account-primary-link" href="{{ path('storefront_catalog_index') }}">Ürünleri inceleyin</a>
+                </div>
+            {% else %}
+                <div class="order-list">
+                    {% for summary in summaries %}
+                        {% set order = summary.order %}
+                        <article class="order-card" data-testid="order-row">
+                            <div class="order-card-head">
+                                <div>
+                                    <h2 class="order-card-number"><a href="{{ path('customer_account_order_show', {orderNumber: order.orderNumber}) }}">{{ order.orderNumber }}</a></h2>
+                                    <p class="order-card-date">{{ order.createdAt|date('d.m.Y H:i') }}</p>
+                                </div>
+                                <span class="order-card-state">{{ summary.stateLabel }}{% if not summary.hasPayment %} · Ödeme bekleniyor{% endif %}</span>
+                            </div>
+
+                            <ul class="order-card-lines">
+                                {% for line in summary.lines %}
+                                    <li><span>{{ line.productName }} <small>{{ line.sku }} · {{ line.quantity }} adet</small></span><strong>{{ line.lineGross|storefront_money }}</strong></li>
+                                {% endfor %}
+                            </ul>
+
+                            <div class="order-card-foot">
+                                <p class="order-card-total" data-testid="order-total"><span>Toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></p>
+                                <a class="account-primary-link" href="{{ path('customer_account_order_show', {orderNumber: order.orderNumber}) }}">Siparişi görüntüle</a>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                {% if page.pages > 1 %}
+                    <nav class="pagination" aria-label="Sipariş sayfaları">
+                        {% if page.hasPrevious %}<a rel="prev" href="{{ path('customer_account_orders', {page: page.page - 1}) }}" aria-label="Önceki sayfa">‹</a>{% endif %}
+                        <span>{{ page.page }} / {{ page.pages }}</span>
+                        {% if page.hasNext %}<a rel="next" href="{{ path('customer_account_orders', {page: page.page + 1}) }}" aria-label="Sonraki sayfa">›</a>{% endif %}
+                    </nav>
+                {% endif %}
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}

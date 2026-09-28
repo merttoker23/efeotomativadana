@@ -1,0 +1,10 @@
+{% extends 'emails/layout.txt.twig' %}
+
+{% block content %}
+{% if recipient_name is not empty %}Merhaba {{ recipient_name }},
+
+{% endif %}
+İade talep numaranız {{ payload.return_number }} reddedildi.
+{% if payload.staff_note is defined and payload.staff_note is not empty %}{{ payload.staff_note }}{% else %}Talebiniz maalesef kabul edilemedi.{% endif %}
+Sorularınız için: info@efeotomotivadana.com.tr
+{% endblock %}

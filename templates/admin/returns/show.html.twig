@@ -1,0 +1,71 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}{{ return.returnNumber }}{% endblock %}
+
+{% block body %}
+<h1>{{ return.returnNumber }}</h1>
+<p class="eyebrow">Return request · <a href="{{ path('admin_order_show', {orderNumber: return.orderNumber}) }}">{{ return.orderNumber }}</a></p>
+
+<div class="panel">
+    <dl class="detail-grid">
+        <dt>Status</dt><dd><span class="status-badge">{{ state_label }}</span></dd>
+        <dt>Customer</dt><dd>{{ return.customerName }} &lt;{{ return.customerEmail }}&gt;</dd>
+        <dt>Requested</dt><dd>{{ return.createdAt|date('Y-m-d H:i') }}</dd>
+        <dt>Customer reason</dt><dd>{{ return.customerReason }}</dd>
+        {% if return.staffNote %}<dt>Our note</dt><dd>{{ return.staffNote }}</dd>{% endif %}
+        {% if return.decidedAt %}<dt>Decided</dt><dd>{{ return.decidedAt|date('Y-m-d H:i') }}</dd>{% endif %}
+        {% if return.receivedAt %}<dt>Received</dt><dd>{{ return.receivedAt|date('Y-m-d H:i') }}</dd>{% endif %}
+        {% if return.refundMinorAmount %}<dt>Refund</dt><dd>{{ return.refundMinorAmount|storefront_money }} ({{ return.refundReference }})</dd>{% endif %}
+    </dl>
+    {% if next_step %}<p>{{ next_step }}</p>{% endif %}
+</div>
+
+<div class="table-wrap">
+    <table>
+        <caption class="visually-hidden">Items the customer is returning</caption>
+        <thead>
+        <tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Line</th><th scope="col">Reason</th></tr>
+        </thead>
+        <tbody>
+        {% for item in return.items %}
+            <tr>
+                <td>{{ item.productName }}</td>
+                <td>{{ item.sku }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.unitGross|storefront_money }}</td>
+                <td>{{ item.lineGross|storefront_money }}</td>
+                <td>{{ item.reason }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2>Actions</h2>
+{# A refused action is explained on the page rather than crashing: an operator pressing the wrong
+   button needs to be told, not to see a stack trace. #}
+{% if approveForm %}<p>Agree to take these goods back. The customer is told the outcome by email.</p>{{ form_start(approveForm) }}{{ form_widget(approveForm) }}{{ form_end(approveForm) }}{% endif %}
+{% if rejectForm %}<p>Decline the request. The reason below is shown to the customer, so it has to say something useful.</p>{{ form_start(rejectForm) }}{{ form_widget(rejectForm) }}{{ form_end(rejectForm) }}{% endif %}
+{% if receivedForm %}<p>The goods are physically back with the store.</p>{{ form_start(receivedForm) }}{{ form_widget(receivedForm) }}{{ form_end(receivedForm) }}{% endif %}
+{% if refundForm %}<p>Record a refund the <strong>payment module</strong> already issued. This screen does not move money; it files the reference so the return does not sit looking unfinished.</p>{{ form_start(refundForm) }}{{ form_widget(refundForm) }}{{ form_end(refundForm) }}{% endif %}
+{% if not approveForm and not rejectForm and not receivedForm and not refundForm %}<p>Nothing is left to do on this request.</p>{% endif %}
+
+<h2>Return history</h2>
+<div class="table-wrap" data-testid="return-events">
+    <table>
+        <caption class="visually-hidden">Return audit trail</caption>
+        <thead><tr><th scope="col">State</th><th scope="col">Source</th><th scope="col">Detail</th><th scope="col">Actor</th><th scope="col">When</th></tr></thead>
+        <tbody>
+        {% for event in events %}
+            <tr>
+                <td>{{ event.toState.value }}</td>
+                <td>{{ event.source }}</td>
+                <td>{{ event.detail ?? '—' }}</td>
+                <td>{{ event.actorEmail ?? '—' }}</td>
+                <td>{{ event.occurredAt|date('Y-m-d H:i') }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

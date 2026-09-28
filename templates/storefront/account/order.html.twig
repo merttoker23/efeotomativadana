@@ -1,0 +1,116 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Sipariş {{ order.orderNumber }} | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <div class="container">
+        {% include 'storefront/account/_nav.html.twig' %}
+        <nav class="breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><a href="{{ path('customer_account_orders') }}">Siparişlerim</a><span aria-hidden="true">/</span><span>{{ order.orderNumber }}</span>
+        </nav>
+
+        <section class="account-card" aria-labelledby="order-heading">
+            <div class="account-heading">
+                <div>
+                    <h1 id="order-heading" class="order-number">{{ order.orderNumber }}</h1>
+                    <p class="order-card-date">{{ order.createdAt|date('d.m.Y H:i') }} · {{ stateLabel }}</p>
+                </div>
+            </div>
+
+            {% if summary.hasPayment %}
+                <section class="order-summary-block" data-testid="payment-summary" aria-labelledby="payment-heading">
+                    <h2 id="payment-heading">Ödeme</h2>
+                    <dl class="order-summary-list">
+                        <dt>Yöntem</dt><dd>{{ summary.paymentMethodLabel }}</dd>
+                        <dt>Durum</dt><dd>{{ summary.paymentStatusLabel }}</dd>
+                        <dt>Ödenen</dt><dd>{{ summary.capturedAmount|storefront_money }}</dd>
+                        {% if summary.hasRefundedAmount %}<dt>İade edilen</dt><dd>{{ summary.refundedAmount|storefront_money }}</dd>{% endif %}
+                    </dl>
+                </section>
+            {% else %}
+                <section class="order-summary-block" aria-labelledby="payment-heading">
+                    <h2 id="payment-heading">Ödeme</h2>
+                    <p>Bu sipariş için henüz ödeme kaydı yok.</p>
+                </section>
+            {% endif %}
+
+            {% if summary.hasTracking %}
+                {% set tracking = summary.tracking %}
+                <section class="order-summary-block" data-testid="shipment-summary" aria-labelledby="shipment-heading">
+                    <h2 id="shipment-heading">Kargo</h2>
+                    <dl class="order-summary-list">
+                        <dt>Teslimat yöntemi</dt><dd>{{ tracking.methodLabel }}</dd>
+                        <dt>Durum</dt><dd>{{ tracking.stateLabel }}</dd>
+                        {% if tracking.hasTrackingNumber %}<dt>Takip numarası</dt><dd>{{ tracking.trackingNumber }}</dd>{% endif %}
+                    </dl>
+                </section>
+            {% endif %}
+
+            <section class="order-summary-block" aria-labelledby="items-heading">
+                <h2 id="items-heading">Ürünler</h2>
+                {% for line in summary.lines %}
+                    <div class="order-line">
+                        <div><strong>{{ line.productName }}</strong><small>{{ line.sku }} · {{ line.quantity }} adet</small></div>
+                        <span>{{ line.lineGross|storefront_money }}</span>
+                    </div>
+                {% endfor %}
+            </section>
+
+            <section class="order-summary-block" aria-labelledby="totals-heading">
+                <h2 id="totals-heading">Toplamlar</h2>
+                <aside class="order-totals">
+                    <p><span>Ara toplam</span><strong>{{ order.subtotal|storefront_money }}</strong></p>
+                    <p><span>Vergi</span><strong>{{ order.taxTotal|storefront_money }}</strong></p>
+                    <p><span>Teslimat</span><strong>{{ order.shippingTotal|storefront_money }}</strong></p>
+                    <p class="grand" data-testid="order-total"><span>Genel toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></p>
+                </aside>
+            </section>
+
+            <section class="order-summary-block" aria-labelledby="addresses-heading">
+                <h2 id="addresses-heading">Adresler</h2>
+                <div class="account-grid">
+                    {% if shippingAddress %}
+                        <div>
+                            <h3>Teslim Adresi</h3>
+                            <p>{{ shippingAddress.recipientName }}</p>
+                            <p>{{ shippingAddress.addressLine1 }}{% if shippingAddress.addressLine2 %}, {{ shippingAddress.addressLine2 }}{% endif %}</p>
+                            <p>{{ shippingAddress.district }} / {{ shippingAddress.city }}{% if shippingAddress.postalCode %} {{ shippingAddress.postalCode }}{% endif %}</p>
+                            <p>{{ shippingAddress.phone }}</p>
+                        </div>
+                    {% endif %}
+                    {% if billingAddress %}
+                        <div>
+                            <h3>Fatura Adresi</h3>
+                            <p>{{ billingAddress.recipientName }}</p>
+                            <p>{{ billingAddress.addressLine1 }}{% if billingAddress.addressLine2 %}, {{ billingAddress.addressLine2 }}{% endif %}</p>
+                            <p>{{ billingAddress.district }} / {{ billingAddress.city }}{% if billingAddress.postalCode %} {{ billingAddress.postalCode }}{% endif %}</p>
+                            <p>{{ billingAddress.phone }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            {% if returns is not empty %}
+                <section class="order-summary-block" aria-labelledby="returns-heading">
+                    <h2 id="returns-heading">Bu siparişin iadeleri</h2>
+                    <ul class="order-card-lines">
+                        {% for item in returns %}
+                            <li>
+                                <span>{{ item.returnNumber }}<small>{{ item.createdAt|date('d.m.Y') }}</small></span>
+                                <strong>{{ item.state.value }}</strong>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            {% endif %}
+
+            {% if returnable %}
+                <p><a class="account-primary-link" href="{{ path('customer_account_order_return', {orderNumber: order.orderNumber}) }}">İade talebi oluştur</a></p>
+            {% elseif returnIneligibility is not null %}
+                <p class="account-alert">{{ returnIneligibility.customerMessage }}</p>
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}

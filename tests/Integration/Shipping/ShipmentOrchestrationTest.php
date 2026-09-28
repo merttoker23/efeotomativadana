@@ -519,6 +519,7 @@ final class ShipmentOrchestrationTest extends KernelTestCase
             $this->entityManager,
             self::getContainer()->get(\Psr\Clock\ClockInterface::class),
             self::getContainer()->get(\Symfony\Component\Messenger\MessageBusInterface::class),
+            self::getContainer()->get(\Symfony\Component\EventDispatcher\EventDispatcherInterface::class),
         );
 
         $second = $withoutAnyMethod->createForOrder($order->orderNumber(), 'admin@example.com');
@@ -579,10 +580,15 @@ final class ShipmentOrchestrationTest extends KernelTestCase
 
     private function queuedMessages(): int
     {
-        // The doctrine transport's queue_name defaults to `default` regardless of the transport's
-        // own name, so this counts every queued message rather than filtering on a name the DSN
-        // never used.
-        return (int) $this->connection->fetchOne('SELECT COUNT(*) FROM messenger_messages');
+        // Counts CARRIER messages only. The doctrine transport keeps `headers` empty and puts the
+        // message class in the serialized `body`, so the class name is the only discriminator —
+        // its `queue_name` is `default` for every transport alike. Now that the store also mails its
+        // customers, an unfiltered count would mix a `SendEmailMessage` into an assertion about
+        // carrier work and fail for the wrong reason.
+        return (int) $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM messenger_messages WHERE body LIKE ?',
+            ['%CreateShipment%'],
+        );
     }
 
     private function reload(int $shipmentId): Shipment

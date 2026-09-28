@@ -1,0 +1,9 @@
+{% extends 'emails/layout.txt.twig' %}
+
+{% block content %}
+{% if recipient_name is not empty %}Merhaba {{ recipient_name }},
+
+{% endif %}
+İade talep numaranız {{ payload.return_number }} onaylandı.
+{% if payload.staff_note is defined and payload.staff_note is not empty %}{{ payload.staff_note }}{% else %}Ürünü iade etmek için bizimle iletişime geçin.{% endif %}
+{% endblock %}

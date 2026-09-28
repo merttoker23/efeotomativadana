@@ -1,0 +1,7 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    {% if recipient_name is not empty %}<p>Merhaba {{ recipient_name }},</p>{% endif %}
+    <p>Sipariş numaranız <strong>{{ payload.order_number }}</strong> ile oluşturuldu.</p>
+    <p>Siparişinizi hesabınızın <strong>Siparişlerim</strong> bölümünden izleyebilirsiniz.</p>
+{% endblock %}

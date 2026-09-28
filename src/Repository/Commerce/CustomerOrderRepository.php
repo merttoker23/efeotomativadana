@@ -41,6 +41,30 @@ final class CustomerOrderRepository extends ServiceEntityRepository implements O
         return $order;
     }
 
+    /**
+     * One customer's orders, newest first.
+     *
+     * The customer is a bound parameter of the query rather than a filter applied to a wider result
+     * set, so a page can never be assembled from orders the reader does not own. Bounded by
+     * `perPage` and ordered on the indexed `(customer_id, created_at)` pair, because an unbounded
+     * account list is how a long-standing customer takes a request down.
+     *
+     * @return \App\Module\Order\CustomerOrderPage<CustomerOrder>
+     */
+    public function customerPage(CustomerUser $customer, int $page, int $perPage = 10): \App\Module\Order\CustomerOrderPage
+    {
+        $page = max(1, $page);
+        $paginator = new \Doctrine\ORM\Tools\Pagination\Paginator($this->createQueryBuilder('customerOrder')
+            ->andWhere('customerOrder.customer = :customer')->setParameter('customer', $customer)
+            ->orderBy('customerOrder.createdAt', 'DESC')->addOrderBy('customerOrder.id', 'DESC')
+            ->setFirstResult(($page - 1) * $perPage)->setMaxResults($perPage)
+            ->getQuery());
+        /** @var list<CustomerOrder> $items */
+        $items = iterator_to_array($paginator->getIterator(), false);
+
+        return new \App\Module\Order\CustomerOrderPage($items, $page, $perPage, count($paginator));
+    }
+
     /** @return AdminPage<CustomerOrder> */
     public function adminPage(string $query, ?OrderState $state, int $page, int $perPage = 20): AdminPage
     {

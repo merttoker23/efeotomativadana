@@ -7,7 +7,13 @@
         <section aria-labelledby="footer-service-title">
             <h2 id="footer-service-title">Müşteri Hizmetleri</h2>
             <span>İletişim</span>
-            <span>İade ve değişim</span>
+            {% if is_granted('ROLE_CUSTOMER') %}
+                {# Only a real link when it leads somewhere: a dead "Iade ve değişim" in the footer of
+                   every anonymous page is a support question the store answers for free. #}
+                <a href="{{ path('customer_account_returns') }}">İade ve değişim</a>
+            {% else %}
+                <span>İade ve değişim</span>
+            {% endif %}
             <span>Sık sorulan sorular</span>
         </section>
         <section aria-labelledby="footer-info-title">
@@ -17,9 +23,14 @@
         </section>
         <section aria-labelledby="footer-account-title">
             <h2 id="footer-account-title">Hesabım</h2>
-            <span>Siparişlerim</span>
-            <span>Adreslerim</span>
-            <span>Favorilerim</span>
+            {% if is_granted('ROLE_CUSTOMER') %}
+                <a href="{{ path('customer_account_orders') }}">Siparişlerim</a>
+                <a href="{{ path('customer_account_addresses') }}">Adreslerim</a>
+                <a href="{{ path('storefront_wishlist_index') }}">Favorilerim</a>
+            {% else %}
+                <a href="{{ path('customer_login') }}">Giriş yap</a>
+                <a href="{{ path('customer_registration') }}">Hesap oluştur</a>
+            {% endif %}
         </section>
     </div>
     <div class="container footer-bottom">

@@ -11,6 +11,7 @@ use App\Entity\Customer\CustomerUser;
 use App\Module\Cart\CartRepositoryInterface;
 use App\Module\Catalog\PublicationStatus;
 use App\Module\Inventory\ProductInventoryRepositoryInterface;
+use App\Module\Notification\Event\OrderPlaced;
 use App\Module\Order\OrderAddressRole;
 use App\Module\Order\OrderNumberGenerator;
 use App\Module\Order\OrderRepositoryInterface;
@@ -22,6 +23,7 @@ use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class CheckoutManager
 {
@@ -45,6 +47,7 @@ final class CheckoutManager
         private readonly OrderRepositoryInterface $orders,
         private readonly EntityManagerInterface $entityManager,
         private readonly ClockInterface $clock,
+        private readonly EventDispatcherInterface $events,
         #[AutowireIterator('app.checkout.shipping_option')] iterable $shippingOptions,
         #[AutowireIterator('app.checkout.payment_option')] iterable $paymentOptions,
     ) {
@@ -82,7 +85,7 @@ final class CheckoutManager
             throw new CheckoutViolation('Seçilen ödeme yöntemi kullanılamıyor.');
         }
 
-        return $this->entityManager->wrapInTransaction(function () use ($customer, $shippingAddress, $billingAddress, $shippingOption, $paymentOption): CustomerOrder {
+        $order = $this->entityManager->wrapInTransaction(function () use ($customer, $shippingAddress, $billingAddress, $shippingOption, $paymentOption): CustomerOrder {
             $cart = $this->carts->findOneByCustomerForUpdate($customer);
             if (null === $cart || [] === $cart->items()) {
                 throw new CheckoutViolation('Sepetiniz boş.');
@@ -146,6 +149,13 @@ final class CheckoutManager
 
             return $order;
         });
+
+        // After the commit. The order is durable from here on, and a subscriber — currently the
+        // confirmation email — must never be able to roll back a customer's order because a mail
+        // server was slow.
+        $this->events->dispatch(new OrderPlaced($order));
+
+        return $order;
     }
 
     private function ownedAddress(CustomerUser $customer, int $addressId): CustomerAddress

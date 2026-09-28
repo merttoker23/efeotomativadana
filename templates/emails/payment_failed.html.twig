@@ -1,0 +1,7 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    {% if recipient_name is not empty %}<p>Merhaba {{ recipient_name }},</p>{% endif %}
+    <p><strong>{{ payload.order_number }}</strong> numaralı siparişinizin ödemesi tamamlanamadı.</p>
+    <p>Bu bir sorun değildir: siparişiniz kayıtlıdır. Hesabınızdaki <strong>Siparişlerim</strong> bölümünden ödemeyi yeniden deneyebilirsiniz.</p>
+{% endblock %}

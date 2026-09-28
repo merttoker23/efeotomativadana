@@ -1,0 +1,22 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}İade talebi oluşturulamaz | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <div class="container">
+        {% include 'storefront/account/_nav.html.twig' %}
+        <nav class="breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><a href="{{ path('customer_account_orders') }}">Siparişlerim</a><span aria-hidden="true">/</span><span>İade talebi</span>
+        </nav>
+
+        <section class="account-card account-card-narrow" aria-labelledby="blocked-heading">
+            <h1 id="blocked-heading">İade talebi oluşturulamaz</h1>
+            {# Explains rather than refuses. A customer told only "this cannot be returned" is a
+               customer who phones the shop; told why, they are not. #}
+            <p class="account-alert" role="status">{{ message }}</p>
+            <p><a class="account-primary-link" href="{{ path('customer_account_order_show', {orderNumber: order.orderNumber}) }}">Siparişe dön</a></p>
+        </section>
+    </div>
+</main>
+{% endblock %}

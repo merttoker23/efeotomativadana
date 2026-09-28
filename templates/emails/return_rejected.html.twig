@@ -1,0 +1,12 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    {% if recipient_name is not empty %}<p>Merhaba {{ recipient_name }},</p>{% endif %}
+    <p><strong>{{ payload.return_number }}</strong> numaralı iade talebiniz reddedildi.</p>
+    {% if payload.staff_note is defined and payload.staff_note is not empty %}
+        <p>{{ payload.staff_note }}</p>
+    {% else %}
+        <p>Talebiniz maalesef kabul edilemedi.</p>
+    {% endif %}
+    <p>Herhangi bir sorunuz varsa <a href="mailto:info@efeotomotivadana.com.tr">info@efeotomotivadana.com.tr</a> adresine yazabilirsiniz.</p>
+{% endblock %}

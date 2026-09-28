@@ -1,0 +1,9 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    {% if recipient_name is not empty %}<p>Merhaba {{ recipient_name }},</p>{% endif %}
+    <p><strong>{{ payload.order_number }}</strong> numaralı siparişiniz teslim edildi.</p>
+    {% if payload.tracking_number is not empty %}
+        <p>Kargo takip numaranız: <strong>{{ payload.tracking_number }}</strong></p>
+    {% endif %}
+{% endblock %}

@@ -188,3 +188,19 @@ when@test:
             autowire: true
             autoconfigure: true
             public: true
+        # Functional and integration tests read the returns service back directly and drive the
+        # eligibility and quantity rules against a real database.
+        App\Module\Returns\ReturnService:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Returns\ReturnPolicy:
+            autowire: true
+            autoconfigure: true
+            public: true
+        # Tests build this one against their own in-memory transport so they can count messages and
+        # simulate an SMTP outage; the container's mailer is `null://null` and could do neither.
+        App\Module\Notification\TransactionalNotificationService:
+            autowire: true
+            autoconfigure: true
+            public: true

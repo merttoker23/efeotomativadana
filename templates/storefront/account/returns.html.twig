@@ -1,0 +1,51 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}İadelerim | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <div class="container">
+        {% include 'storefront/account/_nav.html.twig' %}
+        <nav class="breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><span>İadelerim</span>
+        </nav>
+
+        <section class="account-card" aria-labelledby="returns-heading">
+            <h1 id="returns-heading">İadelerim</h1>
+
+            {% if page.items is empty %}
+                <div class="cart-empty" role="status">
+                    <p>Henüz bir iade talebiniz yok.</p>
+                    <a class="account-primary-link" href="{{ path('customer_account_orders') }}">Siparişlerinize gidin</a>
+                </div>
+            {% else %}
+                <div class="order-list">
+                    {% for item in page.items %}
+                        <article class="order-card" data-testid="return-row">
+                            <div class="order-card-head">
+                                <div>
+                                    <h2 class="order-card-number"><a href="{{ path('customer_account_return_show', {returnNumber: item.returnNumber}) }}">{{ item.returnNumber }}</a></h2>
+                                    <p class="order-card-date">{{ item.createdAt|date('d.m.Y H:i') }}</p>
+                                </div>
+                                <span class="order-card-state">{{ item.state.value }}</span>
+                            </div>
+                            <div class="order-card-foot">
+                                <p class="order-card-total"><span>Sipariş</span><strong>{{ item.orderNumber }}</strong></p>
+                                <p class="order-card-total"><span>Tutar</span><strong>{{ item.totalValue|storefront_money }}</strong></p>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                {% if page.pages > 1 %}
+                    <nav class="pagination" aria-label="İade sayfaları">
+                        {% if page.hasPrevious %}<a rel="prev" href="{{ path('customer_account_returns', {page: page.page - 1}) }}" aria-label="Önceki sayfa">‹</a>{% endif %}
+                        <span>{{ page.page }} / {{ page.pages }}</span>
+                        {% if page.hasNext %}<a rel="next" href="{{ path('customer_account_returns', {page: page.page + 1}) }}" aria-label="Sonraki sayfa">›</a>{% endif %}
+                    </nav>
+                {% endif %}
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}

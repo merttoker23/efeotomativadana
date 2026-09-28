@@ -1,0 +1,9 @@
+{% extends 'emails/layout.txt.twig' %}
+
+{% block content %}
+{% if recipient_name is not empty %}Merhaba {{ recipient_name }},
+
+{% endif %}
+İade talep numaranız {{ payload.return_number }}.
+Talebiniz inceleniyor ve sonucu e-posta ile bildirilecek.
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}İade {{ return.returnNumber }} | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <div class="container">
+        {% include 'storefront/account/_nav.html.twig' %}
+        <nav class="breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><a href="{{ path('customer_account_returns') }}">İadelerim</a><span aria-hidden="true">/</span><span>{{ return.returnNumber }}</span>
+        </nav>
+
+        <section class="account-card" aria-labelledby="return-heading">
+            <div class="account-heading">
+                <div>
+                    <h1 id="return-heading" class="order-number">{{ return.returnNumber }}</h1>
+                    <p class="order-card-date">{{ return.createdAt|date('d.m.Y H:i') }} · {{ stateLabel }}</p>
+                </div>
+            </div>
+
+            <section class="order-summary-block">
+                <dl class="order-summary-list">
+                    <dt>Sipariş</dt><dd>{{ return.orderNumber }}</dd>
+                    <dt>Sebebiniz</dt><dd>{{ return.customerReason }}</dd>
+                    {% if return.staffNote %}<dt>Yanıtımız</dt><dd>{{ return.staffNote }}</dd>{% endif %}
+                    {% if return.refundMinorAmount %}<dt>Öcret iadesi</dt><dd>{{ return.refundMinorAmount|storefront_money }}</dd>{% endif %}
+                </dl>
+                {% if nextStep %}<p>{{ nextStep }}</p>{% endif %}
+            </section>
+
+            <section class="order-summary-block" aria-labelledby="return-items-heading">
+                <h2 id="return-items-heading">İade edilen ürünler</h2>
+                {% for item in return.items %}
+                    <div class="order-line">
+                        <div><strong>{{ item.productName }}</strong><small>{{ item.sku }} · {{ item.quantity }} adet · {{ item.reason }}</small></div>
+                        <span>{{ item.lineGross|storefront_money }}</span>
+                    </div>
+                {% endfor %}
+            </section>
+
+            <section class="order-summary-block" data-testid="return-events" aria-labelledby="return-events-heading">
+                <h2 id="return-events-heading">İşlem geçmişi</h2>
+                <ol class="order-timeline">
+                    {% for event in return.events %}
+                        <li>
+                            <span class="order-timeline-state">{{ event.toState.value }}</span>
+                            <span class="order-timeline-detail">{{ event.detail ?? '' }}</span>
+                            <time datetime="{{ event.occurredAt|date('c') }}">{{ event.occurredAt|date('d.m.Y H:i') }}</time>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </section>
+
+            {% if return.canBeWithdrawn %}
+                <form method="post" action="{{ path('customer_account_return_withdraw', {returnNumber: return.returnNumber}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('customer_return_withdraw_' ~ return.returnNumber) }}">
+                    <button class="address-action-delete" type="submit">Talebi geri al</button>
+                </form>
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}

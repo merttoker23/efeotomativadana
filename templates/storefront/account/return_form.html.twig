@@ -1,0 +1,44 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}İade talebi | {{ store.name }}{% endblock %}
+
+{% block body %}
+<main id="main-content" class="page-shell">
+    <div class="container">
+        {% include 'storefront/account/_nav.html.twig' %}
+        <nav class="breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><a href="{{ path('customer_account_orders') }}">Siparişlerim</a><span aria-hidden="true">/</span><a href="{{ path('customer_account_order_show', {orderNumber: order.orderNumber}) }}">{{ order.orderNumber }}</a><span aria-hidden="true">/</span><span>İade talebi</span>
+        </nav>
+
+        <section class="account-card account-card-narrow" aria-labelledby="return-form-heading">
+            <h1 id="return-form-heading">İade talebi</h1>
+            <p class="account-intro">{{ order.orderNumber }} numaralı siparişiniz için iade talebi oluşturuyorsunuz. İade etmek istediğiniz ürünü seçip adet yazın.</p>
+
+            {{ form_start(form, {attr: {class: 'account-form'}}) }}
+                <ul class="return-line-list">
+                    {% for line in lines %}
+                        {% set lineForm = form['line_' ~ loop.index0] %}
+                        <li class="return-line">
+                            <div class="return-line-product">
+                                <strong>{{ line.item.productName }}</strong>
+                                <small>{{ line.item.sku }} · Satın alınan: {{ line.item.quantity }} adet · Birim: {{ line.item.unitGross|storefront_money }}</small>
+                                {% if line.max > 0 %}
+                                    <span class="return-line-available">İade edilebilir: {{ line.max }} adet</span>
+                                {% else %}
+                                    <span class="return-line-available">Bu ürün için iade edilebilir miktar kalmadı.</span>
+                                {% endif %}
+                            </div>
+                            <div class="return-line-fields">
+                                {{ form_row(lineForm.quantity) }}
+                                {{ form_row(lineForm.reason) }}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {{ form_row(form.customerReason) }}
+                {{ form_row(form.submit) }}
+            {{ form_end(form) }}
+        </section>
+    </div>
+</main>
+{% endblock %}

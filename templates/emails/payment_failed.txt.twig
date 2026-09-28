@@ -1,0 +1,9 @@
+{% extends 'emails/layout.txt.twig' %}
+
+{% block content %}
+{% if recipient_name is not empty %}Merhaba {{ recipient_name }},
+
+{% endif %}
+Sipariş numaranız {{ payload.order_number }} olan siparişinizin ödemesi tamamlanamadı.
+Siparişiniz kayıtlıdır; hesabınızdaki Siparişlerim bölümünden ödemeyi yeniden deneyebilirsiniz.
+{% endblock %}

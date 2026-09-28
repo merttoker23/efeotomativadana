@@ -1,0 +1,9 @@
+{% extends 'emails/layout.html.twig' %}
+
+{% block content %}
+    {% if recipient_name is not empty %}<p>Merhaba {{ recipient_name }},</p>{% endif %}
+    <p><strong>{{ payload.return_number }}</strong> numaralı iade işleminiz tamamlandı.</p>
+    {% if payload.refund_amount is defined and payload.refund_amount is not empty %}
+        <p>Öcret iadesi: <strong>{{ payload.refund_amount }}</strong></p>
+    {% endif %}
+{% endblock %}

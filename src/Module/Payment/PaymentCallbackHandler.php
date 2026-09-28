@@ -8,12 +8,14 @@ use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Commerce\OrderStatusChange;
 use App\Entity\Commerce\Payment;
 use App\Entity\Commerce\PaymentAttempt;
+use App\Module\Notification\Event\PaymentCaptured;
 use App\Module\Order\OrderState;
 use App\Module\Payment\Gateway\CallbackAuthentication;
 use App\Module\Payment\Gateway\IncomingPaymentCallback;
 use App\Repository\Commerce\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The one place a provider report is allowed to change anything.
@@ -33,6 +35,7 @@ final readonly class PaymentCallbackHandler
         private PaymentRepository $payments,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private EventDispatcherInterface $events,
     ) {
     }
 
@@ -147,6 +150,7 @@ final readonly class PaymentCallbackHandler
             $this->syncOrder($payment->order(), $now);
             $this->payments->save($payment);
             $this->entityManager->flush();
+            $this->announceCapture($payment->order());
 
             return PaymentCallbackResult::applied($payment->state());
         }
@@ -166,8 +170,20 @@ final readonly class PaymentCallbackHandler
         $this->syncOrder($payment->order(), $now);
         $this->payments->save($payment);
         $this->entityManager->flush();
+        $this->announceCapture($payment->order());
 
         return PaymentCallbackResult::applied($payment->state());
+    }
+
+    /**
+     * Tell the customer their money arrived, once the capture is committed.
+     *
+     * Outside the transaction on purpose: a mailer that fails must not roll back a real capture, and
+     * this handler is called from a provider webhook that will not wait.
+     */
+    private function announceCapture(CustomerOrder $order): void
+    {
+        $this->events->dispatch(new PaymentCaptured($order));
     }
 
     private function applyFailure(Payment $payment, PaymentAttempt $attempt): PaymentCallbackResult

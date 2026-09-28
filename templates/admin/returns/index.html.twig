@@ -1,0 +1,48 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Returns{% endblock %}
+
+{% block body %}
+<h1>Returns</h1>
+<p class="eyebrow">Commerce</p>
+<p>Every return request a customer has opened, and what the store has done about it. A request is a conversation about an order; the order itself is never changed here.</p>
+
+<form method="get" action="{{ path('admin_return_index') }}" class="filter-bar">
+    <label for="return-query">Search</label>
+    <input type="search" id="return-query" name="q" value="{{ query }}" placeholder="Return number, order number or reason">
+    <label for="return-state">Status</label>
+    <select id="return-state" name="state">
+        <option value="">All</option>
+        {% for state in states %}
+            <option value="{{ state.value }}"{{ state.value == state_filter ? ' selected' : '' }}>{{ state.value }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+</form>
+
+<div class="table-wrap">
+    <table>
+        <caption class="visually-hidden">Return requests</caption>
+        <thead>
+        <tr><th scope="col">Return</th><th scope="col">Order</th><th scope="col">Customer</th><th scope="col">Status</th><th scope="col">Items</th><th scope="col">Value</th><th scope="col">Requested</th></tr>
+        </thead>
+        <tbody>
+        {% for item in page.items %}
+            <tr data-testid="return-row">
+                <td><a href="{{ path('admin_return_show', {returnNumber: item.returnNumber}) }}">{{ item.returnNumber }}</a></td>
+                <td><a href="{{ path('admin_order_show', {orderNumber: item.orderNumber}) }}">{{ item.orderNumber }}</a></td>
+                <td>{{ item.customerEmail }}</td>
+                <td><span class="status-badge">{{ item.state.value }}</span></td>
+                <td>{{ item.items|length }}</td>
+                <td>{{ item.totalValue|storefront_money }}</td>
+                <td>{{ item.createdAt|date('Y-m-d H:i') }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="7">No return requests yet.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'admin/_pagination.html.twig' with {page: page, route: 'admin_return_index', query: {q: query, state: state_filter}} only %}
+{% endblock %}

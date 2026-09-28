@@ -1,0 +1,9 @@
+{% extends 'emails/layout.txt.twig' %}
+
+{% block content %}
+{% if recipient_name is not empty %}Merhaba {{ recipient_name }},
+
+{% endif %}
+Sipariş numaranız {{ payload.order_number }} ile oluşturuldu.
+Siparişinizi hesabınızın Siparişlerim bölümünden izleyebilirsiniz.
+{% endblock %}

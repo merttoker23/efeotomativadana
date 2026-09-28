@@ -9,6 +9,7 @@ use App\Message\CreateShipment;
 use App\Module\Order\OrderAddressRole;
 use App\Module\Order\OrderNotFound;
 use App\Module\Order\OrderRepositoryInterface;
+use App\Module\Notification\Event\ShipmentMoved;
 use App\Module\Payment\SanitizedFailure;
 use App\Module\Shipping\Gateway\ShipmentAddress;
 use App\Module\Shipping\Gateway\ShipmentCancellationInstruction;
@@ -22,6 +23,7 @@ use App\Module\Shipping\Gateway\ShippingProviderInterface;
 use App\Repository\Commerce\ShipmentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -49,6 +51,7 @@ final readonly class ShipmentOrchestrator
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private MessageBusInterface $bus,
+        private EventDispatcherInterface $events,
     ) {
     }
 
@@ -361,7 +364,7 @@ final readonly class ShipmentOrchestrator
     {
         $id = (int) $shipment->id();
 
-        return $this->entityManager->wrapInTransaction(function () use ($id, $change): Shipment {
+        $applied = $this->entityManager->wrapInTransaction(function () use ($id, $change): Shipment {
             $locked = $this->shipments->findForUpdate($id)
                 ?? throw new ShipmentNotFound(sprintf('Shipment %d was not found.', $id));
             $change($locked);
@@ -370,6 +373,13 @@ final readonly class ShipmentOrchestrator
 
             return $locked;
         });
+
+        // Raised after the commit, so a subscriber — currently the notification that tells the
+        // customer their parcel left — can never fail the parcel's own state change. It is raised
+        // for every change here, and the subscriber decides what is worth an email.
+        $this->events->dispatch(new ShipmentMoved($applied));
+
+        return $applied;
     }
 
     private function advance(Shipment $shipment, ?string $trackingNumber, \DateTimeImmutable $now, ?string $actorEmail = null): void
