@@ -127,6 +127,17 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorCount(0, '.sort-form input[name="ignored"]');
     }
 
+    /**
+     * The point of this test is that the count does not grow with the catalogue — an N+1 on
+     * the listing is invisible at eight products and fatal at eight thousand. A ceiling alone
+     * would let an N+1 through by being raised, so the count is compared across two catalogue
+     * sizes as well as against a documented absolute limit.
+     *
+     * The limit is 8, and it is larger than the 6 this page used before SEO because the page
+     * now resolves its own metadata, which reads two more store settings (the default
+     * description and the indexing switch). Those are memoised per request, so they are a
+     * fixed cost and not a per-product one.
+     */
     public function testProductListEssentialsUseAConstantNumberOfQueries(): void
     {
         for ($i = 1; $i <= 8; ++$i) {
@@ -134,6 +145,24 @@ final class CatalogControllerTest extends WebTestCase
             $product->addImage('storefront/images/hero-automotive.svg', sprintf('Sorgu ürünü %02d', $i));
         }
         $this->entityManager->flush();
+
+        $withEight = $this->profileListing(8);
+
+        // Now a second time, with a catalogue large enough that an N+1 would show.
+        for ($i = 9; $i <= 24; ++$i) {
+            $product = $this->product(sprintf('QUERY-%02d', $i), sprintf('Sorgu Ürünü %02d', $i), sprintf('sorgu-urunu-%02d', $i), true);
+            $product->addImage('storefront/images/hero-automotive.svg', sprintf('Sorgu ürünü %02d', $i));
+        }
+        $this->entityManager->flush();
+
+        $withTwentyFour = $this->profileListing(12);
+
+        self::assertSame($withEight, $withTwentyFour, 'The listing must not query per product.');
+        self::assertLessThanOrEqual(8, $withEight);
+    }
+
+    private function profileListing(int $expectedCards): int
+    {
         $debugData = self::getContainer()->get('doctrine.debug_data_holder');
         self::assertInstanceOf(BacktraceDebugDataHolder::class, $debugData);
         $debugData->reset();
@@ -142,12 +171,13 @@ final class CatalogControllerTest extends WebTestCase
         $this->client->request('GET', '/yeni/katalog');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(8, '.product-card');
+        self::assertGreaterThanOrEqual($expectedCards, $this->client->getCrawler()->filter('.product-card')->count());
         $profile = $this->client->getProfile();
         self::assertNotFalse($profile);
         $database = $profile->getCollector('db');
         self::assertInstanceOf(DoctrineDataCollector::class, $database);
-        self::assertLessThanOrEqual(6, $database->getQueryCount());
+
+        return $database->getQueryCount();
     }
 
     public function testProductDetailShowsPublicCatalogDataAndHidesMissingOrDraftProducts(): void

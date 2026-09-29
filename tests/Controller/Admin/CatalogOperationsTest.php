@@ -15,6 +15,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\Security\Core\User\InMemoryUser;
 
 final class CatalogOperationsTest extends WebTestCase
@@ -217,7 +218,13 @@ final class CatalogOperationsTest extends WebTestCase
         self::assertSame($identifierIds, array_map(static fn ($identifier): ?int => $identifier->id(), $product->identifiers()));
     }
 
-    public function testPublishedCatalogSlugsCannotBeChangedWithoutRedirectHistory(): void
+    /**
+     * The old rule refused to rename a published record at all, which protected the URL but
+     * also meant a B2B feed could never correct a product name without a human deciding it
+     * was time to break the link. Now that redirect history exists, the rename goes through
+     * and the old address is kept.
+     */
+    public function testRenamingAPublishedCatalogRecordKeepsItsOldUrlInRedirectHistory(): void
     {
         $this->loginAdmin();
         $product = new Product('STABLE-001', 'Stable Product', 'stable-product');
@@ -237,23 +244,83 @@ final class CatalogOperationsTest extends WebTestCase
         $form = $crawler->selectButton('Save product')->form();
         $form['admin_product[slug]'] = 'changed-product';
         $this->client->submit($form);
-        self::assertResponseStatusCodeSame(422);
+        self::assertResponseRedirects();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/'.$brand->id().'/edit');
         $form = $crawler->selectButton('Save brand')->form();
         $form['admin_brand[slug]'] = 'changed-brand';
         $this->client->submit($form);
-        self::assertResponseStatusCodeSame(422);
+        self::assertResponseRedirects();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/categories/'.$category->id().'/edit');
         $form = $crawler->selectButton('Save category')->form();
         $form['admin_category[slug]'] = 'changed-category';
         $this->client->submit($form);
-        self::assertResponseStatusCodeSame(422);
+        self::assertResponseRedirects();
 
-        self::assertSame('stable-product', $this->connection->fetchOne('SELECT slug FROM catalog_product WHERE id = ?', [$product->id()]));
-        self::assertSame('stable-brand', $this->connection->fetchOne('SELECT slug FROM catalog_brand WHERE id = ?', [$brand->id()]));
-        self::assertSame('stable-category', $this->connection->fetchOne('SELECT slug FROM catalog_category WHERE id = ?', [$category->id()]));
+        self::assertSame('changed-product', $this->connection->fetchOne('SELECT slug FROM catalog_product WHERE id = ?', [$product->id()]));
+        self::assertSame('changed-brand', $this->connection->fetchOne('SELECT slug FROM catalog_brand WHERE id = ?', [$brand->id()]));
+        self::assertSame('changed-category', $this->connection->fetchOne('SELECT slug FROM catalog_category WHERE id = ?', [$category->id()]));
+
+        self::assertSame(
+            [
+                ['resource_type' => 'brand', 'old_slug' => 'stable-brand'],
+                ['resource_type' => 'category', 'old_slug' => 'stable-category'],
+                ['resource_type' => 'product', 'old_slug' => 'stable-product'],
+            ],
+            $this->connection->fetchAllAssociative(
+                'SELECT resource_type, old_slug FROM seo_slug_redirect WHERE resource_type IN (?, ?, ?) ORDER BY resource_type',
+                ['product', 'category', 'brand'],
+            ),
+        );
+    }
+
+    public function testRenamingADraftCatalogRecordRecordsNoHistoryBecauseItWasNeverPublic(): void
+    {
+        $this->loginAdmin();
+        $product = new Product('DRAFT-001', 'Draft Product', 'draft-product');
+        $price = new ProductPrice($product, \App\Shared\Money\Money::ofMinor(10000, 'TRY'), \App\Module\Pricing\TaxCategory::of('replacement-part'), \App\Module\Pricing\TaxRate::fromBasisPoints(2000));
+        $inventory = new ProductInventory($product, 4, true);
+        foreach ([$product, $price, $inventory] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $form = $crawler->selectButton('Save product')->form();
+        $form['admin_product[slug]'] = 'renamed-draft-product';
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        self::assertSame('renamed-draft-product', $this->connection->fetchOne('SELECT slug FROM catalog_product WHERE id = ?', [$product->id()]));
+        self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM seo_slug_redirect WHERE old_slug = ?', ['draft-product']));
+    }
+
+    public function testRenamingAndUnpublishingInOneSaveRecordsNoRedirect(): void
+    {
+        $this->loginAdmin();
+        $product = new Product('WITHDRAW-001', 'Withdrawn Product', 'withdrawn-product');
+        $product->publish();
+        $price = new ProductPrice($product, \App\Shared\Money\Money::ofMinor(10000, 'TRY'), \App\Module\Pricing\TaxCategory::of('replacement-part'), \App\Module\Pricing\TaxRate::fromBasisPoints(2000));
+        $inventory = new ProductInventory($product, 4, true);
+        foreach ([$product, $price, $inventory] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $form = $crawler->selectButton('Save product')->form();
+        $form['admin_product[slug]'] = 'withdrawn-product-2';
+        $published = $form['admin_product[published]'];
+        self::assertInstanceOf(ChoiceFormField::class, $published);
+        $published->untick();
+        $this->client->submit($form);
+        self::assertResponseRedirects();
+
+        // The record is no longer at a public address, so a history row would point at a
+        // target that can never resolve: the old URL would 404 through a redirect, and the
+        // table would grow by one dead entry every time this was done.
+        self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM seo_slug_redirect WHERE old_slug = ?', ['withdrawn-product']));
     }
 
     public function testBlankInventoryVersionCannotBypassStaleStockProtection(): void

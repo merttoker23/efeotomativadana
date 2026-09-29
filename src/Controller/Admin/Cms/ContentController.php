@@ -4,6 +4,8 @@ namespace App\Controller\Admin\Cms;
 
 use App\Entity\Cms\BlogPost;
 use App\Entity\Cms\InformationPage;
+use App\Entity\Seo\SeoResourceType;
+use App\Module\Seo\SlugRedirectRecorder;
 use App\Repository\Cms\BlogPostRepository;
 use App\Repository\Cms\InformationPageRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -17,6 +19,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 final class ContentController extends AbstractController
 {
+    public function __construct(
+        private readonly SlugRedirectRecorder $redirects,
+    ) {
+    }
+
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(string $kind, BlogPostRepository $posts, InformationPageRepository $pages): Response
     {
@@ -59,7 +66,12 @@ final class ContentController extends AbstractController
             try {
                 $existing = ('blog' === $kind ? $posts : $pages)->findOneBy(['slug' => $values['slug']]);
                 if (null !== $existing && $existing !== $item) { throw new \InvalidArgumentException('Slug is already in use.'); }
-                if (null !== $item && $item->published() && $values['slug'] !== $item->slug()) { throw new \InvalidArgumentException('Published slugs cannot be changed.'); }
+                // A published page keeps its old address through redirect history rather than by
+                // refusing the rename, so a corrected title does not cost the URL its inbound links.
+                // A page being unpublished in the same save is leaving the storefront rather than
+                // moving, and a history row for it would point at a target that never resolves.
+                $wasPublished = null !== $item && $item->published() && $values['published'];
+                $previousSlug = $item?->slug();
                 if ('blog' === $kind) {
                     $item ??= new BlogPost($values['title'], $values['slug'], $values['excerpt'], $values['body']);
                     if (!$item instanceof BlogPost) { throw new \LogicException(); }
@@ -68,6 +80,15 @@ final class ContentController extends AbstractController
                     $item ??= new InformationPage($values['title'], $values['slug'], $values['body']);
                     if (!$item instanceof InformationPage) { throw new \LogicException(); }
                     $item->update($values['title'], $values['slug'], $values['body']);
+                }
+                if (null !== $previousSlug && null !== $item->id()) {
+                    $this->redirects->record(
+                        'blog' === $kind ? SeoResourceType::BlogPost : SeoResourceType::InformationPage,
+                        (int) $item->id(),
+                        $wasPublished,
+                        $previousSlug,
+                        $item->slug(),
+                    );
                 }
                 $item->setPublished($values['published']);
                 $manager->persist($item);

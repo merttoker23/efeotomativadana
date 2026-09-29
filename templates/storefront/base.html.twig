@@ -4,7 +4,34 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#092a53">
-        <title>{% block title %}{{ store.name|default('Efe Otomotiv Adana') }}{% endblock %}</title>
+        {# `seo` is the single source of the title for every page that resolves its own
+           metadata. The block remains so a page with no metadata of its own still gets a
+           sensible title instead of an empty one. The `is defined` test is explicit because
+           the suite runs with Twig's strict_variables, which rejects `seo.title` on a page
+           that never assigned it. #}
+        <title>{% block title %}{{ seo is defined and seo ? seo.title : (store.name|default('Efe Otomotiv Adana')) }}{% endblock %}</title>
+        {% if seo is defined and seo %}
+            {# One canonical per page, built from this store's own route. A canonical that
+               changed with the Host header would be worse than none at all. #}
+            <meta name="description" content="{{ seo.description }}">
+            <link rel="canonical" href="{{ seo.canonicalUrl }}">
+            {% if seo.robots %}<meta name="robots" content="{{ seo.robots }}">{% endif %}
+            <meta property="og:type" content="{{ seo.type }}">
+            <meta property="og:site_name" content="{{ seo.siteName }}">
+            <meta property="og:locale" content="{{ seo.locale|replace({'-': '_'}) }}">
+            <meta property="og:title" content="{{ seo.title }}">
+            <meta property="og:description" content="{{ seo.description }}">
+            <meta property="og:url" content="{{ seo.canonicalUrl }}">
+            {% if seo.imageUrl %}
+                <meta property="og:image" content="{{ seo.imageUrl }}">
+                <meta name="twitter:card" content="summary_large_image">
+            {% else %}
+                <meta name="twitter:card" content="summary">
+            {% endif %}
+            {# Already JSON-encoded with HTML-sensitive characters escaped, so a product name
+               cannot close this element. Autoescaping is deliberately NOT applied here. #}
+            {% for graph in seo.jsonLd %}<script type="application/ld+json">{{ graph|raw }}</script>{% endfor %}
+        {% endif %}
         <link rel="stylesheet" href="{{ asset('styles/storefront.css') }}" data-storefront-stylesheet>
         {% block javascripts %}{{ importmap('app') }}{% endblock %}
     </head>

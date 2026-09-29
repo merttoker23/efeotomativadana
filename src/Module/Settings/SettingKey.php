@@ -14,12 +14,17 @@ enum SettingKey: string
     case LoyaltyEarnPercentage = 'loyalty.earn_percentage';
     case PaymentProvider = 'payment.provider';
     case ShippingProvider = 'shipping.provider';
+    // Indexing stays on by default: a store that has not launched should be switched off from
+    // its own settings, not be invisible in production until someone remembers a code change.
+    case SeoIndexingEnabled = 'seo.indexing_enabled';
+    case SeoDefaultDescription = 'seo.default_description';
 
     public function defaultValue(): bool|int|string|null
     {
         return match ($this) {
             self::B2bEnabled, self::LoyaltyEnabled => false,
-            self::B2bProvider, self::PaymentProvider, self::ShippingProvider => null,
+            self::B2bProvider, self::PaymentProvider, self::ShippingProvider, self::SeoDefaultDescription => null,
+            self::SeoIndexingEnabled => true,
             self::StoreName => 'Efe Otomotiv Adana',
             self::StoreCurrency => 'TRY',
             self::StoreDefaultLocale => 'tr',

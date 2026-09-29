@@ -4,6 +4,7 @@ namespace App\Controller\Storefront\Catalog;
 
 use App\Module\Catalog\Query\CatalogCriteria;
 use App\Module\Catalog\Query\CatalogQuery;
+use App\Module\Seo\StorefrontSeo;
 use App\Module\Settings\StoreConfiguration;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +16,7 @@ final class CatalogController extends AbstractController
     public function __construct(
         private readonly CatalogQuery $catalog,
         private readonly StoreConfiguration $configuration,
+        private readonly StorefrontSeo $seo,
     ) {
     }
 
@@ -52,7 +54,7 @@ final class CatalogController extends AbstractController
         $brands = $this->catalog->brands();
 
         return $this->render('storefront/catalog/brands.html.twig', $this->context(
-            ['brands' => $brands],
+            ['brands' => $brands, 'seo' => $this->seo->brandsIndex()],
             ['categories' => $this->catalog->categories(8), 'brands' => array_slice($brands, 0, 8)],
         ));
     }
@@ -67,6 +69,7 @@ final class CatalogController extends AbstractController
 
         return $this->render('storefront/catalog/product.html.twig', $this->context([
             'product' => $product,
+            'seo' => $this->seo->product($product),
         ]));
     }
 
@@ -88,6 +91,7 @@ final class CatalogController extends AbstractController
                 'categories' => $categories,
                 'brands' => $brands,
                 'route_filter' => null !== $categorySlug ? 'category' : (null !== $brandSlug ? 'brand' : null),
+                'seo' => $this->seo->catalogListing($heading, $categorySlug, $brandSlug),
             ],
             ['categories' => array_slice($categories, 0, 8), 'brands' => array_slice($brands, 0, 8)],
         ));

@@ -26,7 +26,7 @@ final class AdminProductType extends AbstractType
         $builder
             ->add('sku', TextType::class, ['label' => 'SKU'])
             ->add('name', TextType::class, ['label' => 'Name'])
-            ->add('slug', TextType::class, ['label' => 'Public slug', 'help' => 'Published slugs are locked to preserve public URLs. Use lowercase letters, numbers and hyphens.'])
+            ->add('slug', TextType::class, ['label' => 'Public slug', 'help' => 'Changing a published slug keeps the old address working: it redirects permanently to this one. Use lowercase letters, numbers and hyphens.'])
             ->add('description', TextareaType::class, ['required' => false, 'label' => 'Description'])
             ->add('published', CheckboxType::class, ['required' => false, 'label' => 'Published'])
             ->add('brand', EntityType::class, ['class' => Brand::class, 'choice_label' => 'name', 'required' => false, 'placeholder' => 'No brand'])

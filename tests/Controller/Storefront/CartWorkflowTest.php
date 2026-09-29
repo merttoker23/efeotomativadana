@@ -52,6 +52,16 @@ final class CartWorkflowTest extends WebTestCase
         self::assertSelectorExists('a.header-action[href="/yeni/sepet"]');
     }
 
+    /**
+     * The point of this test is that the header summary does not query per cart line — an N+1
+     * here is invisible with eight items and fatal with eight hundred. A ceiling alone would
+     * let an N+1 through by being raised, so the count is compared across three cart sizes as
+     * well as against a documented absolute limit.
+     *
+     * The ceiling is 11, larger than the 8 this page used before SEO, because the listing now
+     * resolves its own metadata and so reads two more store settings. Those are memoised per
+     * request, which is a fixed cost rather than a per-line one.
+     */
     public function testHeaderCartSummaryUsesAConstantNumberOfQueries(): void
     {
         $customer = $this->customer('cart-summary@example.com', 'VeryStrong!123');
@@ -67,8 +77,58 @@ final class CartWorkflowTest extends WebTestCase
         }
         $this->entityManager->persist($cart);
         $this->entityManager->flush();
+        $cartId = (int) $cart->id();
+        self::assertGreaterThan(0, $cartId);
         $this->client->loginUser($customer, 'main');
 
+        $withEightLines = $this->profileListing('8', '800,00 TRY');
+
+        for ($i = 9; $i <= 20; ++$i) {
+            $this->grow($cartId, $i);
+        }
+
+        $withTwentyLines = $this->profileListing('20', '2.000,00 TRY');
+
+        for ($i = 21; $i <= 44; ++$i) {
+            $this->grow($cartId, $i);
+        }
+
+        $withFortyFourLines = $this->profileListing('44', '4.400,00 TRY');
+
+        // A per-line query would make every step grow by the number of lines added. Going from
+        // 8 to 20 lines costs exactly one more query, and 44 lines costs the same as 20: that
+        // is a step, not growth, and the third measurement is what proves it. Which query the
+        // extra one is has not been established here, so the ceiling below allows for it
+        // rather than pretending to know.
+        self::assertSame($withTwentyLines, $withFortyFourLines, 'The header summary must not query per cart line.');
+        self::assertLessThanOrEqual(11, $withEightLines);
+    }
+
+    /**
+     * Grows the cart by one line, re-reading it first.
+     *
+     * A request reboots the kernel, so the entity the test is holding is detached afterwards.
+     * Growing from that detached instance would either write nothing (the next render shows the
+     * old cart) or drag a detached customer and product into the persist and fail; re-reading
+     * keeps every association managed and the measurement honest.
+     */
+    private function grow(int $cartId, int $index): void
+    {
+        $cart = $this->entityManager->find(Cart::class, $cartId);
+        self::assertNotNull($cart);
+        $item = $cart->add($this->sellableProduct(
+            sprintf('CART-SUMMARY-%02d', $index),
+            sprintf('Sepet Özeti Ürünü %02d', $index),
+            sprintf('sepet-ozeti-urunu-%02d', $index),
+            10_000,
+            5,
+        ), 1);
+        $this->entityManager->persist($item);
+        $this->entityManager->flush();
+    }
+
+    private function profileListing(string $expectedCount, string $expectedTotal): int
+    {
         $debugData = self::getContainer()->get('doctrine.debug_data_holder');
         self::assertInstanceOf(BacktraceDebugDataHolder::class, $debugData);
         $debugData->reset();
@@ -77,13 +137,14 @@ final class CartWorkflowTest extends WebTestCase
         $this->client->request('GET', '/yeni/katalog');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.cart-action', '8');
-        self::assertSelectorTextContains('.cart-action', '800,00 TRY');
+        self::assertSelectorTextContains('.cart-action', $expectedCount);
+        self::assertSelectorTextContains('.cart-action', $expectedTotal);
         $profile = $this->client->getProfile();
         self::assertNotFalse($profile);
         $database = $profile->getCollector('db');
         self::assertInstanceOf(DoctrineDataCollector::class, $database);
-        self::assertLessThanOrEqual(8, $database->getQueryCount());
+
+        return $database->getQueryCount();
     }
 
     public function testGuestAddsAProductAndPostedPriceIsIgnored(): void

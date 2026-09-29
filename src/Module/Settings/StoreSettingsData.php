@@ -29,6 +29,12 @@ final class StoreSettingsData
         #[Assert\Length(max: 100)]
         #[Assert\Regex(pattern: '/^[a-z0-9][a-z0-9._-]*$/', message: 'Use lowercase letters, numbers, dots, underscores, or dashes.')]
         public ?string $shippingProvider = null,
+        public bool $seoIndexingEnabled = true,
+        // Nullable on purpose: an empty default description is a legitimate state, and the SEO
+        // layer has its own final fallback. Inventing a sentence the merchant did not write is
+        // not this application's job.
+        #[Assert\Length(max: 500)]
+        public ?string $seoDefaultDescription = null,
     ) {
     }
 }

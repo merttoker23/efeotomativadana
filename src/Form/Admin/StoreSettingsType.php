@@ -44,6 +44,19 @@ final class StoreSettingsType extends AbstractType
                 'required' => false,
                 'empty_data' => '',
             ])
+            ->add('seoIndexingEnabled', CheckboxType::class, [
+                'label' => 'Allow search engines to index this store',
+                'required' => false,
+                // Turning this off is how a store that is not launched yet stays out of results
+                // without a code change. It also closes the sitemap in robots.txt.
+                'help' => 'When off, robots.txt forbids every address and no page is advertised as indexable.',
+            ])
+            ->add('seoDefaultDescription', TextType::class, [
+                'label' => 'Default search description',
+                'required' => false,
+                'empty_data' => '',
+                'help' => 'Optional. Used for pages that have no description of their own.',
+            ])
             ->add('save', SubmitType::class, ['label' => 'Save settings']);
     }
 

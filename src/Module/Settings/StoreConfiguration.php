@@ -9,15 +9,37 @@ use Symfony\Component\Validator\ConstraintViolation;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
-final readonly class StoreConfiguration
+/**
+ * The store's own settings, read through one typed door.
+ *
+ * Values are memoised for the length of a request and the memo is dropped again by
+ * `kernel.reset` — which is what the Messenger worker triggers between messages too. That
+ * matters because every page reads several of these (store name, locale, currency, tax rate,
+ * the indexing switch), and each read is a query; the naive version spent four queries per
+ * page proving the same four rows had not changed since the first one.
+ *
+ * It is deliberately *not* memoised for the lifetime of the process. FrankenPHP and the
+ * Messenger worker both keep a PHP process alive across many requests, and a memo that
+ * outlived one would show a worker the settings as they were when it started.
+ */
+final class StoreConfiguration implements ResetInterface
 {
+    /** @var array<string, bool|int|string|null> */
+    private array $memo = [];
+
     public function __construct(
-        private StoreSettingRepository $settings,
-        private EntityManagerInterface $entityManager,
-        private ValidatorInterface $validator,
-        private B2bProviderRegistry $b2bProviders,
+        private readonly StoreSettingRepository $settings,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly ValidatorInterface $validator,
+        private readonly B2bProviderRegistry $b2bProviders,
     ) {
+    }
+
+    public function reset(): void
+    {
+        $this->memo = [];
     }
 
     public function current(): StoreSettingsData
@@ -33,6 +55,8 @@ final readonly class StoreConfiguration
             loyaltyEarnPercentage: $this->intValue(SettingKey::LoyaltyEarnPercentage),
             paymentProvider: $this->nullableStringValue(SettingKey::PaymentProvider),
             shippingProvider: $this->nullableStringValue(SettingKey::ShippingProvider),
+            seoIndexingEnabled: $this->boolValue(SettingKey::SeoIndexingEnabled),
+            seoDefaultDescription: $this->nullableStringValue(SettingKey::SeoDefaultDescription),
         );
     }
 
@@ -44,6 +68,7 @@ final readonly class StoreConfiguration
         $configuration->storeName = trim($configuration->storeName);
         $configuration->currency = strtoupper(trim($configuration->currency));
         $configuration->defaultLocale = str_replace('_', '-', trim($configuration->defaultLocale));
+        $configuration->seoDefaultDescription = $this->normalizeText($configuration->seoDefaultDescription);
 
         $violations = $this->validator->validate($configuration);
         if ($configuration->b2bEnabled && (null === $configuration->b2bProvider || !$this->b2bProviders->supports($configuration->b2bProvider))) {
@@ -72,6 +97,8 @@ final readonly class StoreConfiguration
             SettingKey::LoyaltyEarnPercentage->value => $configuration->loyaltyEarnPercentage,
             SettingKey::PaymentProvider->value => $configuration->paymentProvider,
             SettingKey::ShippingProvider->value => $configuration->shippingProvider,
+            SettingKey::SeoIndexingEnabled->value => $configuration->seoIndexingEnabled,
+            SettingKey::SeoDefaultDescription->value => $configuration->seoDefaultDescription,
         ];
 
         foreach ($values as $key => $value) {
@@ -79,6 +106,8 @@ final readonly class StoreConfiguration
         }
 
         $this->entityManager->flush();
+        // Read-after-write has to see the write, from this process as well as the next request.
+        $this->reset();
     }
 
     public function isB2bEnabled(): bool
@@ -131,9 +160,28 @@ final readonly class StoreConfiguration
         return $this->nullableStringValue(SettingKey::ShippingProvider);
     }
 
+    public function isSeoIndexingEnabled(): bool
+    {
+        return $this->boolValue(SettingKey::SeoIndexingEnabled);
+    }
+
+    /**
+     * The last-resort meta description. Null rather than a hard-coded sentence: inventing
+     * marketing copy the merchant did not write is not this application's job, and the SEO
+     * layer has its own final fallback when this is empty.
+     */
+    public function seoDefaultDescription(): ?string
+    {
+        return $this->nullableStringValue(SettingKey::SeoDefaultDescription);
+    }
+
     private function value(SettingKey $key): mixed
     {
-        return $this->settings->findOneByKey($key)?->value() ?? $key->defaultValue();
+        if (array_key_exists($key->value, $this->memo)) {
+            return $this->memo[$key->value];
+        }
+
+        return $this->memo[$key->value] = $this->settings->findOneByKey($key)?->value() ?? $key->defaultValue();
     }
 
     private function boolValue(SettingKey $key): bool
@@ -181,5 +229,16 @@ final readonly class StoreConfiguration
         $provider = null === $provider ? null : trim($provider);
 
         return '' === $provider ? null : $provider;
+    }
+
+    /**
+     * A blank optional text field arrives as an empty string, and storing that would publish
+     * an empty description instead of leaving the page to fall back to its own text.
+     */
+    private function normalizeText(?string $value): ?string
+    {
+        $value = null === $value ? null : trim($value);
+
+        return '' === $value ? null : $value;
     }
 }

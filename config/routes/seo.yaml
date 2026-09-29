@@ -1,0 +1,21 @@
+# The same SEO controller, imported a second time at the domain root.
+#
+# A crawler requests /robots.txt and /sitemap.xml at the root of the site. The application is
+# published under the /yeni prefix, so the import in config/routes.yaml puts them inside a
+# directory a crawler has no reason to know about. Importing the class again here — same
+# service, same code, second set of route names — answers the address a crawler actually asks
+# for, and the prefixed pair keeps working for a deployment in a subdirectory.
+#
+# `routing.controllers` is left exactly as the recipe wrote it. Replacing it with an explicit
+# directory is the obvious way to exclude one controller, but it also drops the loader that
+# registers controllers as services, and the failure is a "controller does not exist in the
+# container" error on a page that looks correctly routed.
+#
+# The `controller:` key is deliberately absent: setting it here replaces the per-method
+# `_controller` default the attribute loader derives, and the route then points at the class
+# with no method on it.
+seo_root:
+    resource: '../../src/Controller/Storefront/SeoController.php'
+    type: attribute
+    prefix: /
+    name_prefix: 'root_'

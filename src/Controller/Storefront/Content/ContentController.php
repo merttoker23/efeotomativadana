@@ -3,6 +3,7 @@
 namespace App\Controller\Storefront\Content;
 
 use App\Module\Catalog\Query\CatalogQuery;
+use App\Module\Seo\StorefrontSeo;
 use App\Module\Settings\StoreConfiguration;
 use App\Repository\Cms\BlogPostRepository;
 use App\Repository\Cms\InformationPageRepository;
@@ -12,12 +13,17 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class ContentController extends AbstractController
 {
-    public function __construct(private readonly StoreConfiguration $settings, private readonly CatalogQuery $catalog) {}
+    public function __construct(
+        private readonly StoreConfiguration $settings,
+        private readonly CatalogQuery $catalog,
+        private readonly StorefrontSeo $seo,
+    ) {
+    }
 
     #[Route('/blog', name: 'storefront_blog_index', methods: ['GET'])]
     public function blog(BlogPostRepository $posts): Response
     {
-        return $this->render('storefront/blog/index.html.twig', $this->context(['posts' => $posts->latestPublished()]));
+        return $this->render('storefront/blog/index.html.twig', $this->context(['posts' => $posts->latestPublished(), 'seo' => $this->seo->blogIndex()]));
     }
 
     #[Route('/blog/{slug}', name: 'storefront_blog_show', requirements: ['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'], methods: ['GET'])]
@@ -25,13 +31,13 @@ final class ContentController extends AbstractController
     {
         $post = $posts->findOneBy(['slug' => $slug, 'published' => true]);
         if (null === $post) { throw $this->createNotFoundException(); }
-        return $this->render('storefront/blog/show.html.twig', $this->context(['post' => $post]));
+        return $this->render('storefront/blog/show.html.twig', $this->context(['post' => $post, 'seo' => $this->seo->blogPost($post)]));
     }
 
     #[Route('/bilgi', name: 'storefront_information_index', methods: ['GET'])]
     public function pages(InformationPageRepository $pages): Response
     {
-        return $this->render('storefront/content/index.html.twig', $this->context(['pages' => $pages->findBy(['published' => true], ['title' => 'ASC'])]));
+        return $this->render('storefront/content/index.html.twig', $this->context(['pages' => $pages->findBy(['published' => true], ['title' => 'ASC']), 'seo' => $this->seo->informationIndex()]));
     }
 
     #[Route('/bilgi/{slug}', name: 'storefront_information_show', requirements: ['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'], methods: ['GET'])]
@@ -39,7 +45,7 @@ final class ContentController extends AbstractController
     {
         $page = $pages->findOneBy(['slug' => $slug, 'published' => true]);
         if (null === $page) { throw $this->createNotFoundException(); }
-        return $this->render('storefront/content/show.html.twig', $this->context(['page' => $page]));
+        return $this->render('storefront/content/show.html.twig', $this->context(['page' => $page, 'seo' => $this->seo->informationPage($page)]));
     }
 
     /** @param array<string, mixed> $extra

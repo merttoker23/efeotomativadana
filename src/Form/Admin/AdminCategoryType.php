@@ -18,7 +18,7 @@ final class AdminCategoryType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder->add('name', TextType::class)->add('slug', TextType::class, ['help' => 'Published slugs are locked to preserve public URLs.'])->add('published', CheckboxType::class, ['required' => false])->add('parent', EntityType::class, ['class' => Category::class, 'choice_label' => 'name', 'required' => false, 'placeholder' => 'No parent'])->add('save', SubmitType::class, ['label' => 'Save category']);
+        $builder->add('name', TextType::class)->add('slug', TextType::class, ['help' => 'Changing a published slug keeps the old address working: it redirects permanently to this one.'])->add('published', CheckboxType::class, ['required' => false])->add('parent', EntityType::class, ['class' => Category::class, 'choice_label' => 'name', 'required' => false, 'placeholder' => 'No parent'])->add('save', SubmitType::class, ['label' => 'Save category']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

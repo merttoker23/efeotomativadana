@@ -93,6 +93,16 @@ services:
         arguments:
             $publicBaseUri: '%env(DEFAULT_URI)%'
 
+    # One implementation of the store-wide SEO facts, read from the admin-managed settings.
+    App\Module\Seo\StoreSeoContextProvider:
+        alias: App\Module\Seo\SettingsStoreSeoContextProvider
+
+    # robots.txt is decided by the environment, not by a deployment detail nobody remembers:
+    # only a production environment is ever crawlable.
+    App\Module\Seo\RobotsTxtBuilder:
+        arguments:
+            $environment: '%kernel.environment%'
+
     # PayTR credentials come from the environment and are empty until the merchant enters them
     # in the uncommitted .env.local. The adapter stays wired either way and reports itself as not
     # production ready while they are missing, so a half-configured store never offers a payment
@@ -201,6 +211,24 @@ when@test:
         # Tests build this one against their own in-memory transport so they can count messages and
         # simulate an SMTP outage; the container's mailer is `null://null` and could do neither.
         App\Module\Notification\TransactionalNotificationService:
+            autowire: true
+            autoconfigure: true
+            public: true
+        # Redirect history and metadata overrides are read back directly by integration tests
+        # so a rename can be proven to keep the old address rather than asserted in prose.
+        App\Module\Seo\SlugRedirectRecorder:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Seo\SlugRedirectResolver:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Seo\SeoOverrideReader:
+            autowire: true
+            autoconfigure: true
+            public: true
+        App\Module\Seo\SeoMetadataFactory:
             autowire: true
             autoconfigure: true
             public: true

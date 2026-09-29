@@ -7,6 +7,7 @@ namespace App\Module\Catalog;
 use App\Entity\Catalog\Brand;
 use App\Entity\Catalog\Category;
 use App\Entity\Catalog\Product;
+use App\Entity\Seo\SeoResourceType;
 use App\Module\Admin\ConcurrentAdminEdit;
 use App\Module\Catalog\Exception\CatalogConflict;
 use App\Module\Inventory\InventoryManager;
@@ -15,6 +16,7 @@ use App\Module\Pricing\PricingManager;
 use App\Module\Pricing\ProductPriceRepositoryInterface;
 use App\Module\Pricing\TaxCategory;
 use App\Module\Pricing\TaxRate;
+use App\Module\Seo\SlugRedirectRecorder;
 use App\Shared\Money\Money;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +33,7 @@ final readonly class AdminCatalogManager
         private PricingManager $pricing,
         private InventoryManager $inventoryManager,
         private EntityManagerInterface $entityManager,
+        private SlugRedirectRecorder $redirects,
     ) {
     }
 
@@ -55,11 +58,17 @@ final readonly class AdminCatalogManager
                 }
 
                 $this->assertProductIdentityAvailable($product, $data->sku, $data->slug);
-                $this->assertPublishedSlugStable($product->publicationStatus(), $product->slug(), $data->slug, 'product');
+                // A record that is being unpublished in the same save is not moving to a new
+                // public address, it is leaving the storefront. Recording it would write a row
+                // whose target can never resolve: the old URL would 404 through a redirect and
+                // the history table would grow by one dead entry every time this was done.
+                $wasPublished = PublicationStatus::Published === $product->publicationStatus() && $data->published;
+                $previousSlug = $product->slug();
                 $product->changeSku($data->sku);
                 $product->rename($data->name);
                 $product->changeSlug($data->slug);
                 $product->changeBrand($data->brand);
+                $this->redirects->record(SeoResourceType::Product, (int) $product->id(), $wasPublished, $previousSlug, $product->slug());
             }
             $product->describe($data->description);
             $data->published ? $product->publish() : $product->unpublish();
@@ -90,7 +99,8 @@ final readonly class AdminCatalogManager
         if (null === $category) {
             $category = $this->catalog->createCategory($data->name, $data->slug, CatalogSource::Local, $data->parent);
         } else {
-            $this->assertPublishedSlugStable($category->publicationStatus(), $category->slug(), $data->slug, 'category');
+            $wasPublished = PublicationStatus::Published === $category->publicationStatus() && $data->published;
+            $previousSlug = $category->slug();
             $existing = $this->categories->findOneBySlug($data->slug);
             if (null !== $existing && $existing !== $category) {
                 throw new CatalogConflict(sprintf('A category with slug "%s" already exists.', $data->slug));
@@ -98,6 +108,7 @@ final readonly class AdminCatalogManager
             $category->rename($data->name);
             $category->changeSlug($data->slug);
             $category->changeParent($data->parent);
+            $this->redirects->record(SeoResourceType::Category, (int) $category->id(), $wasPublished, $previousSlug, $category->slug());
         }
         $data->published ? $category->publish() : $category->unpublish();
         $this->categories->save($category);
@@ -110,13 +121,15 @@ final readonly class AdminCatalogManager
         if (null === $brand) {
             $brand = $this->catalog->createBrand($data->name, $data->slug);
         } else {
-            $this->assertPublishedSlugStable($brand->publicationStatus(), $brand->slug(), $data->slug, 'brand');
+            $wasPublished = PublicationStatus::Published === $brand->publicationStatus() && $data->published;
+            $previousSlug = $brand->slug();
             $existing = $this->brands->findOneBySlug($data->slug);
             if (null !== $existing && $existing !== $brand) {
                 throw new CatalogConflict(sprintf('A brand with slug "%s" already exists.', $data->slug));
             }
             $brand->rename($data->name);
             $brand->changeSlug($data->slug);
+            $this->redirects->record(SeoResourceType::Brand, (int) $brand->id(), $wasPublished, $previousSlug, $brand->slug());
         }
         $data->published ? $brand->publish() : $brand->unpublish();
         $this->brands->save($brand);
@@ -139,13 +152,6 @@ final readonly class AdminCatalogManager
         $bySlug = $this->products->findOneBySlug($slug);
         if (null !== $bySlug && $bySlug !== $product) {
             throw new CatalogConflict(sprintf('A product with slug "%s" already exists.', $slug));
-        }
-    }
-
-    private function assertPublishedSlugStable(PublicationStatus $status, string $currentSlug, string $requestedSlug, string $resource): void
-    {
-        if (PublicationStatus::Published === $status && $currentSlug !== mb_strtolower(trim($requestedSlug))) {
-            throw new CatalogConflict(sprintf('The published %s slug cannot be changed because its public URL must remain stable.', $resource));
         }
     }
 

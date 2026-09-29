@@ -12,7 +12,7 @@
             {% if checkout.addresses is empty %}
                 <div class="checkout-empty-address">
                     <p>Sipariş verebilmek için hesabınıza bir adres ekleyin.</p>
-                    <a class="account-primary-link" href="{{ path('customer_address_new') }}">Adres ekle</a>
+                    <a class="account-primary-link" href="{{ path('customer_account_address_new') }}">Adres ekle</a>
                 </div>
             {% elseif cart.items is empty or cart.total is null %}
                 <div class="checkout-empty-address">

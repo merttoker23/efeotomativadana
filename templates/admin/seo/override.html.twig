@@ -1,0 +1,18 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}SEO overrides — {{ subject }}{% endblock %}
+
+{% block body %}
+<section class="panel">
+    <p class="eyebrow">Search engines</p>
+    <h1>SEO overrides for this {{ subject|lower }}</h1>
+    <p>
+        Every field is optional. Leave a field empty and the page keeps using its own title,
+        its own text and its own address — an override only replaces what it actually names.
+    </p>
+
+    <div class="form-errors">{{ form(form) }}</div>
+
+    <p><a class="button-link" href="{{ back_url }}">Back to the {{ subject|lower }}</a></p>
+</section>
+{% endblock %}
