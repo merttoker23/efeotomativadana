@@ -32,6 +32,15 @@ security:
                 # login, so a victim who signs in to the genuine store could be redirected to a
                 # lookalike that asks for their credentials a second time.
                 always_use_default_target_path: true
+            # Five failures in a quarter of an hour for this firewall. The firewall keeps two
+            # counters: one per account+address and one per address alone, the second five
+            # times larger, so guessing one password slowly and many passwords quickly both run
+            # out of budget. Separate from the customer firewall below, so a customer's typos
+            # can never lock an administrator out — and an administrator's brute-force run can
+            # never exhaust a customer's budget.
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             logout:
                 path: admin_logout
                 target: admin_login
@@ -48,6 +57,11 @@ security:
                 # See the admin firewall above: the post-login destination is never taken from
                 # the request.
                 always_use_default_target_path: true
+            # See above. The admin firewall is a strictly more valuable target, so its ceiling
+            # is the tighter of the two.
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             logout:
                 path: customer_logout
                 target: customer_login

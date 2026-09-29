@@ -253,6 +253,7 @@ final class NotificationWiringTest extends KernelTestCase
             $this->entityManager,
             self::getContainer()->get('clock'),
             $events,
+            self::getContainer()->get(\App\Module\Audit\AuditLogger::class),
         );
     }
 

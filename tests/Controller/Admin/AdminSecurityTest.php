@@ -3,6 +3,7 @@
 namespace App\Tests\Controller\Admin;
 
 use App\Entity\Customer\AdminUser;
+use App\Tests\ResetsRateLimits;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -12,6 +13,10 @@ use Symfony\Component\Security\Core\User\InMemoryUser;
 
 final class AdminSecurityTest extends WebTestCase
 {
+    // The admin firewall now throttles, and its budget is shared across a suite run. Without
+    // this a security test that exhausts it makes this class fail depending on test order.
+    use ResetsRateLimits;
+
     private KernelBrowser $client;
     private Connection $connection;
 
@@ -20,6 +25,7 @@ final class AdminSecurityTest extends WebTestCase
         $this->client = static::createClient();
         $this->connection = self::getContainer()->get(Connection::class);
         $this->connection->executeStatement('DELETE FROM admin_user');
+        $this->resetRateLimits();
     }
 
     protected function tearDown(): void

@@ -27,6 +27,29 @@ services:
         arguments:
             $directory: '%kernel.project_dir%/public/uploads/cms'
 
+    # Every log line passes through this before any handler sees it. Tagged explicitly on the
+    # logger prototype rather than left to ProcessorInterface autoconfiguration, because
+    # autoconfiguration is exactly the kind of thing a later edit to this file can quietly
+    # stop doing — and "the log redaction is gone" is not a failure any test would notice
+    # unless the wiring itself is asserted. tests/Security/LogRedactionTest does that.
+    App\Shared\Logging\RedactingLogProcessor:
+        autoconfigure: false
+        tags:
+            - { name: 'monolog.processor' }
+
+    # Audit rows go to their own channel so "what did the staff do" is one command rather
+    # than a grep through a mixed log.
+    App\Module\Audit\AuditLogger:
+        arguments:
+            $logger: '@monolog.logger.audit'
+
+    # Security headers are environment-dependent (HSTS is production-only; the dev hot
+    # reload script host is allowed outside production), so the environment is explicit
+    # rather than read from a global.
+    App\EventListener\SecurityHeadersSubscriber:
+        arguments:
+            $environment: '%kernel.environment%'
+
     # Stored media paths are absolute ("/uploads/..."), so the storefront must be told the
     # public base path to keep them reachable from the application directory.
     App\Twig\StorefrontMediaExtension:

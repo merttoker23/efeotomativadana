@@ -26,6 +26,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\RateLimit;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -82,8 +83,12 @@ final class CustomerOrderController extends AbstractController
      * The form is built from the order's own lines, with each quantity capped at what is still free
      * after existing requests. A line the store will not accept is therefore visible as a zero
      * ceiling rather than as a refusal the customer discovers after submitting.
+     *
+     * Limited per address on POST: opening a return is the step that creates staff work, and a
+     * scripted run of them is indistinguishable from a customer who is genuinely undecided.
      */
     #[Route('/hesabim/siparisler/{orderNumber}/iade', name: 'customer_account_order_return', requirements: ['orderNumber' => self::ORDER_NUMBER], methods: ['GET', 'POST'])]
+    #[RateLimit('return_request', methods: ['POST'])]
     public function return(string $orderNumber, Request $request, CustomerOrderRepository $orders, ReturnService $returns, ReturnPolicy $policy, StorefrontPageContext $context): Response
     {
         $order = $this->order($orders, $orderNumber);

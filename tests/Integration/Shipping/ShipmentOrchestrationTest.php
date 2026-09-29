@@ -520,6 +520,7 @@ final class ShipmentOrchestrationTest extends KernelTestCase
             self::getContainer()->get(\Psr\Clock\ClockInterface::class),
             self::getContainer()->get(\Symfony\Component\Messenger\MessageBusInterface::class),
             self::getContainer()->get(\Symfony\Component\EventDispatcher\EventDispatcherInterface::class),
+            self::getContainer()->get(\App\Module\Audit\AuditLogger::class),
         );
 
         $second = $withoutAnyMethod->createForOrder($order->orderNumber(), 'admin@example.com');

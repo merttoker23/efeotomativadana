@@ -57,6 +57,7 @@ final class B2bSyncServiceTest extends KernelTestCase
             $entityManager,
             self::getContainer()->get(ValidatorInterface::class),
             $registry,
+            self::getContainer()->get(\App\Module\Audit\AuditLogger::class),
         );
         $messageBus = self::getContainer()->get(MessageBusInterface::class);
         self::assertInstanceOf(MessageBusInterface::class, $messageBus);

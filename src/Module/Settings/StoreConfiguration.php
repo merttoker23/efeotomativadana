@@ -2,6 +2,8 @@
 
 namespace App\Module\Settings;
 
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Integration\B2b\B2bProviderRegistry;
 use App\Repository\Commerce\StoreSettingRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -34,6 +36,7 @@ final class StoreConfiguration implements ResetInterface
         private readonly EntityManagerInterface $entityManager,
         private readonly ValidatorInterface $validator,
         private readonly B2bProviderRegistry $b2bProviders,
+        private readonly AuditLogger $audit,
     ) {
     }
 
@@ -101,11 +104,27 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::SeoDefaultDescription->value => $configuration->seoDefaultDescription,
         ];
 
+        // The diff is taken from the store's own current values, before anything is written,
+        // so the audit row says what actually changed rather than what the form contained. A
+        // settings form posts every key every time; without this, "the tax rate changed" would
+        // be indistinguishable from "someone opened the settings page and pressed save".
+        $before = $this->settings->allValues();
+        $changes = [];
+        foreach ($values as $key => $value) {
+            if (($before[$key] ?? null) !== $value) {
+                $changes[$key] = ['from' => $before[$key] ?? null, 'to' => $value];
+            }
+        }
+
         foreach ($values as $key => $value) {
             $this->settings->put(SettingKey::from($key), $value);
         }
 
         $this->entityManager->flush();
+        if ([] !== $changes) {
+            $this->audit->record(AuditAction::SettingsUpdated, 'store_settings', ['changes' => $changes]);
+            $this->entityManager->flush();
+        }
         // Read-after-write has to see the write, from this process as well as the next request.
         $this->reset();
     }

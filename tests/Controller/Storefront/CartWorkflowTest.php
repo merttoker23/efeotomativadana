@@ -4,6 +4,7 @@ namespace App\Tests\Controller\Storefront;
 
 use App\Entity\Catalog\Product;
 use App\Entity\Commerce\Cart;
+use App\Tests\ResetsRateLimits;
 use App\Entity\Commerce\ProductInventory;
 use App\Entity\Commerce\ProductPrice;
 use App\Entity\Customer\CustomerUser;
@@ -20,6 +21,9 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class CartWorkflowTest extends WebTestCase
 {
+    // Two of these cases sign in through the login form, and the firewall throttles.
+    use ResetsRateLimits;
+
     private KernelBrowser $client;
     private Connection $connection;
     private EntityManagerInterface $entityManager;
@@ -31,6 +35,7 @@ final class CartWorkflowTest extends WebTestCase
         $this->connection = self::getContainer()->get(Connection::class);
         $this->connection->beginTransaction();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $this->resetRateLimits();
     }
 
     protected function tearDown(): void

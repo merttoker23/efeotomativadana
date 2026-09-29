@@ -8,6 +8,8 @@ use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Commerce\OrderItem;
 use App\Entity\Commerce\ReturnRequest;
 use App\Entity\Customer\CustomerUser;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Notification\Event\ReturnStateChanged;
 use App\Module\Order\OrderNotFound;
 use App\Module\Order\OrderRepositoryInterface;
@@ -26,6 +28,10 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  * Every write happens inside one transaction against a freshly locked row, so two operators — or an
  * operator and a customer withdrawing at the same moment — are serialised and the second sees the
  * first one's committed state rather than its own stale screen.
+ *
+ * Every decision is additionally written to the cross-cutting audit trail. The `ReturnEvent`
+ * trail beside the aggregate records what the request became; the audit row records who decided,
+ * which for an approval or a rejection is the fact a customer will eventually ask about.
  */
 final readonly class ReturnService
 {
@@ -37,6 +43,7 @@ final readonly class ReturnService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private EventDispatcherInterface $events,
+        private AuditLogger $audit,
     ) {
     }
 
@@ -90,6 +97,10 @@ final readonly class ReturnService
             }
 
             $this->returns->save($return);
+            $this->audit->record(AuditAction::ReturnRequested, $return->returnNumber(), [
+                'order_number' => $order->orderNumber(),
+                'lines' => count($return->items()),
+            ]);
             $this->entityManager->flush();
 
             // Raised after the transaction, so a subscriber can never read a row that is about to be
@@ -157,21 +168,21 @@ final readonly class ReturnService
 
     public function approve(ReturnRequest $return, string $staffNote, string $actorEmail): ReturnRequest
     {
-        return $this->apply($return, function (ReturnRequest $locked) use ($staffNote, $actorEmail): void {
+        return $this->apply($return, AuditAction::ReturnApproved, ['staff_note' => $staffNote], function (ReturnRequest $locked) use ($staffNote, $actorEmail): void {
             $locked->approve($staffNote, $this->now(), $actorEmail);
         });
     }
 
     public function reject(ReturnRequest $return, string $staffNote, string $actorEmail): ReturnRequest
     {
-        return $this->apply($return, function (ReturnRequest $locked) use ($staffNote, $actorEmail): void {
+        return $this->apply($return, AuditAction::ReturnRejected, ['staff_note' => $staffNote], function (ReturnRequest $locked) use ($staffNote, $actorEmail): void {
             $locked->reject($staffNote, $this->now(), $actorEmail);
         });
     }
 
     public function markReceived(ReturnRequest $return, string $actorEmail): ReturnRequest
     {
-        return $this->apply($return, function (ReturnRequest $locked) use ($actorEmail): void {
+        return $this->apply($return, AuditAction::ReturnReceived, [], function (ReturnRequest $locked) use ($actorEmail): void {
             $locked->markReceived($this->now(), $actorEmail);
         });
     }
@@ -185,14 +196,19 @@ final readonly class ReturnService
      */
     public function recordRefund(ReturnRequest $return, int $amountMinor, string $currency, string $refundReference, string $actorEmail): ReturnRequest
     {
-        return $this->apply($return, function (ReturnRequest $locked) use ($amountMinor, $currency, $refundReference, $actorEmail): void {
-            $locked->markRefunded($amountMinor, $currency, $refundReference, $this->now(), $actorEmail);
-        });
+        return $this->apply(
+            $return,
+            AuditAction::ReturnRefundRecorded,
+            ['amount_minor' => $amountMinor, 'currency' => $currency, 'refund_reference' => $refundReference],
+            function (ReturnRequest $locked) use ($amountMinor, $currency, $refundReference, $actorEmail): void {
+                $locked->markRefunded($amountMinor, $currency, $refundReference, $this->now(), $actorEmail);
+            },
+        );
     }
 
     public function withdraw(ReturnRequest $return): ReturnRequest
     {
-        return $this->apply($return, function (ReturnRequest $locked): void {
+        return $this->apply($return, AuditAction::ReturnWithdrawn, [], function (ReturnRequest $locked): void {
             $locked->withdraw($this->now(), $locked->customer()->getUserIdentifier());
         });
     }
@@ -203,19 +219,21 @@ final readonly class ReturnService
      * The caller's copy only says *which* return; every decision is made from the freshly locked
      * row, so an operator's stale screen cannot overwrite a decision someone else already made.
      *
-     * @param callable(ReturnRequest): void $change
+     * @param callable(ReturnRequest): void                $change
+     * @param array<string, mixed>                         $payload
      */
-    private function apply(ReturnRequest $return, callable $change): ReturnRequest
+    private function apply(ReturnRequest $return, AuditAction $action, array $payload, callable $change): ReturnRequest
     {
         $id = (int) $return->id();
 
-        $applied = $this->entityManager->wrapInTransaction(function () use ($id, $change): ReturnRequest {
+        $applied = $this->entityManager->wrapInTransaction(function () use ($id, $action, $payload, $change): ReturnRequest {
             $locked = $this->returns->findOneForUpdate($id);
             if (null === $locked) {
                 throw new \RuntimeException(sprintf('Return %d was not found.', $id));
             }
             $change($locked);
             $this->returns->save($locked);
+            $this->audit->record($action, $locked->returnNumber(), $payload);
             $this->entityManager->flush();
 
             return $locked;

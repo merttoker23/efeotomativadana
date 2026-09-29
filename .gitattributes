@@ -1,0 +1,7 @@
+# Symfony regenerates config/reference.php on every cache warm (cache:clear, lint:container,
+# asset-map:compile) and always writes LF. With core.autocrlf=true on Windows the file is checked
+# out as CRLF, so the regeneration left the file permanently "modified" with no content change at
+# all — `git diff --ignore-all-space` was empty. Pinning the line ending for this one generated
+# file makes the checkout deterministic and stops the phantom diff, without normalising the rest
+# of the repository.
+config/reference.php text eol=lf

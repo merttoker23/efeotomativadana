@@ -3,6 +3,7 @@
 namespace App\Tests\Module\Settings;
 
 use App\Entity\Commerce\StoreSetting;
+use App\Module\Audit\AuditLogger;
 use App\Module\Settings\SettingKey;
 use App\Module\Integration\B2b\B2bFeedProviderInterface;
 use App\Module\Integration\B2b\B2bProviderRegistry;
@@ -131,6 +132,7 @@ final class StoreConfigurationTest extends KernelTestCase
             $entityManager,
             self::getContainer()->get(ValidatorInterface::class),
             new B2bProviderRegistry([new SettingsTestProvider()]),
+            self::getContainer()->get(AuditLogger::class),
         );
     }
 }

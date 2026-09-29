@@ -10,6 +10,7 @@ use App\Module\Notification\Event\ReturnStateChanged;
 use App\Module\Notification\Event\ShipmentMoved;
 use App\Module\Returns\ReturnState;
 use App\Module\Shipping\ShipmentState;
+use App\Shared\Logging\SecretRedactor;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
@@ -120,7 +121,12 @@ final readonly class NotificationEventSubscriber
             $this->logger->error('Transactional notification could not be sent.', [
                 'dedup_key' => $event->dedupKey(),
                 'type' => $event->type->value,
-                'exception' => $failure,
+                // The class and a redacted message, never the exception object. Monolog would
+                // normalise a Throwable into its message plus a full stack trace, and that
+                // message is the one part of this record an attacker partly chooses — a mailer
+                // refusal quoting the address it failed to reach, for instance.
+                'exception_class' => $failure::class,
+                'message' => SecretRedactor::text($failure->getMessage()),
             ]);
 
             throw $failure;

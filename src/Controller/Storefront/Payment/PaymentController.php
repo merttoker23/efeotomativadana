@@ -109,15 +109,31 @@ final class PaymentController extends AbstractController
         ]));
     }
 
+    /**
+     * The provider's return address, and the browser's way back to the order.
+     *
+     * This route is `PUBLIC_ACCESS` because a provider may redirect the customer after their
+     * session has expired, and a server-to-server webhook carries no session at all. Its safety
+     * is therefore the 64-hex return token plus the gateway's own signature — never the session.
+     *
+     * **A GET here can never settle anything, for any provider.** That is why this method
+     * branches on the verb rather than trusting the gateway. A GET arrives from an address bar,
+     * a prefetcher, a chat client's link preview, a restored browser history or a proxy log
+     * somebody later follows; every one of those can be triggered without the customer intending
+     * to act, and all of them are replayable. A payment is money moving, so it is only ever
+     * applied from a POST — which a provider makes deliberately and a link cannot. PayTR already
+     * behaved this way for its own return address; making it true of the route means the next
+     * adapter added inherits the rule instead of re-deciding it, which is exactly how a GET that
+     * settled money would have arrived.
+     */
     #[Route('/odeme/sonuc/{token}', name: 'storefront_payment_callback', requirements: ['token' => '[0-9a-f]{64}'], methods: ['GET', 'POST'])]
     public function callback(string $token, Request $request, PaymentCallbackHandler $handler): Response
     {
-        $attempt = $handler->attemptFor($token);
-        if (null !== $attempt && 'paytr' === $attempt->payment()->providerKey()) {
-            // PayTR's browser return is unsigned and may arrive before its separate server
-            // notification. Show the order's current state without attempting settlement or
-            // claiming the payment failed.
-            return $this->redirectToRoute('storefront_payment_show', ['orderNumber' => $attempt->orderNumber()]);
+        if (!$request->isMethod('POST')) {
+            // No claim either way about the payment: the browser simply gets back to the order,
+            // which shows the state the store actually holds. Saying "payment failed" here would
+            // be a lie whenever the provider's notification is still in flight.
+            return $this->redirectToOrder($handler, $token);
         }
 
         $result = $handler->handle($token, new IncomingPaymentCallback(
@@ -137,6 +153,16 @@ final class PaymentController extends AbstractController
             $this->addFlash('error', 'Ödeme doğrulanamadı.');
         }
 
+        return $this->redirectToOrder($handler, $token);
+    }
+
+    /**
+     * Back to the order this attempt belongs to, or to the catalogue when the token addresses
+     * nothing. A forged or expired token must not reveal whether that is because the order does
+     * not exist, so both answers are the same redirect.
+     */
+    private function redirectToOrder(PaymentCallbackHandler $handler, string $token): Response
+    {
         $attempt = $handler->attemptFor($token);
         if (null !== $attempt) {
             $this->addFlash('payment_order_number', $attempt->orderNumber());

@@ -8,6 +8,8 @@ use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Commerce\OrderStatusChange;
 use App\Entity\Commerce\Payment;
 use App\Entity\Commerce\PaymentRefund;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Order\OrderState;
 use App\Module\Payment\Gateway\GatewayRefundInstruction;
 use App\Module\Payment\Gateway\GatewayRefundOutcome;
@@ -22,6 +24,11 @@ use Psr\Clock\ClockInterface;
  *
  * The provider call happens first: if the money did not go back, nothing local changes, so
  * the store can never display a refund that the provider refused.
+ *
+ * A refund is the one action here that moves money out of the store on somebody's judgement,
+ * so it is audited with the amount, the reason and the acting administrator. A refusal is
+ * audited too: "we tried to refund and the provider said no" is a fact an operator will later
+ * need, and it is the one a purely local trail would lose.
  */
 final readonly class PaymentRefundService
 {
@@ -30,6 +37,7 @@ final readonly class PaymentRefundService
         private PaymentRepository $payments,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private AuditLogger $audit,
     ) {
     }
 
@@ -73,6 +81,17 @@ final readonly class PaymentRefundService
                     \DateTimeImmutable::createFromInterface($this->clock->now()),
                 );
                 $this->payments->save($payment);
+                $this->audit->record(
+                    AuditAction::PaymentRefunded,
+                    $order->orderNumber(),
+                    [
+                        'provider' => $payment->providerKey(),
+                        'status' => 'refused',
+                        'amount_minor' => $amount->minorAmount(),
+                        'currency' => $amount->currency(),
+                        'reason' => $reason,
+                    ],
+                );
                 $this->entityManager->flush();
 
                 return null;
@@ -86,6 +105,19 @@ final readonly class PaymentRefundService
                 $this->cancelOrder($order, $reason, $actorEmail);
             }
             $this->payments->save($payment);
+            $this->audit->record(
+                AuditAction::PaymentRefunded,
+                $order->orderNumber(),
+                [
+                    'provider' => $payment->providerKey(),
+                    'status' => 'completed',
+                    'amount_minor' => $amount->minorAmount(),
+                    'currency' => $amount->currency(),
+                    'fully_refunded' => $payment->isFullyRefunded(),
+                    'reason' => $reason,
+                    'actor' => $actorEmail,
+                ],
+            );
             $this->entityManager->flush();
 
             return $recorded;

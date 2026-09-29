@@ -1,0 +1,60 @@
+# Abuse limits.
+#
+# Every entry here is a deliberate statement about what this store will refuse, and each limit
+# was chosen to sit well above what a real customer does in ordinary use. A limit that blocks a
+# legitimate shopper is a support call; a limit that is missing is a free credential-spraying
+# or mass-registration tool.
+#
+# What is deliberately NOT limited, and why:
+#
+# - **Cart, wishlist and comparison writes.** A shopper adds and removes lines dozens of times
+#   in a session, and those endpoints are anonymous, so any IP-keyed budget is really a budget
+#   shared by an office, a mobile carrier's NAT or a university. Throttling them punishes
+#   customers to slow down an attacker who gains nothing from a cart.
+# - **PayTR's notification endpoint.** It has to answer `OK` on every path, and a limiter would
+#   answer 429, which PayTR treats as a failed delivery and retries until it gives up. That
+#   trades a theoretical flood for the risk of losing a real capture. It is already protected
+#   by what actually matters: the signature is verified before anything is written, and the
+#   handler is replay-safe under a row lock.
+# - **Admin endpoints.** They sit behind `ROLE_ADMIN` and a per-firewall CSRF token, so an
+#   unauthenticated flood never reaches them.
+#
+# Login throttling is not here: it is configured per firewall in security.yaml, because each
+# firewall keeps its own counters and an administrator must not be able to lock a customer out
+# by exhausting a shared budget.
+framework:
+    rate_limiter:
+        # Account creation. Keyed by address because the cost being protected against is a
+        # scripted run of throwaway accounts, not a person signing up twice.
+        registration:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+
+        # Password reset requests. This is the cheapest way to turn a store into a mail
+        # cannon against an unrelated third party, and each request costs a real SMTP send.
+        password_reset_request:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
+
+        # Redeeming a reset token. The address is the key and *not* the path, because the path
+        # contains the token itself: keying on it would give every guess its own budget and
+        # limit nothing at all.
+        password_reset_exchange:
+            policy: sliding_window
+            limit: 20
+            interval: '1 hour'
+
+        # Placing an order. Keyed by address and generous, because a shop's own counter or a
+        # shared office connection can legitimately see several checkouts in an hour.
+        checkout:
+            policy: sliding_window
+            limit: 20
+            interval: '1 hour'
+
+        # Opening a return request.
+        return_request:
+            policy: sliding_window
+            limit: 10
+            interval: '1 hour'

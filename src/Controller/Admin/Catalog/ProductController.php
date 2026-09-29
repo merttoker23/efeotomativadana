@@ -7,6 +7,8 @@ namespace App\Controller\Admin\Catalog;
 use App\Entity\Catalog\Product;
 use App\Form\Admin\AdminProductType;
 use App\Module\Admin\ConcurrentAdminEdit;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Catalog\AdminCatalogManager;
 use App\Module\Catalog\AdminProductData;
 use App\Module\Catalog\PublicationStatus;
@@ -48,12 +50,22 @@ final class ProductController extends AbstractController
         return $this->form($request, $product, AdminProductData::fromProduct($product, $prices->findOneByProduct($product), $stock), $stock?->version(), $manager);
     }
 
+    /**
+     * Deleting a catalogue row is irreversible, so it records what was removed *before* it is
+     * removed. The SKU, the slug and the name are what make the row reconstructable from the
+     * B2B feed afterwards; "a product was deleted" is not.
+     */
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
-    public function delete(Product $product, Request $request, AdminCatalogManager $manager): Response
+    public function delete(Product $product, Request $request, AdminCatalogManager $manager, AuditLogger $audit): Response
     {
         if (!$this->isCsrfTokenValid('delete_product_'.$product->id(), $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException('Invalid CSRF token.');
         }
+        $audit->record(AuditAction::CatalogProductDeleted, $product->slug(), [
+            'product_id' => $product->id(),
+            'sku' => $product->sku(),
+            'name' => $product->name(),
+        ]);
         $manager->delete($product);
         $this->addFlash('success', 'Product deleted.');
         return $this->redirectToRoute('admin_catalog_product_index');

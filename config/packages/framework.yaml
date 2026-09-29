@@ -6,7 +6,39 @@ framework:
         base_path: '%app.public_base_path%'
 
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    #
+    # Session settings are stated explicitly rather than left at framework defaults. Each line
+    # below closes something the default left to the deployment environment:
+    #
+    # - cookie_httponly: the default, but stated so that changing it is a visible edit here
+    #   rather than an unremarkable diff in a config file nobody re-reads.
+    # - cookie_samesite: lax. The browser must carry the cookie back on the provider's
+    #   top-level redirect to /yeni/odeme/sonuc/{token}, and "strict" would break exactly that
+    #   while protecting nothing this store needs: the only cross-site writes it accepts are
+    #   POSTs, and those carry a CSRF token.
+    # - cookie_secure: auto. Marks the cookie Secure whenever the request arrived over TLS.
+    #   "auto" rather than "true" because a hard "true" silently breaks every session on a
+    #   plain-http deployment, and a broken login is a far worse outcome than a cookie in
+    #   transit on a host that was never going to be secure anyway. The store's own URLs are
+    #   required to be https by PaymentPublicUrlFactory and PublicUrlGenerator, so the real
+    #   deployment is TLS.
+    #
+    # Session strict mode is deliberately NOT set here. Symfony 8 removed use_strict_mode from
+    # this configuration: it is a PHP INI setting, not a framework one. It is set in the image
+    # instead (Dockerfile, zzz-session.ini) where it actually takes effect, and
+    # tests/Security/SessionCookieSettingsTest asserts the real ini value rather than asserting
+    # a key that no longer exists.
+    #
+    # Strict mode rejects a session id the server has never issued and starts a new one, which
+    # is the defence against session fixation. The guest cart, the login redirect and the CSRF
+    # token store all cope with it, because they read the session the application hands back
+    # rather than the one that was offered.
+    session:
+        cookie_httponly: true
+        cookie_samesite: lax
+        cookie_secure: auto
+        # A guest cart and an abandoned checkout should not outlive a shift.
+        gc_maxlifetime: 7200
 
     #esi: true
     #fragments: true

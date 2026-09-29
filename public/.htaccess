@@ -1,5 +1,34 @@
 RewriteEngine On
 
+# Never execute anything that was uploaded.
+#
+# CmsMediaStorage only accepts JPEG, PNG and WebP, derives the extension from the file's own
+# bytes and renames every upload to 32 hex characters, so a stored file cannot be a PHP script
+# today. This is the second layer for the day that changes: the rule is about the *path*, not
+# about the content check, and it holds even if a future format is accepted, a storage adapter is
+# swapped, or a file arrives here by some route the application does not know about.
+#
+# The rule denies a path, never a filename. An earlier version used
+# `<FilesMatch "\.(?i:php|...)$">` with `Require all denied`, which denied `index.php` — the
+# front controller — and answered 403 Forbidden on every page of the live site. A `FilesMatch`
+# sees only the basename and so cannot tell an upload apart from the application itself.
+# `RewriteRule` sees the path, which is the thing that distinguishes them. The scope is a
+# *deny list of script extensions under uploads/*, not an allow-list of image extensions, so
+# adding a fourth accepted image format later does not break every stored image.
+RewriteRule ^uploads/.+\.(?i:php|phtml|php[0-9]|phar|cgi|pl|py|sh|asp|aspx|jsp|htaccess|htpasswd)$ - [F]
+
+# Dotfiles and the server's own configuration are never content. A basename starting with a dot
+# cannot be index.php, so unlike the rule above this one is safe to express as a FilesMatch.
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
 # Serve existing files directly
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

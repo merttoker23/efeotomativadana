@@ -3,6 +3,8 @@
 namespace App\Controller\Admin\Integration;
 
 use App\Entity\Integration\B2bSyncRun;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Integration\B2b\B2bDispatchResult;
 use App\Module\Integration\B2b\B2bDispatchStatus;
 use App\Module\Integration\B2b\B2bProviderRegistry;
@@ -49,24 +51,37 @@ final class B2bController extends AbstractController
     }
 
     #[Route('/admin/integration/b2b/full', name: 'admin_integration_b2b_full', methods: ['POST'])]
-    public function full(Request $request, B2bSyncServiceInterface $sync): Response
+    public function full(Request $request, B2bSyncServiceInterface $sync, AuditLogger $audit): Response
     {
-        return $this->requestSync($request, $sync, B2bSyncMode::Full);
+        return $this->requestSync($request, $sync, B2bSyncMode::Full, $audit);
     }
 
     #[Route('/admin/integration/b2b/daily', name: 'admin_integration_b2b_daily', methods: ['POST'])]
-    public function daily(Request $request, B2bSyncServiceInterface $sync): Response
+    public function daily(Request $request, B2bSyncServiceInterface $sync, AuditLogger $audit): Response
     {
-        return $this->requestSync($request, $sync, B2bSyncMode::Daily);
+        return $this->requestSync($request, $sync, B2bSyncMode::Daily, $audit);
     }
 
-    private function requestSync(Request $request, B2bSyncServiceInterface $sync, B2bSyncMode $mode): Response
+    /**
+     * A manual run is audited whether it queued work or was refused.
+     *
+     * The refusal is the more interesting half: a FULL import rewrites the catalogue, and a
+     * coalesced or disabled refusal means somebody pressed the button and nothing happened. Both
+     * belong in the trail, and only the run table would show one of them.
+     */
+    private function requestSync(Request $request, B2bSyncServiceInterface $sync, B2bSyncMode $mode, AuditLogger $audit): Response
     {
         if (!$this->isCsrfTokenValid('b2b_sync', $request->request->getString('_token'))) {
             throw new UnprocessableEntityHttpException('The B2B synchronization CSRF token is invalid.');
         }
 
-        $this->addFlash(...$this->flashMessage($sync->request($mode)));
+        $result = $sync->request($mode);
+        $audit->record(AuditAction::B2bSyncRequested, $mode->value, [
+            'mode' => $mode->value,
+            'status' => $result->status()->value,
+            'run_id' => $result->runId(),
+        ]);
+        $this->addFlash(...$this->flashMessage($result));
 
         return $this->redirectToRoute('admin_integration_b2b');
     }

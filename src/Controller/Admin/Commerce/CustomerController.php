@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller\Admin\Commerce;
 
 use App\Entity\Customer\CustomerUser;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Customer\AdminCustomerManager;
 use App\Repository\Customer\CustomerAddressRepository;
 use App\Repository\Customer\CustomerUserRepository;
@@ -32,8 +34,14 @@ final class CustomerController extends AbstractController
         return $this->render('admin/customers/show.html.twig', ['customer' => $customer, 'addresses' => $addresses->findForCustomer($customer)]);
     }
 
+    /**
+     * Deactivating a customer is how this store answers a chargeback complaint or a fraud
+     * report, so it is audited with the direction of the change. The entity records only the
+     * resulting flag; a trail that says "active: false" and not "deactivated by whom, when"
+     * cannot answer the question that started the investigation.
+     */
     #[Route('/{id}/status', name: 'status', requirements: ['id' => '\\d+'], methods: ['POST'])]
-    public function status(CustomerUser $customer, Request $request, AdminCustomerManager $manager): Response
+    public function status(CustomerUser $customer, Request $request, AdminCustomerManager $manager, AuditLogger $audit): Response
     {
         if (!$this->isCsrfTokenValid('customer_status_'.$customer->id(), $request->request->getString('_token'))) { throw $this->createAccessDeniedException(); }
         $active = match ($request->request->getString('status')) {
@@ -42,6 +50,10 @@ final class CustomerController extends AbstractController
             default => throw new BadRequestHttpException('A valid customer status action is required.'),
         };
         $manager->setActive($customer, $active);
+        $audit->record(AuditAction::CustomerStatusChanged, $customer->getUserIdentifier(), [
+            'customer_id' => $customer->id(),
+            'active' => $active,
+        ]);
         $this->addFlash('success', 'Customer status updated.');
         return $this->redirectToRoute('admin_customer_show', ['id' => $customer->id()]);
     }

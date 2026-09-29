@@ -6,6 +6,7 @@ namespace App\Controller\Storefront\Payment;
 
 use App\Module\Payment\Gateway\IncomingPaymentCallback;
 use App\Module\Payment\PaymentCallbackHandler;
+use App\Shared\Logging\SecretRedactor;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -48,8 +49,11 @@ final class PaytrPaymentController extends AbstractController
             // PayTR must retry this notification; acknowledging a failed database write could
             // leave a charged order permanently unconfirmed.
             $logger->error('paytr.notification.failed', [
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
+                'exception_class' => $exception::class,
+                // Redacted here as well as by the log processor. The reason for belt and braces
+                // is specific: this is the one place a provider-side failure reaches a log, and
+                // its text is the provider's to choose.
+                'message' => SecretRedactor::text($exception->getMessage()),
             ]);
 
             return new Response('Notification processing failed', 500, ['Content-Type' => 'text/plain; charset=UTF-8']);

@@ -17,6 +17,7 @@ use App\Shared\StorefrontPageContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\RateLimit;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -24,7 +25,17 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_CUSTOMER')]
 final class CheckoutController extends AbstractController
 {
+    /**
+     * Placing an order is limited per address on POST only.
+     *
+     * Twenty an hour is far above what one customer does, including a trade customer placing
+     * several orders in a morning, while still bounding what a scripted run of placements can
+     * reserve stock against. A price that changes mid-session is handled by the checkout's own
+     * revalidation rather than by refusing the second attempt, so this never gets in the way
+     * of a legitimate repeat.
+     */
     #[Route('/odeme', name: 'storefront_checkout', methods: ['GET', 'POST'])]
+    #[RateLimit('checkout', methods: ['POST'])]
     public function checkout(Request $request, StorefrontPageContext $context, CheckoutManager $checkout, CartManager $carts, PaymentInitiationService $payments): Response
     {
         $customer = $this->customer();

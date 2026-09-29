@@ -6,6 +6,8 @@ namespace App\Controller\Admin\Catalog;
 
 use App\Entity\Catalog\Category;
 use App\Form\Admin\AdminCategoryType;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Catalog\AdminCatalogData;
 use App\Module\Catalog\AdminCatalogManager;
 use App\Module\Catalog\PublicationStatus;
@@ -39,9 +41,16 @@ final class CategoryController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
-    public function delete(Category $category, Request $request, AdminCatalogManager $manager): Response
+    public function delete(Category $category, Request $request, AdminCatalogManager $manager, AuditLogger $audit): Response
     {
         if (!$this->isCsrfTokenValid('delete_category_'.$category->id(), $request->request->getString('_token'))) { throw $this->createAccessDeniedException(); }
+        // Recorded before the delete: a category that is gone leaves nothing behind to read,
+        // and a B2B import that recreates it does not restore the parent it used to sit under.
+        $audit->record(AuditAction::CatalogCategoryDeleted, $category->slug(), [
+            'category_id' => $category->id(),
+            'name' => $category->name(),
+            'parent' => $category->parent()?->slug(),
+        ]);
         $manager->delete($category); $this->addFlash('success', 'Category deleted.');
         return $this->redirectToRoute('admin_catalog_category_index');
     }

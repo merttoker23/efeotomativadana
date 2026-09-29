@@ -6,6 +6,8 @@ namespace App\Module\Shipping;
 
 use App\Entity\Commerce\Shipment;
 use App\Message\CreateShipment;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Order\OrderAddressRole;
 use App\Module\Order\OrderNotFound;
 use App\Module\Order\OrderRepositoryInterface;
@@ -40,6 +42,11 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * - **Nothing here moves the order.** The two aggregates are related and never conflated: a parcel
  *   can fail at the carrier while the order stands confirmed, and a delivered parcel does not
  *   complete an order.
+ *
+ * Every state change is additionally written to the cross-cutting audit trail. `ShipmentEvent`
+ * records what the parcel became and who said so; the audit row records the action as a discrete
+ * named fact, so "this operator recalled this parcel on this day" is one query rather than a
+ * reading of the event log.
  */
 final readonly class ShipmentOrchestrator
 {
@@ -52,6 +59,7 @@ final readonly class ShipmentOrchestrator
         private ClockInterface $clock,
         private MessageBusInterface $bus,
         private EventDispatcherInterface $events,
+        private AuditLogger $audit,
     ) {
     }
 
@@ -78,6 +86,11 @@ final readonly class ShipmentOrchestrator
             $method = $this->methods->select($order->shippingOptionKey());
             $shipment = Shipment::start($order, $method->key(), $method->label(), $method->providerKey(), $this->now(), $actorEmail);
             $this->shipments->save($shipment);
+            $this->audit->record(AuditAction::ShipmentCreated, $order->orderNumber(), [
+                'method_key' => $method->key(),
+                'provider' => $method->providerKey(),
+                'actor' => $actorEmail,
+            ]);
             $this->entityManager->flush();
 
             return $shipment;
@@ -105,7 +118,7 @@ final readonly class ShipmentOrchestrator
 
         return $this->apply($shipment, function (Shipment $locked) use ($trackingNumber, $actorEmail): void {
             $locked->markReady(null, $trackingNumber, $this->now(), $actorEmail);
-        });
+        }, AuditAction::ShipmentHandedOver, ['tracking_number' => $trackingNumber, 'actor' => $actorEmail]);
     }
 
     /**
@@ -132,7 +145,7 @@ final readonly class ShipmentOrchestrator
 
         return $this->apply($shipment, function (Shipment $locked) use ($actorEmail): void {
             $locked->markInTransit($this->now(), $actorEmail);
-        });
+        }, AuditAction::ShipmentMarkedInTransit, ['actor' => $actorEmail]);
     }
 
     public function markDelivered(Shipment $shipment, string $actorEmail): Shipment
@@ -141,7 +154,7 @@ final readonly class ShipmentOrchestrator
 
         return $this->apply($shipment, function (Shipment $locked) use ($actorEmail): void {
             $locked->markDelivered($this->now(), $actorEmail);
-        });
+        }, AuditAction::ShipmentMarkedDelivered, ['actor' => $actorEmail]);
     }
 
     /**
@@ -168,9 +181,14 @@ final readonly class ShipmentOrchestrator
             ));
             if (!$outcome->isCancelled()) {
                 $failure = $outcome->failure();
-                $this->apply($shipment, function (Shipment $locked) use ($failure, $actorEmail): void {
-                    $locked->recordRefusedCancellation($failure ?? SanitizedFailure::fromProvider('cancel_refused', null, null), $this->now(), $actorEmail);
-                });
+                $this->apply(
+                    $shipment,
+                    function (Shipment $locked) use ($failure, $actorEmail): void {
+                        $locked->recordRefusedCancellation($failure ?? SanitizedFailure::fromProvider('cancel_refused', null, null), $this->now(), $actorEmail);
+                    },
+                    AuditAction::ShipmentCancelled,
+                    ['outcome' => 'refused', 'reason' => $reason, 'actor' => $actorEmail],
+                );
 
                 throw new ShipmentCancellationRefused(sprintf(
                     'The carrier refused to recall shipment %s: %s',
@@ -182,7 +200,7 @@ final readonly class ShipmentOrchestrator
 
         return $this->apply($shipment, function (Shipment $locked) use ($reason, $actorEmail): void {
             $locked->markCancelled($reason, $this->now(), $actorEmail);
-        });
+        }, AuditAction::ShipmentCancelled, ['outcome' => 'cancelled', 'reason' => $reason, 'actor' => $actorEmail]);
     }
 
     /**
@@ -221,7 +239,7 @@ final readonly class ShipmentOrchestrator
                 // A carrier that reported `pending` has told us nothing; the row is already pending.
                 ShipmentState::Pending => null,
             };
-        });
+        }, AuditAction::ShipmentStatusRefreshed, ['actor' => $actorEmail]);
     }
 
     /**
@@ -234,7 +252,7 @@ final readonly class ShipmentOrchestrator
     {
         $retried = $this->apply($shipment, function (Shipment $locked) use ($actorEmail): void {
             $locked->retryCreation($this->now(), $actorEmail);
-        });
+        }, AuditAction::ShipmentCreationRetried, ['actor' => $actorEmail]);
 
         if ($this->requiresProviderHandshake($retried)) {
             $this->bus->dispatch(new CreateShipment((int) $retried->id()));
@@ -264,7 +282,7 @@ final readonly class ShipmentOrchestrator
         $this->apply($shipment, function (Shipment $locked) use ($trackingNumber, $now, $actorEmail): void {
             $locked->assignTrackingNumber($trackingNumber, $now, $actorEmail);
             $locked->recordProviderFact(sprintf('Label issued (%s).', $locked->providerKey()), $now, $actorEmail);
-        });
+        }, AuditAction::ShipmentLabelRequested, ['tracking_number' => $trackingNumber, 'actor' => $actorEmail]);
 
         return $label;
     }
@@ -358,17 +376,28 @@ final readonly class ShipmentOrchestrator
      * a freshly locked row, so a carrier callback that arrived first wins rather than being
      * overwritten by a stale screen.
      *
+     * The audit row is written inside the same transaction as the change it describes, and before
+     * the flush, so a trail cannot come to contain a transition that then rolled back.
+     *
      * @param callable(Shipment): void $change
+     * @param array<string, mixed>    $payload
      */
-    private function apply(Shipment $shipment, callable $change): Shipment
+    private function apply(Shipment $shipment, callable $change, ?AuditAction $action = null, array $payload = []): Shipment
     {
         $id = (int) $shipment->id();
 
-        $applied = $this->entityManager->wrapInTransaction(function () use ($id, $change): Shipment {
+        $applied = $this->entityManager->wrapInTransaction(function () use ($id, $change, $action, $payload): Shipment {
             $locked = $this->shipments->findForUpdate($id)
                 ?? throw new ShipmentNotFound(sprintf('Shipment %d was not found.', $id));
             $change($locked);
             $this->shipments->save($locked);
+            if (null !== $action) {
+                $this->audit->record($action, $locked->orderNumber(), $payload + [
+                    'method_key' => $locked->methodKey(),
+                    'provider' => $locked->providerKey(),
+                    'to_state' => $locked->state()->value,
+                ]);
+            }
             $this->entityManager->flush();
 
             return $locked;

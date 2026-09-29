@@ -1,6 +1,29 @@
 monolog:
     channels: # To see all channels, run bin/console debug:autowiring logger
         - deprecation # Deprecations are logged in the dedicated "deprecation" channel when it exists
+        # Authentication outcomes are the abuse signal for this store: a brute-force run is
+        # only visible if the failures were written down somewhere an operator can read them.
+        # `bin/console monolog:show security` answers "who tried to get in, from where, and
+        # did the throttle stop them" without grepping a mixed log.
+        - security
+        # Refusals and completions of privileged manual actions. Separate from the security
+        # channel because the question is "what did the staff do", not "who broke in".
+        - audit
+
+# NOTE ON REDACTION
+#
+# `App\Shared\Logging\RedactingLogProcessor` is attached as a Monolog *processor* on the
+# logger prototype, not on a handler, and that placement is the whole point:
+#
+# - A logger-level processor runs before any handler sees the record. A fingers_crossed
+#   handler buffers records and only writes on an error; if redaction lived on the handler,
+#   an unredacted secret would already be sitting in that buffer.
+# - Attaching it to the prototype covers every channel, so the two added below are covered
+#   automatically and a channel added later is covered without being remembered.
+# - It therefore cannot be configured here: MonologBundle 4 removed both the file-level
+#   `monolog.processors` option and the per-handler `processors` option. The tag lives in
+#   config/services.yaml, where a reviewer can see that a log line is redacted, and a test
+#   asserts the wiring rather than assuming it.
 
 when@dev:
     monolog:
@@ -10,6 +33,16 @@ when@dev:
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: debug
                 channels: ["!event"]
+            security:
+                type: stream
+                path: "%kernel.logs_dir%/security.log"
+                level: debug
+                channels: [security]
+            audit:
+                type: stream
+                path: "%kernel.logs_dir%/audit.log"
+                level: debug
+                channels: [audit]
             console:
                 type: console
                 process_psr_3_messages: false
@@ -28,6 +61,22 @@ when@test:
                 type: stream
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: debug
+            # Separate files in every environment, so `bin/console monolog:show security`
+            # is the same command on a laptop and on the deployed server.
+            security:
+                type: stream
+                path: "%kernel.logs_dir%/security.log"
+                level: debug
+                channels: [security]
+            audit:
+                type: stream
+                path: "%kernel.logs_dir%/audit.log"
+                level: debug
+                channels: [audit]
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine", "!console"]
 
 when@prod:
     monolog:
@@ -44,6 +93,22 @@ when@prod:
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 max_files: 7
                 level: debug
+                formatter: monolog.formatter.json
+            security:
+                type: rotating_file
+                path: "%kernel.logs_dir%/security.log"
+                # A brute-force run spans days. Seven files of the main log was not enough
+                # history to answer "was this one person or fifty".
+                max_files: 30
+                level: info
+                channels: [security]
+                formatter: monolog.formatter.json
+            audit:
+                type: rotating_file
+                path: "%kernel.logs_dir%/audit.log"
+                max_files: 90
+                level: info
+                channels: [audit]
                 formatter: monolog.formatter.json
             console:
                 type: console

@@ -5,6 +5,7 @@ namespace App\Tests\Controller\Storefront;
 use App\Entity\Customer\AdminUser;
 use App\Entity\Customer\CustomerAddress;
 use App\Entity\Customer\CustomerUser;
+use App\Tests\ResetsRateLimits;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -13,6 +14,9 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class CustomerAccountTest extends WebTestCase
 {
+    // The customer firewall now throttles sign-ins, and its budget is shared across a suite run.
+    use ResetsRateLimits;
+
     private Connection $connection;
     private KernelBrowser $client;
 
@@ -21,6 +25,7 @@ final class CustomerAccountTest extends WebTestCase
         $this->client = static::createClient();
         $this->connection = self::getContainer()->get(Connection::class);
         $this->clearCustomers();
+        $this->resetRateLimits();
     }
 
     protected function tearDown(): void

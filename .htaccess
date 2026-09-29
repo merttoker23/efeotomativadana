@@ -10,6 +10,21 @@ RewriteRule ^vendor/ - [F]
 RewriteRule ^templates/ - [F]
 RewriteRule ^bin/ - [F]
 RewriteRule ^var/ - [F]
+# Never execute anything that was uploaded.
+#
+# This denies a *path*, not a filename. An earlier version of this file used
+# `<FilesMatch "\.(?i:php|...)$">` with `Require all denied`, and it denied the Symfony front
+# controller along with everything else: `public/index.php` ends in `.php`, so every request that
+# reached the application was refused with 403 Forbidden before PHP started, and the whole store
+# was offline. Nothing in the test suite could see it, because the container serves through Caddy
+# and FrankenPHP, which ignore .htaccess entirely. tests/Security/FrontControllerReachabilityTest
+# now evaluates the rules in this file against concrete request paths for exactly that reason.
+#
+# `RewriteRule` is used rather than `FilesMatch` because FilesMatch matches only the basename and
+# cannot see the directory. A basename rule cannot distinguish an upload from the front
+# controller, and the one that tried took the site down. Scoping to uploads/ is also the honest
+# scope: public/uploads/ is the only directory here that a request can write to.
+RewriteRule ^(?:public/)?uploads/.+\.(?i:php|phtml|php[0-9]|phar|cgi|pl|py|sh|asp|aspx|jsp|htaccess|htpasswd)$ - [F]
 
 # Serve compiled assets from public/assets/ if they exist
 # In per-directory context, RewriteRule pattern matches relative to /yeni/

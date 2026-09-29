@@ -6,6 +6,8 @@ namespace App\Module\Payment;
 
 use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Commerce\Payment;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Repository\Commerce\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -16,6 +18,10 @@ use Psr\Clock\ClockInterface;
  * never captured. A captured payment is never re-driven from the admin screens — it is
  * refunded through {@see PaymentRefundService} or left alone, because re-driving a capture
  * is how a store charges a customer twice.
+ *
+ * Both actions are audited with the actor and the reason. The aggregate records that a
+ * payment was cancelled; only the audit row records that a person did it, that this payment
+ * was their decision, and why.
  */
 final readonly class PaymentAdminManager
 {
@@ -25,6 +31,7 @@ final readonly class PaymentAdminManager
         private PaymentInitiationService $initiation,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private AuditLogger $audit,
     ) {
     }
 
@@ -40,7 +47,15 @@ final readonly class PaymentAdminManager
             throw new \DomainException(sprintf('A %s payment cannot be retried.', $payment->state()->value));
         }
 
-        return $this->initiation->retry($order, $payment->providerKey());
+        $start = $this->initiation->retry($order, $payment->providerKey());
+        $this->audit->record(
+            AuditAction::PaymentRetried,
+            $order->orderNumber(),
+            ['provider' => $payment->providerKey(), 'from_state' => $payment->state()->value],
+        );
+        $this->entityManager->flush();
+
+        return $start;
     }
 
     /**
@@ -54,7 +69,7 @@ final readonly class PaymentAdminManager
             throw new \InvalidArgumentException('A payment cancellation requires a reason.');
         }
 
-        return $this->entityManager->wrapInTransaction(function () use ($order, $reason): Payment {
+        return $this->entityManager->wrapInTransaction(function () use ($order, $reason, $actorEmail): Payment {
             $payment = $this->lockedPayment($order);
             if ($payment->state()->hasCapturedFunds()) {
                 throw new \DomainException('A captured payment must be refunded, not cancelled.');
@@ -70,6 +85,18 @@ final readonly class PaymentAdminManager
             $this->releaseAtProvider($payment, $attempt);
             $payment->markCancelled($attempt, $reason, \DateTimeImmutable::createFromInterface($this->clock->now()));
             $this->payments->save($payment);
+            $this->audit->record(
+                AuditAction::PaymentCancelled,
+                $order->orderNumber(),
+                [
+                    'provider' => $payment->providerKey(),
+                    'attempt_sequence' => $attempt->sequence(),
+                    'reason' => $reason,
+                    // Recorded explicitly because the caller passes an e-mail the audit row
+                    // cannot read for itself in a console context, where there is no session.
+                    'actor' => $actorEmail,
+                ],
+            );
             $this->entityManager->flush();
 
             return $payment;

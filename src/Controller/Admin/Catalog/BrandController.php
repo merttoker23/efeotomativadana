@@ -6,6 +6,8 @@ namespace App\Controller\Admin\Catalog;
 
 use App\Entity\Catalog\Brand;
 use App\Form\Admin\AdminBrandType;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Catalog\AdminCatalogData;
 use App\Module\Catalog\AdminCatalogManager;
 use App\Module\Catalog\PublicationStatus;
@@ -35,9 +37,13 @@ final class BrandController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\\d+'], methods: ['POST'])]
-    public function delete(Brand $brand, Request $request, AdminCatalogManager $manager): Response
+    public function delete(Brand $brand, Request $request, AdminCatalogManager $manager, AuditLogger $audit): Response
     {
         if (!$this->isCsrfTokenValid('delete_brand_'.$brand->id(), $request->request->getString('_token'))) { throw $this->createAccessDeniedException(); }
+        $audit->record(AuditAction::CatalogBrandDeleted, $brand->slug(), [
+            'brand_id' => $brand->id(),
+            'name' => $brand->name(),
+        ]);
         $manager->delete($brand); $this->addFlash('success', 'Brand deleted.'); return $this->redirectToRoute('admin_catalog_brand_index');
     }
 

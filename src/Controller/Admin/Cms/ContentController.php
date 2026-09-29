@@ -5,6 +5,8 @@ namespace App\Controller\Admin\Cms;
 use App\Entity\Cms\BlogPost;
 use App\Entity\Cms\InformationPage;
 use App\Entity\Seo\SeoResourceType;
+use App\Module\Audit\AuditAction;
+use App\Module\Audit\AuditLogger;
 use App\Module\Seo\SlugRedirectRecorder;
 use App\Repository\Cms\BlogPostRepository;
 use App\Repository\Cms\InformationPageRepository;
@@ -44,12 +46,24 @@ final class ContentController extends AbstractController
         return $this->form($kind, $item, $request, $posts, $pages, $manager);
     }
 
+    /**
+     * Recorded before the row goes, because a deleted page leaves the redirect history pointing
+     * at a target that no longer resolves and nothing else would say the content ever existed.
+     * The body is not copied: an audit row is not a content backup, and a full copy of every
+     * deleted page is exactly the kind of thing a trail should not accumulate.
+     */
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function delete(string $kind, int $id, Request $request, BlogPostRepository $posts, InformationPageRepository $pages, EntityManagerInterface $manager): Response
+    public function delete(string $kind, int $id, Request $request, BlogPostRepository $posts, InformationPageRepository $pages, EntityManagerInterface $manager, AuditLogger $audit): Response
     {
         $this->csrf($request, 'cms_content_'.$kind.'_'.$id);
         $item = 'blog' === $kind ? $posts->find($id) : $pages->find($id);
         if (null === $item) { throw $this->createNotFoundException(); }
+        $audit->record(AuditAction::CmsContentDeleted, $item->slug(), [
+            'kind' => $kind,
+            'content_id' => $id,
+            'title' => $item->title(),
+            'published' => $item->published(),
+        ]);
         $manager->remove($item);
         $manager->flush();
         return $this->redirectToRoute('admin_cms_content_index', ['kind' => $kind]);

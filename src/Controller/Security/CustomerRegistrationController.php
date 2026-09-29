@@ -12,12 +12,21 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\RateLimit;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class CustomerRegistrationController extends AbstractController
 {
+    /**
+     * Account creation is limited per address.
+     *
+     * POST only, so rendering and reloading the form never spends a token. Five an hour is
+     * above what a household, an office or a phone-shop counter behind one address does, and
+     * useless to a script creating accounts in bulk.
+     */
     #[Route('/kayit', name: 'customer_registration', methods: ['GET', 'POST'])]
+    #[RateLimit('registration', methods: ['POST'])]
     public function register(
         Request $request,
         CustomerUserRepository $customers,

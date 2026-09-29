@@ -3,6 +3,12 @@
 var/
 vendor/
 .env.*.local
+# The uncommitted secret file. `.env.*.local` above does not match it: `*` matches within one
+# path segment, and this name has no second `.local`. Excluded explicitly because `COPY . .`
+# would otherwise bake the live provider credentials into an image layer, where they survive
+# every later `docker image rm` short of rebuilding from scratch. At runtime the container gets
+# them from compose/the host environment, which is where they belong.
+.env.local
 .phpunit.cache/
 .idea/
 .vscode/

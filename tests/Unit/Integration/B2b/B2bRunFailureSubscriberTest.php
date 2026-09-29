@@ -59,6 +59,7 @@ final class B2bRunFailureSubscriberTest extends KernelTestCase
             $entityManager,
             self::getContainer()->get(ValidatorInterface::class),
             new B2bProviderRegistry([new HandlerFakeProvider()]),
+            self::getContainer()->get(\App\Module\Audit\AuditLogger::class),
         );
     }
 
