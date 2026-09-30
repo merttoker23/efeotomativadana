@@ -4,8 +4,7 @@ namespace App\Module\Cart;
 
 use App\Entity\Catalog\Product;
 use App\Module\Catalog\PublicationStatus;
-use App\Module\Inventory\InventoryQuery;
-use App\Module\Pricing\PricingQuery;
+use App\Module\Catalog\Query\CatalogQuery;
 use App\Repository\Catalog\ProductRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -17,8 +16,7 @@ final readonly class ComparisonManager
     public function __construct(
         private RequestStack $requests,
         private ProductRepository $products,
-        private PricingQuery $pricing,
-        private InventoryQuery $inventory,
+        private CatalogQuery $catalog,
     ) {
     }
 
@@ -51,30 +49,40 @@ final readonly class ComparisonManager
         $views = [];
         $rows = [];
         $validIds = [];
-        foreach ($this->ids() as $id) {
-            $product = $this->products->find($id);
+
+        $ids = $this->ids();
+        $byId = [];
+        foreach ($ids === [] ? [] : $this->products->findBy(['id' => $ids]) as $product) {
+            $byId[$product->id() ?? 0] = $product;
+        }
+
+        // One batched read for price, stock and lead image across the whole comparison instead of
+        // four queries per compared product.
+        $snapshots = $this->catalog->snapshots($ids);
+
+        foreach ($ids as $id) {
+            $product = $byId[$id] ?? null;
             if (!$product instanceof Product || PublicationStatus::Published !== $product->publicationStatus()) {
                 continue;
             }
 
             $validIds[] = $id;
-            $images = $product->images();
+            $snapshot = $snapshots[$id] ?? null;
             $attributes = [];
             foreach ($product->attributes() as $attribute) {
                 $attributes[$attribute->key()] = $attribute->value();
                 $rows[$attribute->key()]['label'] = mb_convert_case(str_replace('-', ' ', $attribute->key()), \MB_CASE_TITLE, 'UTF-8');
                 $rows[$attribute->key()]['values'][$id] = $attribute->value();
             }
-            $inventory = $this->inventory->forProduct($product);
             $views[] = new SavedProductView(
                 selectionId: $id,
                 productId: $id,
                 name: $product->name(),
                 slug: $product->slug(),
                 sku: $product->sku(),
-                imagePath: [] === $images ? null : $images[0]->path(),
-                price: $this->pricing->forProduct($product)?->sellPrice(),
-                sellable: $inventory->sellable(),
+                imagePath: $snapshot?->imagePath,
+                price: $snapshot?->sellPrice,
+                sellable: true === $snapshot?->sellable,
                 attributes: $attributes,
             );
         }

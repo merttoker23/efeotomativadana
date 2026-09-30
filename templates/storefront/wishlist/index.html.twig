@@ -3,7 +3,7 @@
 {% block title %}İstek Listem | {{ store.name }}{% endblock %}
 
 {% block body %}
-<main id="main-content" class="page-shell">
+<main id="main-content" class="page-shell" tabindex="-1">
     <section class="container selection-page-card">
         <h1>İstek Listem</h1>
         {% if wishlist is empty %}
@@ -12,7 +12,7 @@
             <div class="selection-grid">
                 {% for item in wishlist %}
                     <article class="wishlist-item selection-card">
-                        <img src="{{ product_image_url(item.imagePath) }}" alt="">
+                        <img src="{{ product_image_url(item.imagePath) }}" alt="{{ item.name }}" width="640" height="640" loading="lazy" decoding="async">
                         <div><a href="{{ path('storefront_catalog_product', {slug: item.slug}) }}"><strong>{{ item.name }}</strong></a><small>{{ item.sku }}</small></div>
                         <p>{{ item.price ? item.price|storefront_money : 'Fiyat için iletişime geçin' }}</p>
                         <span class="stock-state {{ item.sellable ? 'is-available' : 'is-unavailable' }}">{{ item.sellable ? 'Stokta' : 'Stokta yok' }}</span>

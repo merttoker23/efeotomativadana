@@ -2,22 +2,23 @@
 
 
 {% block body %}
-<main id="main-content" class="page-shell catalog-page">
+<main id="main-content" class="page-shell catalog-page" tabindex="-1">
     <nav class="container breadcrumbs" aria-label="İçerik yolu">
         <a href="{{ path('app_home') }}">Ana Sayfa</a><span aria-hidden="true">/</span><span>{{ heading }}</span>
     </nav>
 
     <div class="container catalog-layout">
         <aside class="catalog-filters" aria-labelledby="catalog-filter-title">
-            <h2 id="catalog-filter-title">Kategoriler</h2>
+            <p class="catalog-filter-heading" id="catalog-filter-title">Kategoriler</p>
             <a href="{{ path('storefront_catalog_index') }}"{% if criteria.categorySlug is null %} aria-current="page"{% endif %}>Tüm Ürünler</a>
             {% for category in categories %}
                 <a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}"{% if criteria.categorySlug == category.slug %} aria-current="page"{% endif %}>
                     <span>{{ category.name }}</span><small>{{ category.productCount }}</small>
                 </a>
             {% endfor %}
+            <a class="catalog-filter-more" href="{{ path('storefront_catalog_categories') }}">Tüm kategoriler</a>
 
-            <h2>Filtrele</h2>
+            <p class="catalog-filter-heading">Filtrele</p>
             <form method="get" action="{{ app.request.pathInfo }}" class="catalog-filter-form">
                 {% if criteria.query %}<input type="hidden" name="q" value="{{ criteria.query }}">{% endif %}
                 {% if criteria.categorySlug and app.request.attributes.get('_route') == 'storefront_catalog_index' %}<input type="hidden" name="category" value="{{ criteria.categorySlug }}">{% endif %}
@@ -33,6 +34,7 @@
                 <label class="checkbox-field"><input type="checkbox" name="availability" value="in-stock"{% if criteria.inStockOnly %} checked{% endif %}> Yalnızca stoktakiler</label>
                 <button type="submit">Filtreleri uygula</button>
             </form>
+            <a class="catalog-filter-more" href="{{ path('storefront_catalog_brands') }}">Tüm markalar</a>
         </aside>
 
         <section class="catalog-results" aria-labelledby="catalog-heading">
@@ -42,10 +44,10 @@
                     <h1 id="catalog-heading">{{ heading }}</h1>
                     {% if criteria.query %}<p class="search-context">“{{ criteria.query }}” için sonuçlar</p>{% endif %}
                 </div>
-                <form method="get" action="{{ app.request.pathInfo }}" class="sort-form">
+                <form method="get" action="{{ app.request.pathInfo }}" class="sort-form" data-controller="catalog-sort">
                     {% for key, value in criteria.filterParameters(route_filter) %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
                     <label for="catalog-sort">Sırala</label>
-                    <select id="catalog-sort" name="sort" onchange="this.form.submit()">
+                    <select id="catalog-sort" name="sort" data-action="catalog-sort#submit">
                         <option value="newest"{% if criteria.sort.value == 'newest' %} selected{% endif %}>En yeni</option>
                         <option value="name-asc"{% if criteria.sort.value == 'name-asc' %} selected{% endif %}>Ada göre</option>
                         <option value="price-asc"{% if criteria.sort.value == 'price-asc' %} selected{% endif %}>Fiyat: düşükten yükseğe</option>

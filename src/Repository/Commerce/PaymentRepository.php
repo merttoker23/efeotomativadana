@@ -33,6 +33,37 @@ final class PaymentRepository extends ServiceEntityRepository
         return $this->findOneBy(['order' => $order]);
     }
 
+    /**
+     * @param list<CustomerOrder> $orders
+     *
+     * @return array<int, Payment|null> Keyed by order id
+     */
+    public function findForOrders(array $orders): array
+    {
+        $byOrderId = [];
+        foreach ($orders as $order) {
+            $byOrderId[(int) $order->id()] = null;
+        }
+
+        if ([] === $orders) {
+            return $byOrderId;
+        }
+
+        /** @var list<Payment> $payments */
+        $payments = $this->createQueryBuilder('payment')
+            ->addSelect('customerOrder')
+            ->innerJoin('payment.order', 'customerOrder')
+            ->where('customerOrder IN (:orders)')
+            ->setParameter('orders', $orders)
+            ->getQuery()->getResult();
+
+        foreach ($payments as $payment) {
+            $byOrderId[(int) $payment->order()->id()] = $payment;
+        }
+
+        return $byOrderId;
+    }
+
     public function findOneForOrderNumber(string $orderNumber): ?Payment
     {
         return $this->createQueryBuilder('payment')
@@ -110,10 +141,13 @@ final class PaymentRepository extends ServiceEntityRepository
     /** @return AdminPage<Payment> */
     public function adminPage(string $query, ?PaymentState $state, int $page, int $perPage = 20): AdminPage
     {
+        // The list renders `latestAttempt().providerReference` for every row, and attempts are a
+        // lazy collection, so without this each payment on the page cost its own query.
         $builder = $this->createQueryBuilder('payment')
-            ->addSelect('customerOrder', 'customer')
+            ->addSelect('customerOrder', 'customer', 'attempt')
             ->innerJoin('payment.order', 'customerOrder')
             ->innerJoin('customerOrder.customer', 'customer')
+            ->leftJoin('payment.attempts', 'attempt')
             ->orderBy('payment.createdAt', 'DESC')->addOrderBy('payment.id', 'DESC');
         if ('' !== ($query = trim($query))) {
             $builder->andWhere('LOWER(customerOrder.orderNumber) LIKE :query OR LOWER(customerOrder.customerEmail) LIKE :query OR LOWER(payment.providerReference) LIKE :query')

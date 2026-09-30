@@ -3,7 +3,7 @@
 {% block title %}Ürün Karşılaştırma | {{ store.name }}{% endblock %}
 
 {% block body %}
-<main id="main-content" class="page-shell">
+<main id="main-content" class="page-shell" tabindex="-1">
     <section class="container comparison-page-card">
         <h1>Ürün Karşılaştırma</h1>
         {% if comparison.products is empty %}
@@ -17,7 +17,7 @@
                             {% for product in comparison.products %}
                                 <th scope="col">
                                     <div class="compare-product">
-                                        <img src="{{ product_image_url(product.imagePath) }}" alt="">
+                                        <img src="{{ product_image_url(product.imagePath) }}" alt="{{ product.name }}" width="640" height="640" loading="lazy" decoding="async">
                                         <a href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">{{ product.name }}</a>
                                         <small>{{ product.sku }}</small>
                                         <form method="post" action="{{ path('storefront_compare_remove', {id: product.productId}) }}">

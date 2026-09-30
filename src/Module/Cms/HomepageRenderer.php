@@ -16,25 +16,70 @@ final readonly class HomepageRenderer
         private BlogPostRepository $posts,
     ) {}
 
-    /** @return list<HomeSectionView> */
+    /**
+     * Every section is rendered from the whole page at once.
+     *
+     * Two shapes of query used to repeat per section and, inside a tabbed section, once per tab:
+     * a carousel or tab listing twenty products issued twenty lookups, and a category or brand
+     * strip loaded the entire published list of categories or brands — each row carrying a
+     * correlated product count — to pick the two or three slugs it was configured with.
+     * Collecting the slugs first and resolving each kind once makes the whole homepage cost a
+     * fixed number of queries no matter how many sections it has or how many entries they hold.
+     *
+     * @return list<HomeSectionView>
+     */
     public function render(): array
     {
+        $sections = $this->sections->ordered(true);
+        $productSlugs = [];
+        $categorySlugs = [];
+        $brandSlugs = [];
+        $tabsBySection = [];
+
+        foreach ($sections as $section) {
+            $config = SectionConfiguration::validate($section->type(), $section->configuration());
+            match ($section->type()) {
+                HomeSectionType::CategoryMenu => $categorySlugs = array_merge($categorySlugs, $config['slugs']),
+                HomeSectionType::BrandStrip => $brandSlugs = array_merge($brandSlugs, $config['slugs']),
+                HomeSectionType::ProductCarousel => $productSlugs = array_merge($productSlugs, $config['slugs']),
+                HomeSectionType::ProductTabs => $tabsBySection[(int) $section->id()] = $config['tabs'],
+                default => null,
+            };
+        }
+
+        foreach ($tabsBySection as $tabs) {
+            foreach ($tabs as $tab) {
+                $productSlugs = array_merge($productSlugs, $tab['slugs']);
+            }
+        }
+
+        $products = $this->catalog->products($productSlugs);
+        $byProductSlug = [];
+        foreach ($products as $product) {
+            $byProductSlug[$product->slug] = $product;
+        }
+        $categories = $this->optionsBySlug('category', $categorySlugs);
+        $brands = $this->optionsBySlug('brand', $brandSlugs);
+
         $result = [];
-        foreach ($this->sections->ordered(true) as $section) {
+        foreach ($sections as $section) {
             $config = SectionConfiguration::validate($section->type(), $section->configuration());
             $data = $config;
             switch ($section->type()) {
                 case HomeSectionType::CategoryMenu:
-                    $data['categories'] = $this->options($this->catalog->categories(), $config['slugs']);
+                    $data['categories'] = $this->pick($categories, $config['slugs']);
                     break;
                 case HomeSectionType::BrandStrip:
-                    $data['brands'] = $this->options($this->catalog->brands(), $config['slugs']);
+                    $data['brands'] = $this->pick($brands, $config['slugs']);
                     break;
                 case HomeSectionType::ProductCarousel:
-                    $data['products'] = $this->products($config['slugs']);
+                    $data['products'] = $this->pick($products, $config['slugs']);
                     break;
                 case HomeSectionType::ProductTabs:
-                    $data['tabs'] = array_map(fn (array $tab): array => ['title' => $tab['title'], 'products' => $this->products($tab['slugs'])], $config['tabs']);
+                    $data['tabs'] = array_map(
+                        fn (array $tab): array => ['title' => $tab['title'], 'products' => $this->pick($products, $tab['slugs'])],
+                        $tabsBySection[(int) $section->id()] ?? [],
+                    );
                     break;
                 case HomeSectionType::BlogFeed:
                     $data['posts'] = $this->posts->latestPublished($config['limit']);
@@ -44,37 +89,42 @@ final readonly class HomepageRenderer
             }
             $result[] = new HomeSectionView($section->type()->template(), $section->title(), $section->subtitle(), $data);
         }
+
         return $result;
     }
 
-    /** @param list<CatalogOption> $available
-     *  @param list<string> $slugs
-     *  @return list<CatalogOption>
+    /**
+     * @template T of CatalogOption|CatalogProductView
+     *
+     * @param list<T>        $available
+     * @param list<string>   $slugs
+     *
+     * @return list<T>
      */
-    private function options(array $available, array $slugs): array
+    private function pick(array $available, array $slugs): array
     {
         $bySlug = [];
-        foreach ($available as $option) { $bySlug[$option->slug] = $option; }
-        return array_values(array_filter(array_map(static fn (string $slug): ?CatalogOption => $bySlug[$slug] ?? null, $slugs)));
+        foreach ($available as $option) {
+            $bySlug[$option->slug] = $option;
+        }
+
+        $picked = [];
+        foreach ($slugs as $slug) {
+            if (isset($bySlug[$slug])) {
+                $picked[] = $bySlug[$slug];
+            }
+        }
+
+        return $picked;
     }
 
-    /** @param list<string> $slugs
-     *  @return list<CatalogProductView>
+    /**
+     * @param list<string> $slugs
+     *
+     * @return list<CatalogOption>
      */
-    private function products(array $slugs): array
+    private function optionsBySlug(string $kind, array $slugs): array
     {
-        $products = [];
-        foreach ($slugs as $slug) {
-            $detail = $this->catalog->product($slug);
-            if (null === $detail) { continue; }
-            $products[] = new CatalogProductView(
-                $detail->id, $detail->sku, $detail->name, $detail->slug,
-                $detail->brandName, $detail->brandSlug,
-                $detail->images[0]['path'] ?? null, $detail->images[0]['alt'] ?? null,
-                $detail->basePrice, $detail->sellPrice, $detail->onSale,
-                $detail->quantity, $detail->sellable,
-            );
-        }
-        return $products;
+        return $this->catalog->optionsBySlug($kind, $slugs);
     }
 }

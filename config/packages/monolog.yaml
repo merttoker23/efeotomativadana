@@ -29,10 +29,22 @@ when@dev:
     monolog:
         handlers:
             main:
-                type: stream
+                type: rotating_file
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
+                max_files: 7
                 level: debug
-                channels: ["!event"]
+                channels: ["!event", "!doctrine"]
+            # Every statement this application issues was written to the main log at debug, which
+            # on a seeded catalogue produced a 312 MB dev.log and turned page loads into a
+            # multi-second disk write per query. Statements now have their own file and only
+            # appear from info upwards, so `tail -f var/log/dev.log` is readable again while
+            # `bin/console doctrine:query:sql`-style debugging still works.
+            doctrine:
+                type: rotating_file
+                path: "%kernel.logs_dir%/doctrine.log"
+                max_files: 2
+                level: info
+                channels: ["doctrine"]
             security:
                 type: stream
                 path: "%kernel.logs_dir%/security.log"

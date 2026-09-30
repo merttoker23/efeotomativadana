@@ -15,6 +15,8 @@ use App\Module\Payment\SanitizedFailure;
 use App\Module\Returns\ReturnState;
 use App\Module\Shipping\ShipmentState;
 use App\Shared\Money\Money;
+use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
+use Doctrine\Bundle\DoctrineBundle\Middleware\BacktraceDebugDataHolder;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -37,14 +39,17 @@ final class CustomerOrdersTest extends WebTestCase
     protected function setUp(): void
     {
         $this->client = static::createClient();
+        $this->client->disableReboot();
         $this->connection = self::getContainer()->get(Connection::class);
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $this->entityManager->clear();
         $this->clear();
     }
 
     protected function tearDown(): void
     {
         $this->clear();
+        $this->entityManager->clear();
         parent::tearDown();
     }
 
@@ -101,9 +106,85 @@ final class CustomerOrdersTest extends WebTestCase
         self::assertSelectorExists('.pagination');
         self::assertCount(10, $crawler->filter('[data-testid="order-row"]'));
 
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler', ['page' => 2]);
+         $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler', ['page' => 2]);
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-testid="order-row"]'));
+    }
+
+    /**
+     * The order list resolves each order's payment and shipment. A per-order lookup would make
+     * the query count grow with the page size, so the count is compared across two page fills
+     * (five orders and ten orders) as well as against a documented ceiling.
+     *
+     * The ceiling is 10, measured rather than guessed. A fetch-joined collection makes
+     * Paginator issue a root-id query before the count and the rows, so the list costs three
+     * queries instead of two — and buys back the one-items query per order it replaced. The
+     * rest is one batched payment lookup, one batched shipment lookup, and a small fixed set for
+     * the session user, the store settings, the navigation and the header cart summary.
+     */
+    public function testOrderListDoesNotQueryPerOrderForPaymentsAndShipments(): void
+    {
+        $customer = $this->createCustomer('nplus1@example.com');
+        $this->client->loginUser($customer, 'main');
+        $customerId = $customer->id();
+        self::assertNotNull($customerId);
+
+        for ($i = 1; $i <= 5; ++$i) {
+            $order = $this->confirmedOrder($customer, sprintf('EOA-20260930-A1B2%08d', $i), new \DateTimeImmutable(sprintf('2026-09-%02d 10:00:00', $i)));
+            $this->settlePayment($order);
+            $this->shippedParcel($order, ShipmentState::InTransit, sprintf('TR-%03d', $i));
+        }
+        // Warm the request once before either measurement is taken. The first request after
+        // loginUser() reuses the token that loginUser() just put in the session, while every
+        // later one re-reads it from storage and re-hydrates the customer — one extra query that
+        // belongs to authentication, not to the list, and which would otherwise make the first
+        // measurement look a query cheaper than the second for no reason connected to orders.
+        $this->profileOrderList($customerId);
+
+        $withFiveOrders = $this->profileOrderList($customerId);
+
+        // Profiling clears the identity map so the request reads the database rather than the
+        // fixtures it just wrote. That also detaches the customer, so the second batch needs it
+        // re-attached before a new order can reference it.
+        $customer = $this->reloadCustomer($customerId);
+
+        for ($i = 6; $i <= 10; ++$i) {
+            $order = $this->confirmedOrder($customer, sprintf('EOA-20260930-A1B2%08d', $i), new \DateTimeImmutable(sprintf('2026-09-%02d 10:00:00', $i)));
+            $this->settlePayment($order);
+            $this->shippedParcel($order, ShipmentState::InTransit, sprintf('TR-%03d', $i));
+        }
+        $this->entityManager->clear();
+
+        $withTenOrders = $this->profileOrderList($customerId);
+
+        self::assertSame($withFiveOrders, $withTenOrders, 'The order list must not query per order for payments and shipments.');
+        self::assertLessThanOrEqual(10, $withFiveOrders);
+    }
+
+    /**
+     * Detaches every entity so the profiled request cannot answer from the identity map, then
+     * returns the database query count for one rendered page of the order list.
+     */
+    private function profileOrderList(int $customerId): int
+    {
+        $this->entityManager->clear();
+        $this->reloadCustomer($customerId);
+
+        $debugData = self::getContainer()->get('doctrine.debug_data_holder');
+        self::assertInstanceOf(BacktraceDebugDataHolder::class, $debugData);
+        $debugData->reset();
+        $this->client->enableProfiler();
+
+        $this->client->request('GET', '/yeni/hesabim/siparisler');
+
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThanOrEqual(1, $this->client->getCrawler()->filter('[data-testid="order-row"]')->count());
+        $profile = $this->client->getProfile();
+        self::assertNotFalse($profile);
+        $database = $profile->getCollector('db');
+        self::assertInstanceOf(DoctrineDataCollector::class, $database);
+
+        return $database->getQueryCount();
     }
 
     public function testTheOrderListSaysSoWhenThereAreNoOrders(): void
@@ -501,11 +582,17 @@ final class CustomerOrdersTest extends WebTestCase
         return $return;
     }
 
-    private function settlePayment(CustomerOrder $order): void
+    /**
+     * The idempotency key and the provider reference are both unique per payment attempt, and a
+     * test that settles several orders in one test method needs distinct values for each of
+     * them. Deriving both from the order number keeps the helper usable more than once while
+     * leaving every existing single-order caller unaffected.
+ */
+private function settlePayment(CustomerOrder $order): void
     {
         $payment = Payment::start($order, 'paytr', $order->grandTotal(), new \DateTimeImmutable('2026-09-28 10:00:00'));
-        $attempt = $payment->beginAttempt('k1');
-        $payment->markSucceeded($attempt, 'paytr-ref-1', $order->grandTotal(), new \DateTimeImmutable('2026-09-28 10:05:00'));
+        $attempt = $payment->beginAttempt('k-'.$order->orderNumber());
+        $payment->markSucceeded($attempt, 'paytr-'.$order->orderNumber(), $order->grandTotal(), new \DateTimeImmutable('2026-09-28 10:05:00'));
         $this->entityManager->persist($payment);
         $this->entityManager->flush();
     }

@@ -8,6 +8,6 @@
 <fieldset><legend>Price and tax</legend><div class="form-grid">{{ form_row(form.baseMinorAmount) }}{{ form_row(form.currency) }}{{ form_row(form.taxCategory) }}{{ form_row(form.taxRateBasisPoints) }}{{ form_row(form.saleMinorAmount) }}{{ form_row(form.saleStartsAt) }}{{ form_row(form.saleEndsAt) }}</div></fieldset>
 <fieldset><legend>Stock</legend><div class="form-grid">{{ form_row(form.quantity) }}{{ form_row(form.availableForSale) }}</div></fieldset>
 {{ form_row(form.save) }}{{ form_end(form) }}</div>
-{% if product %}<form class="danger-zone" method="post" action="{{ path('admin_catalog_product_delete', {id: product.id}) }}" onsubmit="return confirm('Delete this product?')"><input type="hidden" name="_token" value="{{ csrf_token('delete_product_' ~ product.id) }}"><button class="danger-button" type="submit">Delete product</button></form>{% endif %}
+{% if product %}<form class="danger-zone" method="post" action="{{ path('admin_catalog_product_delete', {id: product.id}) }}" data-controller="confirm" data-confirm-message-value="Delete this product?" data-action="confirm#submit"><input type="hidden" name="_token" value="{{ csrf_token('delete_product_' ~ product.id) }}"><button class="danger-button" type="submit">Delete product</button></form>{% endif %}
 </section>
 {% endblock %}

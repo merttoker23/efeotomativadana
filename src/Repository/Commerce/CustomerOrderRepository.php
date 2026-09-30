@@ -54,7 +54,13 @@ final class CustomerOrderRepository extends ServiceEntityRepository implements O
     public function customerPage(CustomerUser $customer, int $page, int $perPage = 10): \App\Module\Order\CustomerOrderPage
     {
         $page = max(1, $page);
+        // `OrderSummary` renders a line count and a line total per order, both of which live in
+        // `items`. Fetching them here keeps the page at a fixed number of queries instead of one
+        // extra query per order on the page. Paginator::count() still counts distinct roots, so
+        // the page total stays the number of orders and not the number of order lines.
         $paginator = new \Doctrine\ORM\Tools\Pagination\Paginator($this->createQueryBuilder('customerOrder')
+            ->addSelect('item')
+            ->leftJoin('customerOrder.items', 'item')
             ->andWhere('customerOrder.customer = :customer')->setParameter('customer', $customer)
             ->orderBy('customerOrder.createdAt', 'DESC')->addOrderBy('customerOrder.id', 'DESC')
             ->setFirstResult(($page - 1) * $perPage)->setMaxResults($perPage)

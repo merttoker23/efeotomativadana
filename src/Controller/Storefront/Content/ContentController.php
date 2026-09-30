@@ -8,6 +8,7 @@ use App\Module\Settings\StoreConfiguration;
 use App\Repository\Cms\BlogPostRepository;
 use App\Repository\Cms\InformationPageRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -20,10 +21,20 @@ final class ContentController extends AbstractController
     ) {
     }
 
+    /**
+     * Paged. The blog index read every published post, so its cost grew with the archive and
+     * its response grew with it too.
+     */
     #[Route('/blog', name: 'storefront_blog_index', methods: ['GET'])]
-    public function blog(BlogPostRepository $posts): Response
+    public function blog(Request $request, BlogPostRepository $posts): Response
     {
-        return $this->render('storefront/blog/index.html.twig', $this->context(['posts' => $posts->latestPublished(), 'seo' => $this->seo->blogIndex()]));
+        $page = $posts->page($request->query->getInt('page', 1), BlogPostRepository::PER_PAGE, true);
+
+        return $this->render('storefront/blog/index.html.twig', $this->context([
+            'posts' => $page->items,
+            'page' => $page,
+            'seo' => $this->seo->blogIndex(),
+        ]));
     }
 
     #[Route('/blog/{slug}', name: 'storefront_blog_show', requirements: ['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'], methods: ['GET'])]
@@ -34,10 +45,17 @@ final class ContentController extends AbstractController
         return $this->render('storefront/blog/show.html.twig', $this->context(['post' => $post, 'seo' => $this->seo->blogPost($post)]));
     }
 
+    /** Paged, for the same reason as the blog index. */
     #[Route('/bilgi', name: 'storefront_information_index', methods: ['GET'])]
-    public function pages(InformationPageRepository $pages): Response
+    public function pages(Request $request, InformationPageRepository $pages): Response
     {
-        return $this->render('storefront/content/index.html.twig', $this->context(['pages' => $pages->findBy(['published' => true], ['title' => 'ASC']), 'seo' => $this->seo->informationIndex()]));
+        $page = $pages->page($request->query->getInt('page', 1), InformationPageRepository::PER_PAGE, true);
+
+        return $this->render('storefront/content/index.html.twig', $this->context([
+            'pages' => $page->items,
+            'page' => $page,
+            'seo' => $this->seo->informationIndex(),
+        ]));
     }
 
     #[Route('/bilgi/{slug}', name: 'storefront_information_show', requirements: ['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'], methods: ['GET'])]

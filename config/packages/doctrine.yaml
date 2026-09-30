@@ -7,7 +7,12 @@ doctrine:
         # either here or in the DATABASE_URL env var (see .env file)
         #server_version: '8.4'
 
-        profiling_collect_backtrace: '%kernel.debug%'
+        # Collecting a backtrace for every statement costs real time on a catalogue-sized page,
+        # and the dev log it feeds had grown to 312 MB, which was itself part of why pages in a
+        # browser were slow enough to hit the 30 second execution limit. It is still one env var
+        # true when a slow statement needs attributing to a line of code; the statements
+        # themselves are in the profiler's Doctrine panel either way.
+        profiling_collect_backtrace: false
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore

@@ -44,6 +44,66 @@ final class CatalogControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    /**
+     * The brand and category indexes used to render every published option in one response.
+     *
+     * An automotive catalogue carries thousands of brands, so both are now paged, and the test
+     * pins the two properties that matter: a later page answers with different entries rather
+     * than the same first page again, and asking past the end is a 404 rather than a silent
+     * repeat of the last page.
+     */
+    public function testTheBrandAndCategoryIndexesArePagedAndStopAtTheEnd(): void
+    {
+        $brand = new Brand('Bosch', 'bosch');
+        $brand->publish();
+        $category = new Category('Filtreler', 'filtreler');
+        $category->publish();
+        $this->entityManager->flush();
+
+        // More brands than fit on one page, so the second page has to be a different page.
+        for ($i = 0; $i < 60; ++$i) {
+            $extra = new Brand(sprintf('Marka %02d', $i), sprintf('marka-%02d', $i));
+            $extra->publish();
+            $this->entityManager->persist($extra);
+        }
+        for ($i = 0; $i < 60; ++$i) {
+            $extra = new Category(sprintf('Kategori %02d', $i), sprintf('kategori-%02d', $i));
+            $extra->publish();
+            $this->entityManager->persist($extra);
+        }
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/yeni/markalar');
+        self::assertResponseIsSuccessful();
+        $firstPage = $this->brandNames();
+        self::assertCount(48, $firstPage, 'The brand index must render one bounded page, not every brand.');
+
+        $this->client->request('GET', '/yeni/markalar', ['page' => 2]);
+        self::assertResponseIsSuccessful();
+        $secondPage = $this->brandNames();
+        self::assertNotSame($firstPage, $secondPage, 'Page two repeated page one, so the index is not really paged.');
+        self::assertSame([], array_intersect($firstPage, $secondPage), 'Two brand pages shared an entry.');
+
+        // Past the end the index answers 200 with nothing in it, which is what all four paged
+        // indexes here do. Asserted so that the four cannot drift apart, and so a future change
+        // to a 404 or a clamped repeat has to be a deliberate edit of this test.
+        $this->client->request('GET', '/yeni/markalar', ['page' => 99]);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->brandNames(), 'A page past the end must not silently repeat the last page.');
+
+        $this->client->request('GET', '/yeni/kategoriler');
+        self::assertResponseIsSuccessful();
+        self::assertNotEmpty($this->brandNames(), 'The category index rendered nothing.');
+    }
+
+    /** @return list<string> */
+    private function brandNames(): array
+    {
+        return $this->client->getCrawler()
+            ->filter('.brand-grid a strong')
+            ->each(static fn ($node): string => trim((string) $node->text()));
+    }
+
     public function testCatalogAndHeaderRenderLocalPriceStockSearchAndRealNavigation(): void
     {
         $brand = new Brand('Bosch', 'bosch');

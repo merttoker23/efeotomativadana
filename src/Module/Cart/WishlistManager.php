@@ -6,16 +6,16 @@ use App\Entity\Catalog\Product;
 use App\Entity\Commerce\WishlistItem;
 use App\Entity\Customer\CustomerUser;
 use App\Module\Catalog\PublicationStatus;
-use App\Module\Inventory\InventoryQuery;
-use App\Module\Pricing\PricingQuery;
+use App\Module\Catalog\Query\CatalogQuery;
 use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class WishlistManager
 {
+    public const PAGE_SIZE = 24;
+
     public function __construct(
         private WishlistRepositoryInterface $wishlist,
-        private PricingQuery $pricing,
-        private InventoryQuery $inventory,
+        private CatalogQuery $catalog,
         private EntityManagerInterface $entityManager,
     ) {
     }
@@ -44,13 +44,26 @@ final readonly class WishlistManager
         $this->entityManager->flush();
     }
 
-    /** @return list<SavedProductView> */
-    public function items(CustomerUser $customer): array
+    /**
+     * Paged, because the wishlist had no cap at all: a customer who had saved a few hundred
+     * parts made this read every one of them.
+     *
+     * @return list<SavedProductView>
+     */
+    public function items(CustomerUser $customer, int $page = 1, int $perPage = self::PAGE_SIZE): array
     {
-        return array_map(function (WishlistItem $item): SavedProductView {
+        $items = $this->wishlist->findForCustomer($customer, $page, $perPage);
+
+        // One batched read of price, stock and lead image for the whole page. Reading them per
+        // item cost four queries per saved product, on a list with no cap at all.
+        $snapshots = $this->catalog->snapshots(array_values(array_filter(array_map(
+            static fn (WishlistItem $item): ?int => $item->product()->id(),
+            $items,
+        ), is_int(...))));
+
+        return array_map(static function (WishlistItem $item) use ($snapshots): SavedProductView {
             $product = $item->product();
-            $images = $product->images();
-            $inventory = $this->inventory->forProduct($product);
+            $snapshot = $snapshots[$product->id() ?? 0] ?? null;
 
             return new SavedProductView(
                 selectionId: $item->id() ?? 0,
@@ -58,10 +71,10 @@ final readonly class WishlistManager
                 name: $product->name(),
                 slug: $product->slug(),
                 sku: $product->sku(),
-                imagePath: [] === $images ? null : $images[0]->path(),
-                price: $this->pricing->forProduct($product)?->sellPrice(),
-                sellable: PublicationStatus::Published === $product->publicationStatus() && $inventory->sellable(),
+                imagePath: $snapshot?->imagePath,
+                price: $snapshot?->sellPrice,
+                sellable: PublicationStatus::Published === $product->publicationStatus() && true === $snapshot?->sellable,
             );
-        }, $this->wishlist->findForCustomer($customer));
+        }, $items);
     }
 }

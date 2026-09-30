@@ -116,7 +116,14 @@ final class ReturnRequestRepository extends ServiceEntityRepository
     public function customerPage(CustomerUser $customer, int $page, int $perPage = 10): \App\Module\Returns\ReturnPage
     {
         $page = max(1, $page);
+        // The list renders the order number and the summed line total for every row, and both
+        // live on associations: `orderNumber()` proxies the order and `totalValue()` sums the
+        // items. Without these joins each row cost two more queries, so a ten-row page spent
+        // twenty of its queries proving what the page was about to show.
         $paginator = new \Doctrine\ORM\Tools\Pagination\Paginator($this->createQueryBuilder('returnRequest')
+            ->addSelect('customerOrder', 'item')
+            ->leftJoin('returnRequest.order', 'customerOrder')
+            ->leftJoin('returnRequest.items', 'item')
             ->andWhere('returnRequest.customer = :customer')->setParameter('customer', $customer)
             ->orderBy('returnRequest.createdAt', 'DESC')->addOrderBy('returnRequest.id', 'DESC')
             ->setFirstResult(($page - 1) * $perPage)->setMaxResults($perPage)
@@ -130,7 +137,12 @@ final class ReturnRequestRepository extends ServiceEntityRepository
     /** @return AdminPage<ReturnRequest> */
     public function adminPage(string $query, ?ReturnState $state, int $page, int $perPage = 20): AdminPage
     {
-        $builder = $this->createQueryBuilder('returnRequest')->orderBy('returnRequest.createdAt', 'DESC')->addOrderBy('returnRequest.id', 'DESC');
+        // Same two associations the admin list renders per row; see customerPage().
+        $builder = $this->createQueryBuilder('returnRequest')
+            ->addSelect('customerOrder', 'item')
+            ->leftJoin('returnRequest.order', 'customerOrder')
+            ->leftJoin('returnRequest.items', 'item')
+            ->orderBy('returnRequest.createdAt', 'DESC')->addOrderBy('returnRequest.id', 'DESC');
         if ('' !== ($query = trim($query))) {
             $builder->andWhere('LOWER(returnRequest.returnNumber) LIKE :query OR LOWER(returnRequest.customerReason) LIKE :query OR LOWER(returnRequest.order.orderNumber) LIKE :query')->setParameter('query', '%'.mb_strtolower($query).'%');
         }

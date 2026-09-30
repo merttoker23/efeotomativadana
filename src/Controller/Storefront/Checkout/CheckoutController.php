@@ -79,13 +79,16 @@ final class CheckoutController extends AbstractController
 
         // A gateway-backed order whose payment is still open shows the payment page instead of
         // a "thank you": the money has not been collected yet, and saying otherwise would lie.
-        if (null !== ($payment = $payments->paymentFor($order)) && $payment->state()->awaitsCallbackDecision()) {
+        // The lookup is kept in a variable because `paymentFor()` always issues a query, and
+        // calling it twice meant paying for the same row twice.
+        $payment = $payments->paymentFor($order);
+        if (null !== $payment && $payment->state()->awaitsCallbackDecision()) {
             return $this->redirectToRoute('storefront_payment_show', ['orderNumber' => $order->orderNumber()]);
         }
 
         return $this->render('storefront/order/success.html.twig', $context->withLayout([
             'order' => $order,
-            'payment' => $payments->paymentFor($order),
+            'payment' => $payment,
         ]));
     }
 

@@ -4,6 +4,7 @@ namespace App\Module\Cart;
 
 use App\Entity\Catalog\Product;
 use App\Module\Catalog\PublicationStatus;
+use App\Module\Catalog\Query\CatalogQuery;
 use App\Module\Inventory\InventoryQuery;
 use App\Module\Pricing\PricingQuery;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,6 +21,7 @@ final class CartManager implements ResetInterface
         private readonly CartRepositoryInterface $carts,
         private readonly PricingQuery $pricing,
         private readonly InventoryQuery $inventory,
+        private readonly CatalogQuery $catalog,
         private readonly EntityManagerInterface $entityManager,
         private readonly ClockInterface $clock,
     ) {
@@ -114,19 +116,29 @@ final class CartManager implements ResetInterface
             return $this->cachedView = new CartView([], 0, $total);
         }
 
+        // One batched read for the whole basket instead of a price, a stock row and an image
+        // collection per line. A ten-line basket used to cost around forty queries here, on the
+        // page a customer reaches most often and on the one every storefront header renders a
+        // summary of.
+        $items = $cart->items();
+        $snapshots = $this->catalog->snapshots(array_values(array_filter(array_map(
+            static fn ($item): ?int => $item->product()->id(),
+            $items,
+        ), is_int(...))));
+
         $lines = [];
         $itemCount = 0;
         $hasUnavailableLine = false;
-        foreach ($cart->items() as $item) {
+        foreach ($items as $item) {
             $product = $item->product();
-            $price = $this->pricing->forProduct($product);
-            $inventory = $this->inventory->forProduct($product);
-            $unitPrice = $price?->sellPrice();
+            $snapshot = $snapshots[$product->id() ?? 0] ?? null;
+            $unitPrice = $snapshot?->sellPrice;
+            $quantity = $snapshot->quantity;
             $lineTotal = $unitPrice?->multiply($item->quantity());
             $updatable = null !== $unitPrice
                 && PublicationStatus::Published === $product->publicationStatus()
-                && $inventory->sellable();
-            $sellable = $updatable && $item->quantity() <= $inventory->quantity();
+                && $snapshot->sellable;
+            $sellable = $updatable && $item->quantity() <= $quantity;
             if ($sellable && null !== $lineTotal) {
                 $total ??= \App\Shared\Money\Money::ofMinor(0, $unitPrice->currency());
                 try {
@@ -143,16 +155,15 @@ final class CartManager implements ResetInterface
             } else {
                 $hasUnavailableLine = true;
             }
-            $images = $product->images();
             $lines[] = new CartLineView(
                 id: $item->id() ?? 0,
                 productId: $product->id() ?? 0,
                 name: $product->name(),
                 slug: $product->slug(),
                 sku: $product->sku(),
-                imagePath: [] === $images ? null : $images[0]->path(),
+                imagePath: $snapshot?->imagePath,
                 quantity: $item->quantity(),
-                availableQuantity: min(99, $inventory->quantity()),
+                availableQuantity: min(99, $quantity),
                 unitPrice: $unitPrice,
                 lineTotal: $lineTotal,
                 updatable: $updatable,

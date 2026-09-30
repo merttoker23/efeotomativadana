@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: WishlistItemRepository::class)]
 #[ORM\Table(name: 'commerce_wishlist_item')]
 #[ORM\UniqueConstraint(name: 'uniq_commerce_wishlist_owner_product', columns: ['customer_id', 'product_id'])]
+#[ORM\Index(name: 'idx_commerce_wishlist_owner_created', columns: ['customer_id', 'created_at', 'id'])]
 class WishlistItem
 {
     #[ORM\Id]

@@ -19,6 +19,7 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'commerce_customer_order')]
 #[ORM\UniqueConstraint(name: 'uniq_commerce_order_number', columns: ['order_number'])]
 #[ORM\Index(name: 'idx_commerce_order_customer_created', columns: ['customer_id', 'created_at'])]
+#[ORM\Index(name: 'idx_commerce_order_created', columns: ['created_at', 'id'])]
 #[ORM\HasLifecycleCallbacks]
 class CustomerOrder
 {

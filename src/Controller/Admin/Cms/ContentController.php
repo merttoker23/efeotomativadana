@@ -26,10 +26,16 @@ final class ContentController extends AbstractController
     ) {
     }
 
+    /**
+     * Paged rather than "everything": this was the only admin list in the application that read
+     * a whole table, which made the screen and the request both grow with the content archive.
+     */
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(string $kind, BlogPostRepository $posts, InformationPageRepository $pages): Response
+    public function index(Request $request, string $kind, BlogPostRepository $posts, InformationPageRepository $pages): Response
     {
-        return $this->render('admin/cms/content/index.html.twig', ['kind' => $kind, 'items' => 'blog' === $kind ? $posts->findBy([], ['id' => 'DESC']) : $pages->findBy([], ['id' => 'DESC'])]);
+        $page = 'blog' === $kind ? $posts->page($request->query->getInt('page', 1)) : $pages->page($request->query->getInt('page', 1));
+
+        return $this->render('admin/cms/content/index.html.twig', ['kind' => $kind, 'items' => $page->items, 'page' => $page]);
     }
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]

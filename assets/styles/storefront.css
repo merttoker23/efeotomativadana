@@ -29,6 +29,12 @@ html {
     scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
 body {
     margin: 0;
     min-width: 320px;
@@ -987,12 +993,20 @@ select:focus-visible {
     padding: 1.15rem;
 }
 
-.catalog-filters h2 {
+/* The filter panel's titles are paragraphs rather than headings on purpose. The panel sits to
+   the left of the results column, so its <h2> elements were announced before the page's <h1>,
+   and a screen-reader user navigating by heading met "Kategoriler" and "Filtrele" before
+   "Ürün Kataloğu". The panel keeps its accessible name through aria-labelledby, and these
+   rules keep it looking exactly as it did while it was a heading. */
+.catalog-filters h2,
+.catalog-filters .catalog-filter-heading {
     margin: 0 0 0.65rem;
     font-size: 0.9rem;
+    font-weight: 700;
 }
 
-.catalog-filters h2:not(:first-child) {
+.catalog-filters h2:not(:first-child),
+.catalog-filters .catalog-filter-heading:not(:first-child) {
     margin-top: 1.6rem;
 }
 
@@ -1328,6 +1342,7 @@ select:focus-visible {
     }
 
     .catalog-filters h2,
+    .catalog-filters .catalog-filter-heading,
     .catalog-filter-form {
         grid-column: 1 / -1;
     }
@@ -2090,4 +2105,29 @@ select:focus-visible {
   .order-card-foot { align-items: flex-start; flex-direction: column; }
   .order-summary-list { grid-template-columns: minmax(0, 1fr); }
   .order-timeline li { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------------------------------------------------------------------
+   Layout reservations and hooks added with the catalogue's filter/index work.
+   --------------------------------------------------------------------- */
+
+/* The hero image had no reserved box, so the page reflowed once it decoded.
+   An explicit aspect-ratio reserves the space before any byte arrives. */
+.hero-image {
+    aspect-ratio: 1 / 1;
+}
+
+/* "All categories" / "All brands" link that follows a bounded filter list. */
+.catalog-filter-more {
+    display: block;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.catalog-filter-more:focus-visible {
+    outline: 3px solid #005ea8;
+    outline-offset: 3px;
 }

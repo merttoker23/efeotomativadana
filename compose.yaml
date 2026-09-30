@@ -14,6 +14,22 @@ services:
       target: prod
     restart: unless-stopped
     environment:
+      # The application serves its storefront under the /yeni router prefix, and Symfony builds
+      # every asset and upload URL with that prefix: /yeni/assets/..., /yeni/uploads/....
+      # The files themselves live at the document root (public/assets/..., public/uploads/...),
+      # so without the strip below every stylesheet, every script and every stored image
+      # returned 404 and the storefront rendered as unstyled HTML with no JavaScript at all.
+      # No status-code check notices that, and a browser viewport pass cannot measure a layout
+      # that was never styled in the first place.
+      #
+      # Caddyfile.d cannot be used for this because that directory lives inside the image, so
+      # the rule is passed through the Caddyfile's own CADDY_SERVER_EXTRA_DIRECTIVES hook.
+      CADDY_SERVER_EXTRA_DIRECTIVES: |-
+        @prefixedStatic path /yeni/assets/* /yeni/uploads/*
+        handle @prefixedStatic {
+          uri strip_prefix /yeni
+          file_server
+        }
       SERVER_NAME: ${SERVER_NAME:-:80}
       APP_ENV: ${APP_ENV:-prod}
       DATABASE_URL: mysql://${MYSQL_USER:-app}:${MYSQL_PASSWORD:-!ChangeMe!}@database:3306/${MYSQL_DATABASE:-app}?serverVersion=8.4&charset=utf8mb4

@@ -21,9 +21,17 @@ final class CartRepository extends ServiceEntityRepository implements CartReposi
         parent::__construct($registry, Cart::class);
     }
 
+    /**
+     * Eagerly loads the lines and the products on them.
+     *
+     * `Cart::items()` is a lazy collection and `CartItem::product()` is an un-joined association,
+     * so a plain `findOneBy` left every basket line to initialise its own product with a query of
+     * its own. The basket page then cost a number of queries that grew with the number of lines
+     * in it, which is the one thing a basket page must not do.
+     */
     public function findOneByCustomer(CustomerUser $customer): ?Cart
     {
-        return $this->findOneBy(['customer' => $customer]);
+        return $this->cartWithLines('cart.customer = :customer', 'customer', $customer);
     }
 
     public function findOneByCustomerForUpdate(CustomerUser $customer): ?Cart
@@ -42,7 +50,22 @@ final class CartRepository extends ServiceEntityRepository implements CartReposi
 
     public function findOneByGuestToken(string $token): ?Cart
     {
-        return $this->findOneBy(['guestToken' => $token]);
+        return $this->cartWithLines('cart.guestToken = :token', 'token', $token);
+    }
+
+    private function cartWithLines(string $condition, string $parameterName, mixed $value): ?Cart
+    {
+        /** @var Cart|null $cart */
+        $cart = $this->createQueryBuilder('cart')
+            ->addSelect('item', 'product')
+            ->leftJoin('cart.items', 'item')
+            ->leftJoin('item.product', 'product')
+            ->andWhere($condition)
+            ->setParameter($parameterName, $value)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $cart;
     }
 
     public function summary(Cart $cart, \DateTimeImmutable $now): CartSummary

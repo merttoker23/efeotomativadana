@@ -11,6 +11,8 @@ use App\Module\Catalog\Query\CatalogProductDetail;
 use App\Module\Catalog\Query\CatalogProductView;
 use App\Module\Catalog\Query\CatalogSort;
 use App\Shared\Money\Money;
+use App\Shared\PagedResult;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Psr\Clock\ClockInterface;
@@ -202,10 +204,273 @@ final readonly class CatalogReadRepository
         );
     }
 
+    /**
+     * Resolves price, stock and the lead image for a known set of products in one query.
+     *
+     * A cart, a wishlist and a comparison all hold a handful of products and all render a
+     * price, a stock badge and a thumbnail for each. Reading those through the price, inventory
+     * and image repositories one product at a time costs four queries per line, which is the
+     * difference between a basket page costing five queries and costing four times its size.
+     *
+     * Unlike {@see findPublishedProductViews()} this does not filter on publication state: a
+     * saved or abandoned product has to keep rendering something legible, and the callers
+     * decide separately what an unpublished product means for them.
+     *
+     * @param list<int> $productIds
+     *
+     * @return array<int, CatalogProductView> Keyed by product id
+     */
+    public function productSnapshots(array $productIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(intval(...), $productIds))));
+        if ([] === $ids) {
+            return [];
+        }
+
+        $rows = $this->connection->createQueryBuilder()
+            ->select(
+                'product.id',
+                'product.sku',
+                'product.name',
+                'product.slug',
+                '(SELECT image.path FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_path',
+                '(SELECT image.alt_text FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_alt',
+                'price.base_minor_amount',
+                'price.sale_minor_amount',
+                'price.currency',
+                'price.sale_starts_at',
+                'price.sale_ends_at',
+                'COALESCE(inventory.quantity, 0) AS quantity',
+                'COALESCE(inventory.available_for_sale, 0) AS available_for_sale',
+            )
+            ->from('catalog_product', 'product')
+            ->leftJoin('product', 'commerce_product_price', 'price', 'price.product_id = product.id')
+            ->leftJoin('product', 'commerce_product_inventory', 'inventory', 'inventory.product_id = product.id')
+            ->where('product.id IN (:ids)')
+            ->setParameter('ids', $ids, ArrayParameterType::INTEGER)
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $snapshots = [];
+        foreach ($rows as $row) {
+            $snapshots[(int) $row['id']] = $this->productView([
+                ...$row,
+                'brand_name' => null,
+                'brand_slug' => null,
+            ]);
+        }
+
+        return $snapshots;
+    }
+
+    /**
+     * Resolves a named set of categories or brands in one query.
+     *
+     * A homepage section picks its entries by slug. Reading them out of the full published list
+     * meant loading every category and every brand — each row carrying a correlated product
+     * count — merely to pick twenty of them, once per section.
+     *
+     * @param list<string> $slugs
+     *
+     * @return list<CatalogOption>
+     */
+    public function optionsBySlug(string $kind, array $slugs): array
+    {
+        $normalized = array_values(array_unique(array_map(
+            static fn (string $slug): string => mb_strtolower(trim($slug)),
+            $slugs,
+        )));
+        if ([] === $normalized) {
+            return [];
+        }
+
+        $isCategory = 'category' === $kind;
+        $rows = $this->optionQuery(
+            $isCategory ? 'catalog_category' : 'catalog_brand',
+            $kind,
+            $isCategory ? null : 'product.brand_id = option_record.id',
+        )
+            ->andWhere('option_record.slug IN (:slugs)')
+            ->setParameter('slugs', $normalized, ArrayParameterType::STRING)
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $bySlug = [];
+        foreach ($rows as $row) {
+            $bySlug[(string) $row['slug']] = new CatalogOption(
+                (string) $row['name'],
+                (string) $row['slug'],
+                (int) $row['product_count'],
+            );
+        }
+
+        $options = [];
+        foreach ($normalized as $slug) {
+            if (isset($bySlug[$slug])) {
+                $options[] = $bySlug[$slug];
+            }
+        }
+
+        return $options;
+    }
+
     /** @return list<CatalogOption> */
     public function publishedCategories(?int $limit = null): array
     {
         return $this->options('catalog_category', 'category', null, $limit);
+    }
+
+    /**
+     * Resolves the lightweight product views that carousels and tabs need in one pass, so a
+     * homepage section with twenty products does not fire twenty separate product detail queries.
+     *
+     * @param list<string> $slugs
+     *
+     * @return list<CatalogProductView>
+     */
+    public function findPublishedProductViews(array $slugs): array
+    {
+        $normalized = array_map(
+            static fn (string $slug): string => mb_strtolower(trim($slug)),
+            $slugs,
+        );
+        $unique = array_values(array_unique($normalized));
+        if ([] === $unique) {
+            return [];
+        }
+
+        $rows = $this->connection->createQueryBuilder()
+            ->select(
+                'product.id',
+                'product.sku',
+                'product.name',
+                'product.slug',
+                'brand.name AS brand_name',
+                'brand.slug AS brand_slug',
+                '(SELECT image.path FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_path',
+                '(SELECT image.alt_text FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_alt',
+                'price.base_minor_amount',
+                'price.sale_minor_amount',
+                'price.currency',
+                'price.sale_starts_at',
+                'price.sale_ends_at',
+                'COALESCE(inventory.quantity, 0) AS quantity',
+                'COALESCE(inventory.available_for_sale, 0) AS available_for_sale',
+            )
+            ->from('catalog_product', 'product')
+            ->leftJoin(
+                'product',
+                'catalog_brand',
+                'brand',
+                'brand.id = product.brand_id AND brand.publication_status = :published',
+            )
+            ->leftJoin('product', 'commerce_product_price', 'price', 'price.product_id = product.id')
+            ->leftJoin('product', 'commerce_product_inventory', 'inventory', 'inventory.product_id = product.id')
+            ->where('product.slug IN (:slugs)')
+            ->andWhere('product.publication_status = :published')
+            ->setParameter('published', PublicationStatus::Published->value)
+            ->setParameter('slugs', $unique, ArrayParameterType::STRING)
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $bySlug = [];
+        foreach ($rows as $row) {
+            $bySlug[(string) $row['slug']] = $this->productView($row);
+        }
+
+        $views = [];
+        foreach ($unique as $slug) {
+            if (isset($bySlug[$slug])) {
+                $views[] = $bySlug[$slug];
+            }
+        }
+
+        return $views;
+    }
+
+    /**
+     * Categories ordered by how many published products they hold, largest first, and capped.
+     *
+     * The catalogue sidebar is a filter, and a filter is more useful when it offers the biggest
+     * buckets first. The cap is what keeps the page's cost independent of how many categories
+     * the catalogue has grown; the full set lives on the paged index instead.
+     *
+     * @return list<CatalogOption>
+     */
+    public function categoriesByPopularity(int $limit): array
+    {
+        return $this->popularOptions('catalog_category', 'category', null, $limit);
+    }
+
+    /** @return list<CatalogOption> */
+    public function brandsByPopularity(int $limit): array
+    {
+        return $this->popularOptions('catalog_brand', 'brand', 'product.brand_id = option_record.id', $limit);
+    }
+
+    public function brandPage(int $page, int $perPage): PagedResult
+    {
+        return $this->optionPage('catalog_brand', 'brand', 'product.brand_id = option_record.id', $page, $perPage);
+    }
+
+    public function categoryPage(int $page, int $perPage): PagedResult
+    {
+        return $this->optionPage('catalog_category', 'category', null, $page, $perPage);
+    }
+
+    /**
+     * @return list<CatalogOption>
+     */
+    private function popularOptions(string $table, string $kind, ?string $brandRelation, int $limit): array
+    {
+        $rows = $this->optionQuery($table, $kind, $brandRelation)
+            ->having('product_count > 0')
+            ->orderBy('product_count', 'DESC')
+            ->addOrderBy('option_record.name', 'ASC')
+            ->setMaxResults(max(1, $limit))
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return array_map(
+            static fn (array $row): CatalogOption => new CatalogOption(
+                (string) $row['name'],
+                (string) $row['slug'],
+                (int) $row['product_count'],
+            ),
+            $rows,
+        );
+    }
+
+    private function optionPage(string $table, string $kind, ?string $brandRelation, int $page, int $perPage): PagedResult
+    {
+        $page = max(1, $page);
+        $perPage = min(max(1, $perPage), 100);
+
+        $count = (int) $this->optionQuery($table, $kind, $brandRelation)
+            ->select('COUNT(option_record.id)')
+            ->executeQuery()
+            ->fetchOne();
+
+        $rows = $this->optionQuery($table, $kind, $brandRelation)
+            ->orderBy('option_record.name', 'ASC')
+            ->setFirstResult(($page - 1) * $perPage)
+            ->setMaxResults($perPage)
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return new PagedResult(
+            array_map(
+                static fn (array $row): CatalogOption => new CatalogOption(
+                    (string) $row['name'],
+                    (string) $row['slug'],
+                    (int) $row['product_count'],
+                ),
+                $rows,
+            ),
+            $page,
+            $perPage,
+            $count,
+        );
     }
 
     /** @return list<CatalogOption> */

@@ -1,0 +1,19 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block body %}
+<main id="main-content" class="page-shell" tabindex="-1">
+    <nav class="container breadcrumbs" aria-label="&#304;erik yolu"><a href="{{ path('app_home') }}">Ana Sayfa</a><span aria-hidden="true">/</span><span>Kategoriler</span></nav>
+    <section class="container brands-directory" aria-labelledby="categories-heading">
+        <p class="panel-kicker">&#220;r&#252;n gruplar&#305;</p>
+        <h1 id="categories-heading">Kategoriler</h1>
+        {% if categories is empty %}<p>Hen&#252;z yay&#305;nlanm&#305;&#351; kategori bulunmuyor.</p>{% else %}<div class="brand-grid">{% for category in categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}"><strong>{{ category.name }}</strong><span>{{ category.productCount }} &#252;r&#252;n</span></a>{% endfor %}</div>{% endif %}
+        {% if page.totalPages > 1 %}
+            <nav class="pagination" aria-label="Kategori sayfalar&#305;">
+                {% if page.hasPrevious %}<a href="{{ path('storefront_catalog_categories', {page: page.page - 1}) }}" rel="prev" aria-label="&#214;nceki sayfa">&#8249;</a>{% endif %}
+                {% for number in page.pageNumbers %}<a href="{{ path('storefront_catalog_categories', {page: number}) }}"{% if number == page.page %} aria-current="page"{% endif %}>{{ number }}</a>{% endfor %}
+                {% if page.hasNext %}<a href="{{ path('storefront_catalog_categories', {page: page.page + 1}) }}" rel="next" aria-label="Sonraki sayfa">&#8250;</a>{% endif %}
+            </nav>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

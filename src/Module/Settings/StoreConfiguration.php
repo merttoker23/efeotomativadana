@@ -19,8 +19,12 @@ use Symfony\Contracts\Service\ResetInterface;
  * Values are memoised for the length of a request and the memo is dropped again by
  * `kernel.reset` — which is what the Messenger worker triggers between messages too. That
  * matters because every page reads several of these (store name, locale, currency, tax rate,
- * the indexing switch), and each read is a query; the naive version spent four queries per
- * page proving the same four rows had not changed since the first one.
+ * the indexing switch), and each read is a query.
+ *
+ * The memo is filled by reading the whole `store_setting` table once, not by reading one key
+ * per question. There are twelve keys and a typical page asks four of them, so the per-key
+ * version spent four round trips to answer what one row set already held — measured at four
+ * `SELECT ... WHERE setting_key = ?` queries on the catalogue listing page alone.
  *
  * It is deliberately *not* memoised for the lifetime of the process. FrankenPHP and the
  * Messenger worker both keep a PHP process alive across many requests, and a memo that
@@ -30,6 +34,8 @@ final class StoreConfiguration implements ResetInterface
 {
     /** @var array<string, bool|int|string|null> */
     private array $memo = [];
+
+    private bool $loaded = false;
 
     public function __construct(
         private readonly StoreSettingRepository $settings,
@@ -43,6 +49,7 @@ final class StoreConfiguration implements ResetInterface
     public function reset(): void
     {
         $this->memo = [];
+        $this->loaded = false;
     }
 
     public function current(): StoreSettingsData
@@ -196,11 +203,12 @@ final class StoreConfiguration implements ResetInterface
 
     private function value(SettingKey $key): mixed
     {
-        if (array_key_exists($key->value, $this->memo)) {
-            return $this->memo[$key->value];
+        if (!$this->loaded) {
+            $this->memo = $this->settings->allValues();
+            $this->loaded = true;
         }
 
-        return $this->memo[$key->value] = $this->settings->findOneByKey($key)?->value() ?? $key->defaultValue();
+        return $this->memo[$key->value] ?? $key->defaultValue();
     }
 
     private function boolValue(SettingKey $key): bool

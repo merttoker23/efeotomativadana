@@ -48,9 +48,15 @@ final class CustomerOrderController extends AbstractController
     public function index(Request $request, CustomerOrderRepository $orders, PaymentRepository $payments, ShipmentRepository $shipments, StorefrontPageContext $context): Response
     {
         $page = $orders->customerPage($this->customer(), $request->query->getInt('page', 1));
+        $paymentByOrder = $payments->findForOrders($page->items);
+        $shipmentByOrder = $shipments->findForOrders($page->items);
         $summaries = [];
         foreach ($page->items as $order) {
-            $summaries[] = OrderSummary::build($order, $payments->findOneForOrder($order), $shipments->findOneForOrder($order));
+            $summaries[] = OrderSummary::build(
+                $order,
+                $paymentByOrder[$order->id()] ?? null,
+                $shipmentByOrder[$order->id()] ?? null,
+            );
         }
 
         return $this->render('storefront/account/orders.html.twig', $context->withLayout([

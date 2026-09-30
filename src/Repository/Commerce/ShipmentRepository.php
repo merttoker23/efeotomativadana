@@ -31,6 +31,37 @@ final class ShipmentRepository extends ServiceEntityRepository
         return $this->findOneBy(['order' => $order]);
     }
 
+    /**
+     * @param list<CustomerOrder> $orders
+     *
+     * @return array<int, Shipment|null> Keyed by order id
+     */
+    public function findForOrders(array $orders): array
+    {
+        $byOrderId = [];
+        foreach ($orders as $order) {
+            $byOrderId[(int) $order->id()] = null;
+        }
+
+        if ([] === $orders) {
+            return $byOrderId;
+        }
+
+        /** @var list<Shipment> $shipments */
+        $shipments = $this->createQueryBuilder('shipment')
+            ->addSelect('customerOrder')
+            ->innerJoin('shipment.order', 'customerOrder')
+            ->where('customerOrder IN (:orders)')
+            ->setParameter('orders', $orders)
+            ->getQuery()->getResult();
+
+        foreach ($shipments as $shipment) {
+            $byOrderId[(int) $shipment->order()->id()] = $shipment;
+        }
+
+        return $byOrderId;
+    }
+
     public function findOneForOrderNumber(string $orderNumber): ?Shipment
     {
         return $this->createQueryBuilder('shipment')

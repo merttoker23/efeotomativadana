@@ -13,7 +13,7 @@ interface WishlistRepositoryInterface
     public function findOwnedById(CustomerUser $customer, int $id): ?WishlistItem;
 
     /** @return list<WishlistItem> */
-    public function findForCustomer(CustomerUser $customer): array;
+    public function findForCustomer(CustomerUser $customer, int $page = 1, int $perPage = 25): array;
 
     public function save(WishlistItem $item): void;
 

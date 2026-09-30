@@ -27,9 +27,28 @@ final class WishlistItemRepository extends ServiceEntityRepository implements Wi
         return $this->findOneBy(['customer' => $customer, 'id' => $id]);
     }
 
-    public function findForCustomer(CustomerUser $customer): array
+    /**
+     * Bounded and ordered. `ORDER BY created_at DESC` needs `(customer_id, created_at)` to avoid
+     * sorting the customer's whole list in memory, and without a page size a customer who saved
+     * a few hundred parts made the page read every one of them.
+     *
+     * @return list<WishlistItem>
+     */
+    public function findForCustomer(CustomerUser $customer, int $page = 1, int $perPage = 25): array
     {
-        return $this->findBy(['customer' => $customer], ['createdAt' => 'DESC', 'id' => 'DESC']);
+        $page = max(1, $page);
+        $perPage = min(max(1, $perPage), 100);
+
+        return array_values($this->createQueryBuilder('item')
+            ->addSelect('product')
+            ->innerJoin('item.product', 'product')
+            ->where('item.customer = :customer')
+            ->setParameter('customer', $customer)
+            ->orderBy('item.createdAt', 'DESC')
+            ->addOrderBy('item.id', 'DESC')
+            ->setFirstResult(($page - 1) * $perPage)
+            ->setMaxResults($perPage)
+            ->getQuery()->getResult());
     }
 
     public function save(WishlistItem $item): void
