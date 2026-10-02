@@ -77,4 +77,15 @@ final readonly class WishlistManager
             );
         }, $items);
     }
+
+    public function page(CustomerUser $customer, int $page = 1): WishlistPage
+    {
+        $page = max(1, $page);
+        $total = $this->wishlist->countForCustomer($customer);
+        // Overshooting a list must not repeat its first page or claim the entire list is empty.
+        // Avoid computing an offset for an arbitrarily large page supplied by a client.
+        $pages = max(1, (int) ceil($total / self::PAGE_SIZE));
+
+        return new WishlistPage($page > $pages ? [] : $this->items($customer, $page), $page, self::PAGE_SIZE, $total);
+    }
 }

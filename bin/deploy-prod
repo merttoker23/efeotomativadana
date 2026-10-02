@@ -9,12 +9,21 @@ export APP_DEBUG=0
 export APP_SECRET="${APP_SECRET:?APP_SECRET is required}"
 
 echo "Installing dependencies for production..."
-composer install --no-dev --optimize-autoloader --prefer-dist --no-progress
+# Composer auto-scripts clear the cache, so postpone them until the schema is ready.
+composer install --no-dev --optimize-autoloader --prefer-dist --no-progress --no-scripts
+
+echo "Applying database migrations..."
+php bin/console doctrine:migrations:migrate --env=prod --no-debug --no-interaction --allow-no-migration
+php bin/console doctrine:migrations:up-to-date --env=prod --no-debug --no-interaction
 
 echo "Clearing cache..."
-php bin/console cache:clear --env=prod
+php bin/console cache:clear --env=prod --no-debug
+
+# Preserve Composer's remaining auto-scripts after the migration gate.
+php bin/console assets:install public --env=prod --no-debug
+php bin/console importmap:install --env=prod --no-debug
 
 echo "Compiling asset map..."
-php bin/console asset-map:compile --env=prod
+php bin/console asset-map:compile --env=prod --no-debug
 
 echo "Deployment complete."

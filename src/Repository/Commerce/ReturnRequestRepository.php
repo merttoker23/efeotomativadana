@@ -144,7 +144,7 @@ final class ReturnRequestRepository extends ServiceEntityRepository
             ->leftJoin('returnRequest.items', 'item')
             ->orderBy('returnRequest.createdAt', 'DESC')->addOrderBy('returnRequest.id', 'DESC');
         if ('' !== ($query = trim($query))) {
-            $builder->andWhere('LOWER(returnRequest.returnNumber) LIKE :query OR LOWER(returnRequest.customerReason) LIKE :query OR LOWER(returnRequest.order.orderNumber) LIKE :query')->setParameter('query', '%'.mb_strtolower($query).'%');
+            $builder->andWhere('LOWER(returnRequest.returnNumber) LIKE :query OR LOWER(returnRequest.customerReason) LIKE :query OR LOWER(customerOrder.orderNumber) LIKE :query')->setParameter('query', '%'.mb_strtolower($query).'%');
         }
         if (null !== $state) {
             $builder->andWhere('returnRequest.state = :state')->setParameter('state', $state->value);

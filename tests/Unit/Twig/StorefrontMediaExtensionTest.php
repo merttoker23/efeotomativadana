@@ -77,11 +77,46 @@ final class StorefrontMediaExtensionTest extends TestCase
         $this->extension('/yeni')->mediaUrl(null);
     }
 
+    public function testImageDimensionsUseTheRealLocalMediaRatherThanAnInventedSquare(): void
+    {
+        $extension = $this->extension('/yeni');
+        self::assertSame(['width' => 400, 'height' => 320], $extension->imageDimensions(null));
+        self::assertSame(['width' => 640, 'height' => 640], $extension->imageDimensions('storefront/images/hero-automotive.svg'));
+    }
+
+    public function testUploadedRasterDimensionsAreReadOnceAndUnsafeOrMissingPathsReturnNoDimensions(): void
+    {
+        $directory = sys_get_temp_dir().'/media-dimensions-'.bin2hex(random_bytes(6));
+        mkdir($directory.'/public/uploads/products', 0777, true);
+        $image = $directory.'/public/uploads/products/example.png';
+        file_put_contents($image, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jFz0AAAAASUVORK5CYII=', true));
+        $extension = new StorefrontMediaExtension(new Packages(new PathPackage('', new EmptyVersionStrategy())), '/yeni', $directory);
+        try {
+            self::assertSame(['width' => 1, 'height' => 1], $extension->imageDimensions('/yeni/uploads/products/example.png'));
+            unlink($image);
+            self::assertSame(['width' => 1, 'height' => 1], $extension->imageDimensions('/yeni/uploads/products/example.png'), 'Repeated images reuse metadata within the request.');
+            $extension->reset();
+            self::assertNull($extension->imageDimensions('/yeni/uploads/products/example.png'), 'A new request must not retain stale image metadata.');
+            foreach (['https://example.com/image.png', '/uploads/../example.png', '/uploads/products/missing.jpg', '/etc/passwd'] as $path) {
+                self::assertNull($extension->imageDimensions($path));
+            }
+        } finally {
+            if (is_file($image)) {
+                unlink($image);
+            }
+            rmdir($directory.'/public/uploads/products');
+            rmdir($directory.'/public/uploads');
+            rmdir($directory.'/public');
+            rmdir($directory);
+        }
+    }
+
     private function extension(string $basePath): StorefrontMediaExtension
     {
         return new StorefrontMediaExtension(
             new Packages(new PathPackage('', new EmptyVersionStrategy())),
             $basePath,
+            dirname(__DIR__, 3),
         );
     }
 }

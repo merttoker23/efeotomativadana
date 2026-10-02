@@ -9,6 +9,7 @@ use App\Entity\Commerce\OrderStatusChange;
 use App\Entity\Commerce\Payment;
 use App\Entity\Commerce\PaymentAttempt;
 use App\Module\Notification\Event\PaymentCaptured;
+use App\Module\Loyalty\RewardService;
 use App\Module\Order\OrderState;
 use App\Module\Payment\Gateway\CallbackAuthentication;
 use App\Module\Payment\Gateway\IncomingPaymentCallback;
@@ -36,6 +37,7 @@ final readonly class PaymentCallbackHandler
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private EventDispatcherInterface $events,
+        private RewardService $rewards,
     ) {
     }
 
@@ -89,6 +91,9 @@ final readonly class PaymentCallbackHandler
         }
 
         return $this->entityManager->wrapInTransaction(function () use ($attempt, $authentication): PaymentCallbackResult {
+            $this->entityManager->refresh($attempt->payment()->order(), \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+            // Initiation and staff cancellation lock payment before changing its attempts.
+            $this->payments->findOneForUpdate($attempt->payment()->order());
             // Re-read under a row lock: two provider reports for the same payment must be
             // serialised, and the second must observe the first one's committed state rather
             // than its own stale snapshot.
@@ -176,13 +181,12 @@ final readonly class PaymentCallbackHandler
     }
 
     /**
-     * Tell the customer their money arrived, once the capture is committed.
-     *
-     * Outside the transaction on purpose: a mailer that fails must not roll back a real capture, and
-     * this handler is called from a provider webhook that will not wait.
+     * Persist rewards with the capture and enqueue its customer notification.
+     * Notification delivery uses the existing asynchronous transport.
      */
     private function announceCapture(CustomerOrder $order): void
     {
+        $this->rewards->synchronize($order);
         $this->events->dispatch(new PaymentCaptured($order));
     }
 

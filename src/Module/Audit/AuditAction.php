@@ -32,6 +32,7 @@ enum AuditAction: string
     // Commerce.
     case OrderStateChanged = 'order.state_changed';
     case CustomerStatusChanged = 'customer.status_changed';
+    case RewardManuallyAdjusted = 'loyalty.manually_adjusted';
 
     // Payments and shipping: every operation that can move money or a parcel is attributed
     // even when the aggregate beside it already records an event, because that event answers
@@ -81,6 +82,7 @@ enum AuditAction: string
             self::SettingsUpdated => 'store_setting',
             self::OrderStateChanged => 'order',
             self::CustomerStatusChanged => 'customer',
+            self::RewardManuallyAdjusted => 'reward_ledger',
             self::PaymentRetried, self::PaymentCancelled, self::PaymentRefunded => 'payment',
             self::ShipmentCreated, self::ShipmentHandedOver, self::ShipmentMarkedInTransit,
             self::ShipmentMarkedDelivered, self::ShipmentCancelled, self::ShipmentLabelRequested,

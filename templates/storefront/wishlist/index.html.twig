@@ -6,11 +6,14 @@
 <main id="main-content" class="page-shell" tabindex="-1">
     <section class="container selection-page-card">
         <h1>İstek Listem</h1>
-        {% if wishlist is empty %}
+        <p class="wishlist-summary">{{ page.total }} ürün · Sayfa {{ page.page }} / {{ page.pages }}</p>
+        {% if page.total == 0 %}
             <div class="cart-empty"><p>İstek listeniz boş.</p><a class="account-primary-link" href="{{ path('storefront_catalog_index') }}">Ürünleri incele</a></div>
+        {% elseif page.items is empty %}
+            <p>Bu sayfada ürün bulunamadı. <a href="{{ path('storefront_wishlist_index', {page: 1}) }}">İlk sayfaya dön</a></p>
         {% else %}
             <div class="selection-grid">
-                {% for item in wishlist %}
+                {% for item in page.items %}
                     <article class="wishlist-item selection-card">
                         <img src="{{ product_image_url(item.imagePath) }}" alt="{{ item.name }}" width="640" height="640" loading="lazy" decoding="async">
                         <div><a href="{{ path('storefront_catalog_product', {slug: item.slug}) }}"><strong>{{ item.name }}</strong></a><small>{{ item.sku }}</small></div>
@@ -23,6 +26,13 @@
                     </article>
                 {% endfor %}
             </div>
+            {% if page.pages > 1 %}
+                <nav class="pagination" aria-label="İstek listesi sayfaları">
+                    {% if page.hasPrevious %}<a href="{{ path('storefront_wishlist_index', {page: page.page - 1}) }}" rel="prev">Önceki</a>{% endif %}
+                    <span aria-current="page">{{ page.page }}</span>
+                    {% if page.hasNext %}<a href="{{ path('storefront_wishlist_index', {page: page.page + 1}) }}" rel="next">Sonraki</a>{% endif %}
+                </nav>
+            {% endif %}
         {% endif %}
     </section>
 </main>

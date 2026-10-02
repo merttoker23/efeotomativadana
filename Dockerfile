@@ -56,6 +56,8 @@ EXPOSE 80 443
 # Üretim: optimize edilmiş, dev paketsiz.
 FROM base AS prod
 
+ENV APP_ENV=prod APP_DEBUG=0
+
 COPY . .
 
 # --no-dev ile dev paketleri yoktur; script'ler prod çekirdeğiyle koşmalı.
@@ -66,5 +68,10 @@ RUN APP_ENV=prod APP_SECRET=dummy-build-secret-not-for-production-0123456789abcd
     composer install --no-dev --optimize-autoloader --prefer-dist --no-progress && \
     APP_ENV=prod APP_DEBUG=0 php bin/console asset-map:compile --env=prod && \
     APP_ENV=prod APP_DEBUG=0 php bin/console cache:clear --env=prod
+
+RUN chmod +x docker/production-entrypoint.sh
+
+ENTRYPOINT ["/app/docker/production-entrypoint.sh"]
+CMD ["--config", "/etc/frankenphp/Caddyfile", "--adapter", "caddyfile"]
 
 EXPOSE 80 443

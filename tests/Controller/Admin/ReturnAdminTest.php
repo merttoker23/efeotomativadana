@@ -83,6 +83,20 @@ final class ReturnAdminTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testAdministratorCanSearchReturnsByTheirOrderNumber(): void
+    {
+        $customer = $this->admin();
+        $matched = $this->openReturn($customer, 'EOA-20260928-AAAA00000001');
+        $other = $this->openReturn($customer, 'EOA-20260928-BBBB00000002');
+        $this->client->loginUser($this->adminUser(), 'admin');
+        $crawler = $this->client->request('GET', '/yeni/admin/iadeler', ['q' => ' eoa-20260928-aaaa00000001 ']);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-testid="return-row"]'));
+        self::assertSelectorTextContains('main', $matched->returnNumber());
+        self::assertSelectorTextNotContains('main', $other->returnNumber());
+    }
+
     public function testTheAdminReturnDetailShowsTheRequestTheOrderAndTheTrail(): void
     {
         $admin = $this->admin();

@@ -56,6 +56,11 @@ final class WishlistItemRepository extends ServiceEntityRepository implements Wi
         $this->getEntityManager()->persist($item);
     }
 
+    public function countForCustomer(CustomerUser $customer): int
+    {
+        return $this->count(['customer' => $customer]);
+    }
+
     public function remove(WishlistItem $item): void
     {
         $this->getEntityManager()->remove($item);

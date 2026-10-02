@@ -22,6 +22,11 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        # Test adapters are registered explicitly in when@test below.
+        exclude:
+            - '../src/Module/Payment/FakePaymentGateway.php'
+            - '../src/Module/Shipping/FakeShippingProvider.php'
+            - '../src/Module/Shipping/TestCarrierShippingMethod.php'
 
     App\Module\Cms\CmsMediaStorage:
         arguments:
@@ -149,23 +154,12 @@ services:
             $profiler: '@?profiler'
         tags: [kernel.event_subscriber]
 
-# The test-only fake carrier and the carrier-backed method that names it are autoconfigured only in
-# the test environment, and ShippingProviderRegistry independently refuses a non-production-ready
-# adapter in prod. Together these make it impossible for the fake to quietly move a real parcel.
-when@!test:
-    services:
-        App\Module\Payment\FakePaymentGateway:
-            autowire: false
-            autoconfigure: false
-        App\Module\Shipping\FakeShippingProvider:
-            autowire: false
-            autoconfigure: false
-        App\Module\Shipping\TestCarrierShippingMethod:
-            autowire: false
-            autoconfigure: false
-
 when@test:
     services:
+        App\Module\Loyalty\RewardService:
+            autowire: true
+            autoconfigure: true
+            public: true
         App\Module\Checkout\CheckoutManager:
             autowire: true
             autoconfigure: true
@@ -205,6 +199,9 @@ when@test:
             autowire: true
             autoconfigure: true
             public: true
+        App\Module\Shipping\TestCarrierShippingMethod:
+            autowire: true
+            autoconfigure: true
         App\Module\Shipping\ShippingProviderRegistry:
             autowire: true
             autoconfigure: true

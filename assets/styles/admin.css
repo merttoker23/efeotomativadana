@@ -94,6 +94,10 @@ h1 {
     margin-top: 0;
 }
 
+.admin-reward-heading {
+    overflow-wrap: anywhere;
+}
+
 label {
     display: block;
     margin: 1rem 0 0.35rem;

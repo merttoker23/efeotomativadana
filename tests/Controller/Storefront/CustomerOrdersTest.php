@@ -357,6 +357,23 @@ final class CustomerOrdersTest extends WebTestCase
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_return_request WHERE order_id = ?', [$order->id()]));
     }
 
+    public function testAReturnWithAReasonButNoSelectedItemsShowsAnAccessibleServerError(): void
+    {
+        $customer = $this->createCustomer('empty-selection@example.com');
+        $order = $this->confirmedOrder($customer);
+        $this->client->loginUser($customer, 'main');
+        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $this->client->submit($crawler->selectButton('İade talebini gönder')->form([
+            'customer_return_request[customerReason]' => 'Kutusu hasarlı.',
+            'customer_return_request[line_0][quantity]' => 0,
+            'customer_return_request[line_0][reason]' => '',
+        ]));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('.account-form [role="alert"]', 'İade talebiniz oluşturulamadı. Lütfen bilgileri kontrol edin.');
+        self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_return_request WHERE order_id = ?', [$order->id()]));
+    }
+
     public function testAReturnRequestWithNoLineAndNoReasonIsRefused(): void
     {
         $customer = $this->createCustomer('noline@example.com');

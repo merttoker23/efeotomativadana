@@ -16,7 +16,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class WishlistController extends AbstractController
 {
     #[Route('/istek-listem', name: 'storefront_wishlist_index', methods: ['GET'])]
-    public function index(StorefrontPageContext $context, WishlistManager $wishlist): Response
+    public function index(Request $request, StorefrontPageContext $context, WishlistManager $wishlist): Response
     {
         $customer = $this->customer();
         if (null === $customer) {
@@ -26,7 +26,7 @@ final class WishlistController extends AbstractController
         }
 
         return $this->render('storefront/wishlist/index.html.twig', $context->withLayout([
-            'wishlist' => $wishlist->items($customer),
+            'page' => $wishlist->page($customer, $request->query->getInt('page', 1)),
         ]));
     }
 

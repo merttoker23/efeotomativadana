@@ -10,6 +10,7 @@ use App\Entity\Commerce\ProductPrice;
 use App\Module\Pricing\TaxCategory;
 use App\Module\Pricing\TaxRate;
 use App\Shared\Money\Money;
+use App\Twig\StorefrontMediaExtension;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -22,7 +23,7 @@ use Symfony\Component\HttpKernel\KernelInterface;
 /**
  * Generates a synthetic catalogue large enough to make pagination and N+1 defects visible.
  *
- * It writes nothing that resembles real stock: every name, SKU, slug and image path is derived
+ * It writes nothing that resembles real stock: every name, SKU and slug is derived
  * from a counter, and the whole run is refused outside dev/test/local. The point is to have a
  * database whose size is representative enough that a per-row query or an unbounded list costs
  * something measurable, which an empty test database can never show.
@@ -155,7 +156,7 @@ final class SeedDemoCatalogCommand extends Command
      */
     private function seedCategories(): array
     {
-        $ids = [];
+        $categories = [];
         foreach (self::CATEGORIES as $name) {
             $slug = $this->slug($name);
             $category = $this->entityManager->getRepository(Category::class)->findOneBy(['slug' => $slug]);
@@ -164,17 +165,17 @@ final class SeedDemoCatalogCommand extends Command
                 $this->entityManager->persist($category);
             }
             $category->publish();
-            $ids[] = $category->id();
+            $categories[] = $category;
         }
         $this->entityManager->flush();
 
-        return array_values(array_filter($ids, is_int(...)));
+        return array_values(array_filter(array_map(static fn (Category $category): ?int => $category->id(), $categories), is_int(...)));
     }
 
     /** @return list<int> */
     private function seedBrands(): array
     {
-        $ids = [];
+        $brands = [];
         foreach (self::BRANDS as $name) {
             $slug = $this->slug($name);
             $brand = $this->entityManager->getRepository(Brand::class)->findOneBy(['slug' => $slug]);
@@ -183,11 +184,11 @@ final class SeedDemoCatalogCommand extends Command
                 $this->entityManager->persist($brand);
             }
             $brand->publish();
-            $ids[] = $brand->id();
+            $brands[] = $brand;
         }
         $this->entityManager->flush();
 
-        return array_values(array_filter($ids, is_int(...)));
+        return array_values(array_filter(array_map(static fn (Brand $brand): ?int => $brand->id(), $brands), is_int(...)));
     }
 
     /**
@@ -227,8 +228,10 @@ final class SeedDemoCatalogCommand extends Command
 
         // Two images per product so the detail page exercises the additional-image list and the
         // grid exercises the "first image" path that the product view query resolves.
-        $product->addImage(sprintf('/uploads/products/demo-%06d-1.jpg', $index), $name, 0);
-        $product->addImage(sprintf('/uploads/products/demo-%06d-2.jpg', $index), $name.' — alternatif görünüm', 1);
+        // AssetMapper serves these shipped vectors at every supported viewport size. A made-up
+        // upload path exercised the queries but made every seeded page request missing files.
+        $product->addImage(StorefrontMediaExtension::PRODUCT_PLACEHOLDER, $name, 0);
+        $product->addImage('storefront/images/hero-automotive.svg', $name.' — temsili görünüm', 1);
 
         $this->entityManager->persist($product);
         $this->entityManager->persist(new ProductPrice(

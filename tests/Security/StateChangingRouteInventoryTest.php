@@ -24,7 +24,7 @@ use Symfony\Component\Routing\RouterInterface;
  *    test fails too, because a stale claim in a security test is worse than no claim.
  *
  * The protections themselves — that an invalid token really is refused — are proved by making
- * the request elsewhere: `CsrfEnforcementTest` for the browser endpoints,
+ * the request elsewhere: `CsrfEnforcementTest` and `RewardControllerTest` for browser endpoints,
  * `StorefrontPaymentFlowTest` and `PaytrStorefrontPaymentTest` for the provider callbacks.
  * What is proved here is the *inventory*, which no single functional test can establish.
  */
@@ -95,6 +95,7 @@ final class StateChangingRouteInventoryTest extends KernelTestCase
         'admin_seo_content' => 'csrf',
         'admin_order_status' => 'csrf',
         'admin_customer_status' => 'csrf',
+        'admin_reward_customer' => 'csrf',
         'admin_payment_retry' => 'csrf',
         'admin_payment_cancel' => 'csrf',
         'admin_shipment_create' => 'csrf',

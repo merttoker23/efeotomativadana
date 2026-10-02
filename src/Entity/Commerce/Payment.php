@@ -365,11 +365,14 @@ final class Payment
         $this->now = $at;
         $this->refunds->add($refund);
         $this->refundedMinorAmount += $amount->minorAmount();
-        $this->transition(
-            $this->refundableAmount()->isZero() ? PaymentState::Refunded : PaymentState::PartiallyRefunded,
-            'store',
-            sprintf('Refunded %d minor units.', $amount->minorAmount()),
-        );
+        $next = $this->refundableAmount()->isZero() ? PaymentState::Refunded : PaymentState::PartiallyRefunded;
+        $detail = sprintf('Refunded %d minor units.', $amount->minorAmount());
+        if ($next === $this->state) {
+            // Another partial refund changes the money and trail, not the lifecycle state.
+            $this->record($next, 'store', $detail);
+        } else {
+            $this->transition($next, 'store', $detail);
+        }
         $this->updatedAt = $at;
 
         return $refund;

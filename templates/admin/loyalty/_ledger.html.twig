@@ -1,0 +1,4 @@
+<div class="table-wrap" tabindex="0" role="region" aria-label="Reward ledger">
+<table><caption>Reward history</caption><thead><tr><th scope="col">Date</th><th scope="col">Customer</th><th scope="col">Order</th><th scope="col">Type</th><th scope="col">Points</th><th scope="col">Reason / actor</th></tr></thead><tbody>
+{% for entry in page.items %}<tr><td>{{ entry.createdAt|date('Y-m-d H:i') }}</td><td><a href="{{ path('admin_reward_customer', {customerId: entry.customer.id}) }}">{{ entry.customer.userIdentifier }}</a></td><td>{{ entry.order ? entry.order.orderNumber : '—' }}</td><td>{{ entry.kind.value }}</td><td>{{ entry.points }}</td><td>{{ entry.reason }}{% if entry.actorEmail %}<br>{{ entry.actorEmail }}{% endif %}</td></tr>{% else %}<tr><td colspan="6">No reward history.</td></tr>{% endfor %}
+</tbody></table></div>

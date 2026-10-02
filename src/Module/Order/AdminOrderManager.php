@@ -9,6 +9,7 @@ use App\Entity\Commerce\OrderStatusChange;
 use App\Module\Admin\ConcurrentAdminEdit;
 use App\Module\Audit\AuditAction;
 use App\Module\Audit\AuditLogger;
+use App\Module\Loyalty\RewardService;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -30,6 +31,7 @@ final readonly class AdminOrderManager
         private OrderRepositoryInterface $orders,
         private EntityManagerInterface $entityManager,
         private AuditLogger $audit,
+        private RewardService $rewards,
     ) {
     }
 
@@ -57,6 +59,9 @@ final readonly class AdminOrderManager
                 ],
             );
             $this->entityManager->flush();
+            if (OrderState::Cancelled === $next) {
+                $this->rewards->synchronize($order);
+            }
             return $order;
         });
     }

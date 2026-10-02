@@ -7,5 +7,6 @@
     <a href="{{ path('customer_account_orders') }}"{% if current_route starts with 'customer_account_order' %} aria-current="page"{% endif %}>Siparişlerim</a>
     <a href="{{ path('customer_account_returns') }}"{% if current_route starts with 'customer_account_return' %} aria-current="page"{% endif %}>İadelerim</a>
     <a href="{{ path('storefront_wishlist_index') }}">İstek Listem</a>
+    <a href="{{ path('customer_account_rewards') }}"{% if current_route == 'customer_account_rewards' %} aria-current="page"{% endif %}>Puanlarım</a>
     <form method="post" action="{{ path('customer_logout') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}"><button type="submit">Çıkış yap</button></form>
 </nav>

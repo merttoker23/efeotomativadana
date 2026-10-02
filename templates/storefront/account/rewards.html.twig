@@ -1,0 +1,17 @@
+{% extends 'storefront/base.html.twig' %}
+{% block title %}Puanlarım | {{ store.name }}{% endblock %}
+{% block body %}
+<main id="main-content" class="page-shell" tabindex="-1"><div class="container">
+    {% include 'storefront/account/_nav.html.twig' %}
+    <section class="account-card" aria-labelledby="rewards-heading"><h1 id="rewards-heading">Puanlarım</h1>
+    <p role="status">Puan bakiyesi: <strong>{{ balance }}</strong> · Kullanılabilir puan: <strong>{{ availableBalance }}</strong></p>
+    <p>Puanlar, kargo hariç ürün toplamının belirlenen yüzdesinden kazanılır. Bir tam para birimi ödül bir puandır; küsurat aşağı yuvarlanır. İade tutarı önce ürün toplamından düşülür. İptal ve iadeler puanları geri alır.</p>
+    {% if balance < 0 %}<p>Önceki düzeltmeler ve iadeler nedeniyle bakiye negatiftir. Yeni kazanımlar bu bakiyeyi kapatır.</p>{% endif %}
+    <div class="compare-scroll" tabindex="0" role="region" aria-label="Puan geçmişi">
+        <table class="compare-table"><caption>Puan hareketleri</caption><thead><tr><th scope="col">Tarih</th><th scope="col">İşlem</th><th scope="col">Sipariş</th><th scope="col">Puan</th><th scope="col">Açıklama</th></tr></thead>
+        <tbody>{% for entry in page.items %}<tr><td>{{ entry.createdAt|date('d.m.Y H:i') }}</td><td>{{ entry.kind.label }}</td><td>{% if entry.order %}<a href="{{ path('customer_account_order_show', {orderNumber: entry.order.orderNumber}) }}">{{ entry.order.orderNumber }}</a>{% else %}—{% endif %}</td><td>{{ entry.points > 0 ? '+' : '' }}{{ entry.points }}</td><td>{{ entry.reason }}</td></tr>{% else %}<tr><td colspan="5">Henüz puan hareketi yok.</td></tr>{% endfor %}</tbody></table>
+    </div>
+    {% if page.pages > 1 %}<nav class="pagination" aria-label="Puan geçmişi sayfaları">{% if page.hasPrevious %}<a rel="prev" href="{{ path('customer_account_rewards', {page: page.page - 1}) }}">Önceki</a>{% endif %}<span>{{ page.page }} / {{ page.pages }}</span>{% if page.hasNext %}<a rel="next" href="{{ path('customer_account_rewards', {page: page.page + 1}) }}">Sonraki</a>{% endif %}</nav>{% endif %}
+    </section>
+</div></main>
+{% endblock %}

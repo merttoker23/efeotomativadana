@@ -306,6 +306,27 @@ final class CatalogControllerTest extends WebTestCase
         }
     }
 
+    public function testProductImagesReserveTheirRealAspectRatiosAndOnlyTheLeadImageIsEager(): void
+    {
+        $product = $this->product('IMG-SIZING', 'Boyutlu Ürün', 'boyutlu-urun', true);
+        $product->addImage('storefront/images/hero-automotive.svg', 'Ana görsel', 0);
+        $product->addImage('storefront/images/product-placeholder.svg', 'Ek görsel', 1);
+        $this->entityManager->flush();
+        $crawler = $this->client->request('GET', '/yeni/urun/boyutlu-urun');
+
+        self::assertResponseIsSuccessful();
+        $images = $crawler->filter('.product-gallery img');
+        self::assertCount(2, $images);
+        self::assertSame('640', $images->eq(0)->attr('width'));
+        self::assertSame('640', $images->eq(0)->attr('height'));
+        self::assertSame('high', $images->eq(0)->attr('fetchpriority'));
+        self::assertNull($images->eq(0)->attr('loading'));
+        self::assertSame('400', $images->eq(1)->attr('width'));
+        self::assertSame('320', $images->eq(1)->attr('height'));
+        self::assertSame('lazy', $images->eq(1)->attr('loading'));
+        self::assertSame('async', $images->eq(1)->attr('decoding'));
+    }
+
     private function product(
         string $sku,
         string $name,

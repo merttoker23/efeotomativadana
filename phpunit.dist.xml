@@ -4,6 +4,7 @@
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          colors="true"
+         defaultTestSuite="fast"
          failOnDeprecation="true"
          failOnNotice="true"
          failOnWarning="true"
@@ -30,7 +31,33 @@
     </php>
 
     <testsuites>
-        <testsuite name="Project Test Suite">
+        <testsuite name="fast">
+            <directory>tests/Unit</directory>
+            <directory>tests/Module</directory>
+            <directory>tests/Configuration</directory>
+            <directory>tests/EventListener</directory>
+        </testsuite>
+
+        <testsuite name="integration">
+            <directory>tests/Controller</directory>
+            <directory>tests/Integration</directory>
+        </testsuite>
+
+        <testsuite name="security">
+            <directory>tests/Security</directory>
+        </testsuite>
+
+        <testsuite name="slow">
+            <directory>tests/Performance</directory>
+            <file>tests/Contract/B2b/Efe/EfeLargeFeedMemoryTest.php</file>
+            <file>tests/Security/RateLimitTest.php</file>
+            <file>tests/Command/CreateAdminUserCommandTest.php</file>
+            <file>tests/Contract/B2b/Efe/EfeFeedProviderTest.php</file>
+            <file>tests/Contract/B2b/Efe/EfeSnapshotDownloaderTest.php</file>
+            <file>tests/Contract/Payment/PayTR/PaytrNotificationAndRefundTest.php</file>
+        </testsuite>
+
+        <testsuite name="full">
             <directory>tests</directory>
         </testsuite>
     </testsuites>

@@ -5,10 +5,13 @@ namespace App\Tests\Controller\Storefront;
 use App\Entity\Catalog\Product;
 use App\Entity\Commerce\ProductInventory;
 use App\Entity\Commerce\ProductPrice;
+use App\Entity\Commerce\WishlistItem;
 use App\Entity\Customer\CustomerUser;
 use App\Module\Pricing\TaxCategory;
 use App\Module\Pricing\TaxRate;
 use App\Shared\Money\Money;
+use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
+use Doctrine\Bundle\DoctrineBundle\Middleware\BacktraceDebugDataHolder;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -54,6 +57,54 @@ final class WishlistWorkflowTest extends WebTestCase
         self::assertSelectorTextContains('.wishlist-item', 'Amortisör');
         self::assertSame($customer->id(), (int) $this->connection->fetchOne('SELECT customer_id FROM commerce_wishlist_item'));
         self::assertSame($product->id(), (int) $this->connection->fetchOne('SELECT product_id FROM commerce_wishlist_item'));
+    }
+
+    public function testEverySavedProductCanBeReachedThroughBoundedOwnedPages(): void
+    {
+        $customer = $this->customer('wishlist-pages@example.com');
+        $stranger = $this->customer('wishlist-stranger@example.com');
+        for ($index = 1; $index <= 53; ++$index) {
+            $product = $this->product('WISH-PAGE-'.$index, 'Favori '.$index, 'favori-'.$index);
+            $this->entityManager->persist(new WishlistItem($customer, $product));
+        }
+        $privateProduct = $this->product('WISH-PRIVATE', 'Başkasının favorisi', 'baskasinin-favorisi');
+        $this->entityManager->persist(new WishlistItem($stranger, $privateProduct));
+        $this->entityManager->flush();
+        $this->client->loginUser($customer, 'main');
+        $this->client->request('GET', '/yeni/istek-listem');
+
+        $names = [];
+        $queryCounts = [];
+        foreach ([1 => 24, 2 => 24, 3 => 5] as $page => $expectedCount) {
+            $debugData = self::getContainer()->get('doctrine.debug_data_holder');
+            self::assertInstanceOf(BacktraceDebugDataHolder::class, $debugData);
+            $debugData->reset();
+            $this->entityManager->clear();
+            $this->client->enableProfiler();
+            $crawler = $this->client->request('GET', '/yeni/istek-listem', ['page' => $page]);
+            self::assertResponseIsSuccessful();
+            self::assertCount($expectedCount, $crawler->filter('.wishlist-item'));
+            self::assertSelectorTextContains('.wishlist-summary', '53 ürün');
+            self::assertSelectorTextContains('.pagination [aria-current="page"]', (string) $page);
+            self::assertSelectorTextNotContains('main', 'Başkasının favorisi');
+            if ($page < 3) {
+                self::assertSame('/yeni/istek-listem?page='.($page + 1), $crawler->filter('.pagination a[rel="next"]')->attr('href'));
+            }
+            $names = array_merge($names, $crawler->filter('.wishlist-item strong')->each(static fn ($node): string => $node->text()));
+            $profile = $this->client->getProfile();
+            self::assertNotFalse($profile);
+            $database = $profile->getCollector('db');
+            self::assertInstanceOf(DoctrineDataCollector::class, $database);
+            $queryCounts[] = $database->getQueryCount();
+        }
+        self::assertCount(53, array_unique($names), 'Every saved product must appear once across pages.');
+        self::assertSame($queryCounts[0], $queryCounts[2], 'A page with 24 saved products must cost the same number of queries as one with 5.');
+
+        $this->client->request('GET', '/yeni/istek-listem?page=99');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(0, '.wishlist-item');
+        self::assertSelectorTextNotContains('main', 'İstek listeniz boş.');
+        self::assertSelectorExists('a[href="/yeni/istek-listem?page=1"]');
     }
 
     public function testCustomerCanRemoveAnOwnedWishlistItem(): void

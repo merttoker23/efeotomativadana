@@ -5,3 +5,7 @@
 # file makes the checkout deterministic and stops the phantom diff, without normalising the rest
 # of the repository.
 config/reference.php text eol=lf
+
+# Deployment scripts must remain executable after Windows checkouts.
+bin/deploy-prod text eol=lf
+docker/production-entrypoint.sh text eol=lf

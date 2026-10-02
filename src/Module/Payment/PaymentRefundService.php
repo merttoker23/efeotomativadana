@@ -11,6 +11,7 @@ use App\Entity\Commerce\PaymentRefund;
 use App\Module\Audit\AuditAction;
 use App\Module\Audit\AuditLogger;
 use App\Module\Order\OrderState;
+use App\Module\Loyalty\RewardService;
 use App\Module\Payment\Gateway\GatewayRefundInstruction;
 use App\Module\Payment\Gateway\GatewayRefundOutcome;
 use App\Module\Payment\Gateway\RefundStatus;
@@ -38,6 +39,7 @@ final readonly class PaymentRefundService
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private AuditLogger $audit,
+        private RewardService $rewards,
     ) {
     }
 
@@ -54,6 +56,7 @@ final readonly class PaymentRefundService
 
         $refused = null;
         $refund = $this->entityManager->wrapInTransaction(function () use ($order, $amount, $reason, $actorEmail, &$refused): ?PaymentRefund {
+            $this->entityManager->refresh($order, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
             $payment = $this->payments->findOneForUpdate($order)
                 ?? throw new PaymentNotFound(sprintf('Order %s has no payment to refund.', $order->orderNumber()));
             if (!$payment->state()->isRefundable()) {
@@ -120,6 +123,7 @@ final readonly class PaymentRefundService
             );
             $this->entityManager->flush();
 
+            $this->rewards->synchronize($order);
             return $recorded;
         });
 

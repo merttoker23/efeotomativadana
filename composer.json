@@ -102,9 +102,14 @@
             "@composer validate --strict",
             "@lint",
             "@analyse",
-            "@test"
+            "@test:full"
         ],
-        "test": "@php bin/phpunit"
+        "test": "@php bin/phpunit",
+        "test:fast": "@php bin/phpunit --testsuite=fast",
+        "test:integration": "@php bin/phpunit --testsuite=integration",
+        "test:security": "@php bin/phpunit --testsuite=security",
+        "test:slow": "@php bin/phpunit --testsuite=slow",
+        "test:full": "@php bin/phpunit --testsuite=full"
     },
     "conflict": {
         "symfony/symfony": "*"

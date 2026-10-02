@@ -15,6 +15,8 @@ interface WishlistRepositoryInterface
     /** @return list<WishlistItem> */
     public function findForCustomer(CustomerUser $customer, int $page = 1, int $perPage = 25): array;
 
+    public function countForCustomer(CustomerUser $customer): int;
+
     public function save(WishlistItem $item): void;
 
     public function remove(WishlistItem $item): void;

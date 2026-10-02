@@ -8,11 +8,13 @@ services:
       target: dev
     environment:
       APP_ENV: dev
+      APP_DEBUG: 1
       # .env dosyasındaki null://null değerini ezer, mailler Mailpit'e düşer:
       MAILER_DSN: smtp://mailer:1025
       # 8443 is where Caddy publishes TLS below. The https scheme is required, not cosmetic:
       # PublicUrlGenerator and PaymentPublicUrlFactory refuse a plain http base.
-      DEFAULT_URI: https://localhost:8443
+      # A separate override prevents the committed production DEFAULT_URI from reaching dev links.
+      DEFAULT_URI: ${DEV_DEFAULT_URI:-https://localhost:8443}
     volumes:
       - ./:/app
       # Windows bind-mount üzerinden vendor okumak on binlerce yavaş stat
@@ -29,6 +31,8 @@ services:
       target: dev
     environment:
       APP_ENV: dev
+      APP_DEBUG: 1
+      DEFAULT_URI: ${DEV_DEFAULT_URI:-https://localhost:8443}
     volumes:
       - ./:/app
       - app_vendor:/app/vendor

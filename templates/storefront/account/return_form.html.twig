@@ -15,6 +15,9 @@
             <p class="account-intro">{{ order.orderNumber }} numaralı siparişiniz için iade talebi oluşturuyorsunuz. İade etmek istediğiniz ürünü seçip adet yazın.</p>
 
             {{ form_start(form, {attr: {class: 'account-form'}}) }}
+                {% if form.vars.errors|length > 0 %}
+                    <div class="account-alert account-alert-error" role="alert">{{ form_errors(form) }}</div>
+                {% endif %}
                 <ul class="return-line-list">
                     {% for line in lines %}
                         {% set lineForm = form['line_' ~ loop.index0] %}

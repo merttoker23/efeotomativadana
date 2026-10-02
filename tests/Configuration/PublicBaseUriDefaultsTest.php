@@ -71,7 +71,12 @@ final class PublicBaseUriDefaultsTest extends KernelTestCase
             ['token' => str_repeat('a', 64)],
         );
 
-        self::assertSame('https://efeotomotivadana.com/yeni/odeme/sonuc/'.str_repeat('a', 64), $url);
+        self::assertSame('https://efeotomotivadana.com.tr/yeni/odeme/sonuc/'.str_repeat('a', 64), $url);
+    }
+
+    public function testProductionComposeDefaultsUseThePublicStoreDomain(): void
+    {
+        self::assertSame(['https://efeotomotivadana.com.tr'], self::defaultsIn(\dirname(__DIR__, 2).'/compose.yaml'));
     }
 
     /**

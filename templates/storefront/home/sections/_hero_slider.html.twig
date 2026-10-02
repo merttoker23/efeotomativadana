@@ -4,6 +4,7 @@
            five equally-weighted candidates for the largest contentful paint, so the browser
            downloads images the visitor may never scroll to. The alt text is the slide title,
            which the heading beside it already states, so the image is decorative here. #}
-        <article class="hero-panel cms-hero"><div class="hero-copy"><p class="hero-eyebrow">{{ section.title }}</p><h2>{{ slide.title }}</h2><p>{{ slide.description }}</p><a class="hero-cta" href="{{ slide.link }}">Keşfet</a></div><img class="hero-image" src="{{ media_url(slide.image) }}" alt="" width="640" height="640"{% if loop.first %} fetchpriority="high" decoding="async"{% else %} loading="lazy" decoding="async"{% endif %}></article>
+        {% set dimensions = image_dimensions(slide.image) %}
+        <article class="hero-panel cms-hero"><div class="hero-copy"><p class="hero-eyebrow">{{ section.title }}</p><h2>{{ slide.title }}</h2><p>{{ slide.description }}</p><a class="hero-cta" href="{{ slide.link }}">Keşfet</a></div><img class="hero-image" src="{{ media_url(slide.image) }}" alt=""{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %}{% if loop.first %} fetchpriority="high" decoding="async"{% else %} loading="lazy" decoding="async"{% endif %}></article>
     {% endfor %}
 </section>
