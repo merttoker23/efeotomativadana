@@ -1,0 +1,31 @@
+{# One image slot: upload a new file, or pick one that is already in the CMS media library.
+
+   Nothing here asks for a path. The stored value is always a path this application's own
+   storage minted, and the preview is that value resolved through the same media URL the
+   storefront uses, so what the administrator sees is what a visitor will see. #}
+{% set dimensions = image_dimensions(current) %}
+<div class="cms-image" data-controller="home-section-image">
+    <label for="{{ name }}_file">Yeni görsel yükle</label>
+    <input id="{{ name }}_file" type="file" name="{{ name }}_file" accept="image/jpeg,image/png,image/webp"
+           data-home-section-image-target="file" data-action="change->home-section-image#preview">
+
+    <label for="{{ name }}">Ya da medya kütüphanesinden seç</label>
+    <select id="{{ name }}" name="{{ name }}" data-home-section-image-target="select" data-action="change->home-section-image#preview">
+        <option value="">Görsel seçilmedi</option>
+        {% for image in library %}
+            <option value="{{ image.path }}"{{ current == image.path ? ' selected' : '' }}>{{ image.filename }} — {{ (image.bytes / 1024)|round(1) }} KB</option>
+        {% endfor %}
+        {% set known = library|map(item => item.path) %}
+    {% if current and current not in known %}
+            {# An image chosen before the library page filled up is still this section's image. #}
+            <option value="{{ current }}" selected>{{ current }}</option>
+        {% endif %}
+    </select>
+
+    <p class="help-text">JPEG, PNG veya WebP · en fazla 5 MB.</p>
+
+    <img class="cms-image-preview" data-home-section-image-target="preview"
+         src="{{ current ? media_url(current) : '' }}" alt="Seçili görsel önizlemesi"
+         {% if dimensions %}width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %}
+         {% if not current %}hidden{% endif %}>
+</div>

@@ -1,0 +1,45 @@
+{# One catalogue picker: the chosen records in order, plus a search that offers more.
+
+   Every control here is a real submit button or a real input, so the picker works with scripting
+   turned off; the Stimulus controller only replaces the round trip. The chosen records are one
+   hidden input per row rather than a `<select multiple>`, because a browser submits a multiple
+   select in document order and the order of a carousel or a category panel is content. #}
+<div class="cms-picker"
+     data-controller="home-section-picker"
+     data-home-section-picker-kind-value="{{ kind }}"
+     data-home-section-picker-url-value="{{ path('admin_cms_home_options') }}">
+    <input type="hidden" name="{{ prefix }}_count" value="{{ slugs|length }}" data-home-section-picker-target="selectionCount">
+
+    <p class="help-text">Seçili kayıtlar (sıra mağazada bu sırayla görünür):</p>
+    <ol class="cms-selection" data-home-section-picker-target="selected">
+        {% for slug in slugs %}
+            <li class="cms-selection-item">
+                <input type="hidden" name="{{ prefix }}_{{ loop.index0 }}" value="{{ slug }}">
+                <span class="cms-selection-label">
+                    {{ labels[slug] is defined ? labels[slug].label : slug }}
+                    {% if labels[slug] is defined and labels[slug].hint %}<small>{{ labels[slug].hint }}</small>{% endif %}
+                </span>
+                <button class="cms-selection-action" type="submit" name="_pick" value="move-option-up:{{ loop.index0 }}:{{ target }}" data-action="home-section-picker#moveUp" aria-label="{{ labels[slug] is defined ? labels[slug].label : slug }} kaydını yukarı taşı">↑</button>
+                <button class="cms-selection-action" type="submit" name="_pick" value="move-option-down:{{ loop.index0 }}:{{ target }}" data-action="home-section-picker#moveDown" aria-label="{{ labels[slug] is defined ? labels[slug].label : slug }} kaydını aşağı taşı">↓</button>
+                <button class="cms-selection-action" type="submit" name="_pick" value="remove-option:{{ loop.index0 }}:{{ target }}" data-action="home-section-picker#remove" aria-label="{{ labels[slug] is defined ? labels[slug].label : slug }} kaydını kaldır">×</button>
+            </li>
+        {% else %}
+            <li class="cms-selection-empty">Henüz kayıt seçilmedi.</li>
+        {% endfor %}
+    </ol>
+
+    <label for="{{ prefix }}_query">Ara ve seç</label>
+    <input id="{{ prefix }}_query" class="cms-picker-search" type="search" name="option_query" value="{{ query }}" maxlength="120"
+           placeholder="{{ {'products': 'Ürün adı, SKU veya parça kodu', 'categories': 'Kategori adı', 'brands': 'Marka adı'}[kind] }}"
+           data-home-section-picker-target="query" data-action="input->home-section-picker#search">
+
+    <select name="add[{{ prefix }}_add][]" multiple size="8" aria-label="Arama sonuçları" data-home-section-picker-target="results">
+        {% for option in options %}
+            <option value="{{ option.slug }}"{% if option.slug in slugs %} disabled{% endif %}>{{ option.label }}{% if option.hint %} — {{ option.hint }}{% endif %}</option>
+        {% else %}
+            <option disabled>Sonuç yok. Aramayı değiştirin veya yeni kayıt ekleyin.</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" name="_pick" value="add-option::{{ target }}" data-action="home-section-picker#add">Seçilenleri ekle</button>
+</div>

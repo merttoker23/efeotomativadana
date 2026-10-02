@@ -1,1 +1,14 @@
-{% if section.data.quotes %}<section class="container home-section section-card" aria-label="{{ section.title }}"><h2>{{ section.title }}</h2><div class="cms-quote-grid">{% for quote in section.data.quotes %}<blockquote><p>{{ quote.text }}</p><footer>{{ quote.author }}</footer></blockquote>{% endfor %}</div></section>{% endif %}
+{# The theme's customer quotes, the left half of the homepage's lower band. #}
+{% if section.data.quotes %}
+    <div class="quote">
+        <h2>{{ section.title }}</h2>
+        {% for quote in section.data.quotes %}
+            <figure class="quote-item">
+                <blockquote>
+                    <p>{{ quote.text }}</p>
+                </blockquote>
+                <figcaption>{{ quote.author }}</figcaption>
+            </figure>
+        {% endfor %}
+    </div>
+{% endif %}

@@ -1,1 +1,13 @@
-{% if section.data.categories %}<section class="container home-section section-card" aria-label="{{ section.title }}"><h2>{{ section.title }}</h2><div class="cms-link-grid">{% for category in section.data.categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }}</a>{% endfor %}</div></section>{% endif %}
+{# The theme's left-hand column: a scrollable list of category rows beside the hero. #}
+{% if section.data.categories %}
+    {% set icons = ['▯', '▤', '♧', '▣', '▭', '▥', '⌘', '⌁', '◉'] %}
+    <aside class="panel category-panel" aria-label="{{ section.title }}">
+        {% for category in section.data.categories %}
+            <a class="cat-row" href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">
+                <span class="cat-icon" aria-hidden="true">{{ icons[loop.index0 % icons|length] }}</span>
+                <span class="cat-name">{{ category.name }}</span>
+                <span class="cat-arrow" aria-hidden="true">›</span>
+            </a>
+        {% endfor %}
+    </aside>
+{% endif %}

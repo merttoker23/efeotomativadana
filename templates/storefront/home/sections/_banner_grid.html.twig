@@ -1,1 +1,11 @@
-{% if section.data.banners %}<section class="container home-section section-card" aria-label="{{ section.title }}"><h2>{{ section.title }}</h2><div class="cms-banner-grid">{% for banner in section.data.banners %}{% set dimensions = image_dimensions(banner.image) %}<a href="{{ banner.link }}"><img src="{{ media_url(banner.image) }}" alt="{{ banner.title }}"{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} loading="lazy" decoding="async"><strong>{{ banner.title }}</strong></a>{% endfor %}</div></section>{% endif %}
+{# The theme's promotional row: a strip of image banners under the upper band. #}
+{% if section.data.banners %}
+    <div class="container home-section promo-grid">
+        {% for banner in section.data.banners %}
+            {% set dimensions = image_dimensions(banner.image) %}
+            <a class="promo-card" href="{{ banner.link }}">
+                <img src="{{ media_url(banner.image) }}" alt="{{ banner.title }}"{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} loading="lazy" decoding="async">
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}

@@ -1,1 +1,90 @@
-{% extends 'admin/base.html.twig' %}{% block title %}{{ section ? 'Edit section' : 'Add section' }}{% endblock %}{% block body %}<section class="panel"><h1>{{ section ? 'Edit section' : 'Add section' }}</h1><p>Use JSON data for the selected block type. Images must be uploaded first in <a href="{{ path('admin_cms_media_index') }}">CMS media</a>. Links must start with a single slash.</p>{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}<form method="post"><input type="hidden" name="_token" value="{{ csrf_token('cms_home_form') }}"><label for="type">Block type</label><select id="type" name="type" {% if section %}disabled{% endif %}>{% for type in types %}<option value="{{ type.value }}" {{ values.type == type.value ? 'selected' : '' }}>{{ type.value|replace({'_': ' '})|title }}</option>{% endfor %}</select>{% if section %}<input type="hidden" name="type" value="{{ section.type.value }}">{% endif %}<label for="title">Title</label><input id="title" name="title" value="{{ values.title }}" required maxlength="255"><label for="subtitle">Subtitle</label><input id="subtitle" name="subtitle" value="{{ values.subtitle }}" maxlength="500"><label for="configuration">Configuration JSON</label><textarea id="configuration" name="configuration" rows="12" required>{{ values.configuration }}</textarea><p>Examples: features <code>{"features":[{"title":"Fast delivery","description":"From Adana"}]}</code>; products <code>{"slugs":["brake-pad"]}</code>; blog <code>{"limit":3}</code>.</p><button type="submit">Save section</button></form>{% if section %}<form method="post" action="{{ path('admin_cms_home_delete', {id: section.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('cms_section_' ~ section.id) }}"><button class="danger-button" type="submit">Delete section</button></form>{% endif %}</section>{% endblock %}
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}{{ section ? 'Bölümü düzenle' : 'Yeni ana sayfa bölümü' }}{% endblock %}
+
+{% block body %}
+<section class="panel">
+    <h1>{{ section ? 'Bölümü düzenle' : 'Yeni ana sayfa bölümü' }}</h1>
+
+    {% if not section %}
+        {# The type is chosen before the form is opened rather than submitted with it, so the
+           fields on screen always match the type whose validation will judge them. #}
+        <nav class="admin-type-picker" aria-label="Bölüm türü">
+            {% for candidate in types %}
+                <a class="button{{ candidate == type ? ' is-current' : '' }}" href="{{ path('admin_cms_home_new', {type: candidate.value}) }}">{{ candidate.label }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+
+    <p class="help-text"><strong>{{ type.label }}</strong> — {{ type.placement }}</p>
+
+    {% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}
+    {% if notice %}<div class="alert" role="status">{{ notice }}</div>{% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="cms-section-form">
+        <input type="hidden" name="_token" value="{{ csrf_token('cms_home_form') }}">
+        <input type="hidden" name="type" value="{{ type.value }}">
+
+        <div class="form-grid">
+            <div>
+                <label for="title">Bölüm başlığı</label>
+                <input id="title" type="text" name="title" value="{{ title }}" maxlength="255" required>
+            </div>
+            <div>
+                <label for="subtitle">Alt başlık (isteğe bağlı)</label>
+                <input id="subtitle" type="text" name="subtitle" value="{{ subtitle }}" maxlength="500">
+            </div>
+        </div>
+
+        {% for field, kind in type.fields() %}
+            <div class="cms-field">
+                <label for="field-{{ field }}">{{ type.fieldLabels()[field]|default(field) }}</label>
+                {% if 'textarea' == kind %}
+                    <textarea id="field-{{ field }}" name="{{ field }}" rows="3" maxlength="500">{{ draft[field]|default('') }}</textarea>
+                {% else %}
+                    <input id="field-{{ field }}" type="number" name="{{ field }}" value="{{ draft[field]|default(3) }}" min="1" max="12">
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        {% if type.rowName() %}
+            {% include 'admin/cms/home/_rows.html.twig' with {
+                type: type,
+                items: draft[type.rowName()],
+                query: query,
+                options: options,
+                labels: labels,
+                library: library,
+            } only %}
+        {% endif %}
+
+        {% if type.selection() and not type.selectionPerRow() %}
+            {% include 'admin/cms/home/_picker.html.twig' with {
+                kind: type.selection(),
+                prefix: 'slugs',
+                target: 'slugs',
+                slugs: draft.slugs|default([]),
+                query: query,
+                options: options,
+                labels: labels,
+            } only %}
+        {% endif %}
+
+        <div class="button-row">
+            {# First in the form on purpose: pressing Enter in a field submits the section. #}
+            <button type="submit" name="_action" value="save">Bölümü kaydet</button>
+            <a class="button-link" href="{{ path('admin_cms_home_index') }}">Vazgeç</a>
+        </div>
+    </form>
+
+    {% if section %}
+        <section class="danger-zone">
+            <h2>Bu bölümü sil</h2>
+            <form method="post" action="{{ path('admin_cms_home_delete', {id: section.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('cms_section_' ~ section.id) }}">
+                <button class="danger-button" type="submit">Bölümü sil</button>
+            </form>
+        </section>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,1 +1,8 @@
-<section class="container home-section cms-announcement" aria-label="{{ section.title }}"><p>{{ section.data.text }}</p></section>
+{# The theme's notice band: one dark strip above everything on the homepage. #}
+{% if section.data.text %}
+    <div class="notice" role="status">
+        <div class="container notice-inner">
+            <p class="notice-text">{{ section.data.text }}</p>
+        </div>
+    </div>
+{% endif %}

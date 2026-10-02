@@ -1,1 +1,15 @@
-{% if section.data.features %}<section class="container home-section feature-grid cms-features" aria-label="{{ section.title }}">{% for feature in section.data.features %}{% include 'components/_feature.html.twig' with {icon: '✓', title: feature.title, description: feature.description} only %}{% endfor %}</section>{% endif %}
+{# The theme's trust strip: a row of icon-and-text promises on white. #}
+{% if section.data.features %}
+    {% set icons = ['🚚', '🔒', '↩', '☎', '✦', '⚑'] %}
+    <div class="container home-section features" aria-label="{{ section.title }}">
+        {% for feature in section.data.features %}
+            <div class="feature">
+                <span class="feature-ico" aria-hidden="true">{{ icons[loop.index0 % icons|length] }}</span>
+                <div class="feature-copy">
+                    <b>{{ feature.title }}</b>
+                    <span>{{ feature.description }}</span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}

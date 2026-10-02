@@ -1,1 +1,20 @@
-{% if section.data.posts %}<section class="container home-section section-card" aria-label="{{ section.title }}"><div class="section-heading"><h2>{{ section.title }}</h2><a href="{{ path('storefront_blog_index') }}">Tüm yazılar</a></div><div class="cms-blog-grid">{% for post in section.data.posts %}<article><h3><a href="{{ path('storefront_blog_show', {slug: post.slug}) }}">{{ post.title }}</a></h3><p>{{ post.excerpt }}</p></article>{% endfor %}</div></section>{% endif %}
+{# The theme's blog feed, the right half of the homepage's lower band. #}
+{% if section.data.posts %}
+    <div class="section-card">
+        <div class="section-head">
+            <h2>{{ section.title }}</h2>
+            <a class="see-all" href="{{ path('storefront_blog_index') }}">Blog</a>
+        </div>
+        <div class="blog-grid">
+            {% for post in section.data.posts %}
+                <a class="blog-card" href="{{ path('storefront_blog_show', {slug: post.slug}) }}">
+                    <span class="blog-cover" aria-hidden="true"></span>
+                    <span class="content">
+                        <h3>{{ post.title }}</h3>
+                        <p>{{ post.excerpt }}</p>
+                    </span>
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}

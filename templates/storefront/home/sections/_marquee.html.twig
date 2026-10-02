@@ -1,1 +1,9 @@
-{% if section.data.items %}<section class="cms-marquee" aria-label="{{ section.title }}"><div class="container">{% for item in section.data.items %}<span>{{ item }}</span>{% endfor %}</div></section>{% endif %}
+{# The theme's scrolling band. Each word is separated by a dot, exactly as in the reference. #}
+{% if section.data.items %}
+    <div class="marquee" aria-label="{{ section.title }}">
+        {% for item in section.data.items %}
+            <span class="marquee-item">{{ item }}</span>
+            {% if not loop.last %}<span class="dot" aria-hidden="true">●</span>{% endif %}
+        {% endfor %}
+    </div>
+{% endif %}

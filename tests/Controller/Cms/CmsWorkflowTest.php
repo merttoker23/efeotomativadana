@@ -73,7 +73,8 @@ final class CmsWorkflowTest extends WebTestCase
         $this->manager->flush();
         static::getClient()->request('GET', '/yeni/');
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('.home-product-grid .product-card');
+        self::assertSelectorNotExists('.top-sellers .seller');
+        self::assertSelectorNotExists('.home-section .product-grid .product-card');
     }
 
     public function testAdminCanCreateAndMoveSectionsButInvalidConfigIsRejected(): void
@@ -86,11 +87,19 @@ final class CmsWorkflowTest extends WebTestCase
         $this->manager->persist($admin);
         $this->manager->flush();
         $client->loginUser($admin, 'admin');
-        $crawler = $client->request('GET', '/yeni/admin/cms/home/new');
-        $form = $crawler->selectButton('Save section')->form(['type' => 'marquee', 'title' => 'Shipping', 'configuration' => '{"items":["Fast shipping"]}']);
+        $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $form = $client->getCrawler()->selectButton('Bölümü kaydet')->form([
+            'title' => 'Shipping',
+            'items_count' => 1,
+            'items_0_text' => 'Fast shipping',
+        ]);
         $client->submit($form); self::assertResponseRedirects('/yeni/admin/cms/home');
-        $crawler = $client->request('GET', '/yeni/admin/cms/home/new');
-        $form = $crawler->selectButton('Save section')->form(['type' => 'marquee', 'title' => 'Returns', 'configuration' => '{"items":["Simple returns"]}']);
+        $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $form = $client->getCrawler()->selectButton('Bölümü kaydet')->form([
+            'title' => 'Returns',
+            'items_count' => 1,
+            'items_0_text' => 'Simple returns',
+        ]);
         $client->submit($form); self::assertResponseRedirects('/yeni/admin/cms/home');
         $crawler = $client->request('GET', '/yeni/admin/cms/home');
         $rows = $crawler->filter('tbody tr');
@@ -103,16 +112,48 @@ final class CmsWorkflowTest extends WebTestCase
         $editUrl = $crawler->filter('tbody tr:first-child td a')->attr('href');
         self::assertIsString($editUrl);
         $crawler = $client->request('GET', $editUrl);
-        $client->submit($crawler->selectButton('Save section')->form(['configuration' => '{"items":["Updated returns"]}']));
+        $client->submit($crawler->selectButton('Bölümü kaydet')->form(['items_0_text' => 'Updated returns']));
         self::assertResponseRedirects('/yeni/admin/cms/home');
         $crawler = $client->request('GET', '/yeni/admin/cms/home');
         $client->submit($crawler->filter('tbody tr:first-child form[action*="toggle"]')->form());
         self::assertResponseRedirects('/yeni/admin/cms/home');
         $client->request('GET', '/yeni/');
-        self::assertSelectorTextContains('.cms-marquee', 'Updated returns');
-        $client->request('GET', '/yeni/admin/cms/home/new');
-        $form = $client->getCrawler()->selectButton('Save section')->form(['type' => 'marquee', 'title' => 'Invalid', 'configuration' => '{"items":[],"template":"bad"}']);
+        self::assertSelectorTextContains('.marquee', 'Updated returns');
+        $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $form = $client->getCrawler()->selectButton('Bölümü kaydet')->form(['title' => 'Invalid', 'items_count' => 1]);
         $client->submit($form); self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('[role="alert"]', 'Configuration must contain exactly');
+        self::assertSelectorTextContains('[role="alert"]', 'items must not be empty');
+    }
+
+    /**
+     * A section form used to be a textarea named `configuration` holding raw JSON, which meant any
+     * key the page never mentioned could be stored and interpreted. There is no such field left:
+     * the editor is generated from each section type's declared fields and the server reads only
+     * those names, so a submission carrying a configuration document is simply ignored.
+     */
+    public function testNoSectionFormOffersARawConfigurationFieldAndAConfigurationPostIsIgnored(): void
+    {
+        $client = static::getClient();
+        self::assertInstanceOf(KernelBrowser::class, $client);
+        $admin = new AdminUser('cms-json-admin@example.com');
+        $admin->setPassword('test-only-hash');
+        $this->manager->persist($admin);
+        $this->manager->flush();
+        $client->loginUser($admin, 'admin');
+
+        foreach (HomeSectionType::cases() as $type) {
+            $crawler = $client->request('GET', '/yeni/admin/cms/home/new?type='.$type->value);
+            self::assertResponseIsSuccessful();
+            self::assertSame(0, $crawler->filter('textarea[name="configuration"]')->count(), $type->value);
+            self::assertSame(0, $crawler->filter('input[name="configuration"]')->count(), $type->value);
+        }
+
+        $crawler = $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $form = $crawler->selectButton('Bölümü kaydet')->form([
+            'configuration' => '{"items":["Injected"],"template":"admin/some-other-template"}',
+        ]);
+        $client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->manager->getRepository(HomeSection::class)->count());
     }
 }

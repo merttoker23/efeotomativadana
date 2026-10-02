@@ -1,1 +1,13 @@
-{% if section.data.brands %}<section class="container home-section section-card" aria-label="{{ section.title }}"><h2>{{ section.title }}</h2><div class="cms-link-grid">{% for brand in section.data.brands %}<a href="{{ path('storefront_catalog_brand', {slug: brand.slug}) }}">{{ brand.name }}</a>{% endfor %}</div></section>{% endif %}
+{# The theme's brand shelf: a dense grid of brand tiles. #}
+{% if section.data.brands %}
+    <section class="container home-section section-card" aria-label="{{ section.title }}">
+        <div class="section-head">
+            <h2>{{ section.title }}</h2>
+        </div>
+        <div class="brand-strip">
+            {% for brand in section.data.brands %}
+                <a class="brand" href="{{ path('storefront_catalog_brand', {slug: brand.slug}) }}">{{ brand.name }}</a>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}

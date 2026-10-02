@@ -1,1 +1,39 @@
-{% for tab in section.data.tabs %}{% if tab.products %}<section class="container home-section section-card" aria-label="{{ tab.title }}"><h2>{{ section.title }} — {{ tab.title }}</h2><div class="product-grid home-product-grid">{% for product in tab.products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}</div></section>{% endif %}{% endfor %}
+{# The theme's tabbed product block.
+
+   The reference theme draws the tab strip but never switches the panel behind it. This one does:
+   every tab owns a real `tabpanel`, the controller shows exactly one, and the arrow keys move
+   between them the way a tablist is expected to behave. #}
+{% if section.data.tabs %}
+    {% set base = 'home-tabs-' ~ (blockId|default(0)) %}
+    <section class="container home-section section-card" aria-label="{{ section.title }}">
+        <div class="section-head">
+            <div>
+                <h2>{{ section.title }}</h2>
+                {% if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}
+            </div>
+        </div>
+        <div class="top-products-tabs" role="tablist" aria-label="{{ section.title }}" data-controller="home-tabs">
+            {% for tab in section.data.tabs %}
+                <button class="tab-btn{% if loop.first %} active{% endif %}"
+                        type="button"
+                        role="tab"
+                        id="{{ base }}-tab-{{ loop.index0 }}"
+                        aria-controls="{{ base }}-panel-{{ loop.index0 }}"
+                        aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                        tabindex="{{ loop.first ? '0' : '-1' }}"
+                        data-home-tabs-target="tab"
+                        data-action="home-tabs#select">{{ tab.title }}</button>
+            {% endfor %}
+        </div>
+        {% for tab in section.data.tabs %}
+            <div class="product-grid"
+                 role="tabpanel"
+                 id="{{ base }}-panel-{{ loop.index0 }}"
+                 aria-labelledby="{{ base }}-tab-{{ loop.index0 }}"
+                 data-home-tabs-target="panel"
+                 {{ loop.first ? '' : 'hidden' }}>
+                {% for product in tab.products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}
+            </div>
+        {% endfor %}
+    </section>
+{% endif %}

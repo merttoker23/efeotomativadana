@@ -1,0 +1,23 @@
+{# One link slot.
+
+   A local path only, as the domain has always required: a banner may point at a category or a
+   campaign inside this store, never at a scheme or a host of someone else's. The suggestions are
+   generated from the store's own routes rather than typed out, because the storefront is served
+   under a path prefix and a hand-written "/katalog" would 404 exactly like a broken link while
+   looking perfectly correct in the field. #}
+<div class="cms-field">
+    <label for="{{ name }}">Bağlantı (site içi yol)</label>
+    <input id="{{ name }}" type="text" name="{{ name }}" value="{{ value }}" maxlength="500" list="cms-link-{{ name }}"
+           placeholder="{{ path('storefront_catalog_index') }}">
+    <datalist id="cms-link-{{ name }}">
+        <option value="{{ path('storefront_catalog_index') }}">Tüm ürünler</option>
+        <option value="{{ path('storefront_catalog_categories') }}">Kategoriler</option>
+        <option value="{{ path('storefront_catalog_brands') }}">Markalar</option>
+        <option value="{{ path('storefront_blog_index') }}">Blog</option>
+        <option value="{{ path('storefront_information_index') }}">Bilgi sayfaları</option>
+        <option value="{{ path('storefront_cart_index') }}">Sepet</option>
+        <option value="{{ path('storefront_wishlist_index') }}">İstek listesi</option>
+        <option value="{{ path('customer_account_dashboard') }}">Hesabım</option>
+    </datalist>
+    <p class="help-text">Boş bırakılabilir. Yalnızca bu mağazaya ait bir yol yazın, örneğin {{ path('storefront_catalog_category', {slug: 'ornek-kategori'}) }}.</p>
+</div>

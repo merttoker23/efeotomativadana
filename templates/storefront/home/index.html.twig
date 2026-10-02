@@ -3,12 +3,7 @@
 
 {% block body %}
 <main id="main-content" class="page-shell" tabindex="-1">
-    {% if sections %}
-        <h1 class="container cms-home-title">Otomotiv parçasında güvenilir adresiniz</h1>
-        {% for section in sections %}
-            {% include section.template with {section: section} only %}
-        {% endfor %}
-    {% else %}
+    {% if homepage.isEmpty %}
         <section class="container home-top" aria-labelledby="home-title">
             <div class="hero-panel">
                 <div class="hero-copy">
@@ -20,6 +15,29 @@
                 <img class="hero-image" src="{{ asset('storefront/images/hero-automotive.svg') }}" alt="Otomotiv yedek parça vitrini" width="640" height="640" fetchpriority="high" decoding="async">
             </div>
         </section>
+    {% else %}
+        {# The theme's notice band sits above everything else on the page. #}
+        {% if homepage.announcement %}{% include homepage.announcement.template with {section: homepage.announcement, region: 'notice'} only %}{% endif %}
+
+        {# The theme's upper band: category panel, hero slider and top sellers are one row.
+           A column with no module is left out of the grid rather than rendered as an empty frame. #}
+        {% if homepage.hasTopRegion %}
+            <div class="container home-top home-top-{{ (homepage.categoryMenu ? 1 : 0) + (homepage.heroSlider ? 1 : 0) + (homepage.topSellers ? 1 : 0) }}">
+                {% if homepage.categoryMenu %}{% include homepage.categoryMenu.template with {section: homepage.categoryMenu, region: 'panel'} only %}{% endif %}
+                {% if homepage.heroSlider %}{% include homepage.heroSlider.template with {section: homepage.heroSlider, region: 'hero'} only %}{% endif %}
+                {% if homepage.topSellers %}{% include homepage.topSellers.template with {section: homepage.topSellers, region: 'sellers'} only %}{% endif %}
+            </div>
+        {% endif %}
+
+        {% for section in homepage.blocks %}{% include section.template with {section: section, region: 'block', blockId: loop.index} only %}{% endfor %}
+
+        {# The theme's lower band: the testimonial panel and the blog feed share one row. #}
+        {% if homepage.hasBottomRegion %}
+            <section class="container home-section testimonial-blog">
+                {% if homepage.testimonials %}{% include homepage.testimonials.template with {section: homepage.testimonials, region: 'quote'} only %}{% endif %}
+                {% if homepage.blogFeed %}{% include homepage.blogFeed.template with {section: homepage.blogFeed, region: 'blog'} only %}{% endif %}
+            </section>
+        {% endif %}
     {% endif %}
 </main>
 {% endblock %}

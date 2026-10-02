@@ -521,6 +521,12 @@ select:focus-visible {
     background: var(--storefront-yellow);
 }
 
+/* The theme's version of the same accent runs the full width of the hero. */
+.home-top .hero-marker {
+    right: 0;
+    width: auto;
+}
+
 .support-panel {
     padding: 2rem 1.5rem;
 }
@@ -1106,8 +1112,7 @@ select:focus-visible {
     align-items: center;
 }
 
-.catalog-results .product-grid,
-.home-product-grid {
+.catalog-results .product-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.8rem;
@@ -1407,13 +1412,11 @@ select:focus-visible {
     }
 
     .catalog-results .product-grid,
-    .home-product-grid,
     .brand-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .catalog-results .product-thumb,
-    .home-product-grid .product-thumb {
+    .catalog-results .product-thumb {
         height: 136px;
     }
 
@@ -2050,24 +2053,699 @@ select:focus-visible {
     .order-line { align-items: flex-start; gap: 12px; }
 }
 /* Typed CMS blocks and published content */
-.cms-home-title{margin-top:2.5rem;margin-bottom:1rem;font-size:clamp(1.5rem,3vw,2.4rem)}
-.cms-features{grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr))}
-.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.cms-heroes,.cms-banner-grid,.cms-quote-grid,.cms-blog-grid,.cms-link-grid{display:grid;gap:1rem}
-.cms-heroes{grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr))}
-.cms-hero{min-width:0}
-.cms-banner-grid,.cms-quote-grid,.cms-blog-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))}
-.cms-link-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr))}
-.cms-banner-grid img{display:block;width:100%;height:12rem;object-fit:cover;border-radius:.7rem}
-.cms-banner-grid a,.cms-link-grid a,.cms-blog-grid article,.cms-quote-grid blockquote{padding:1rem;border:1px solid #dce4ed;border-radius:.7rem;background:#fff}
-.cms-marquee{background:#092a53;color:#fff;padding:1rem 0}
-.cms-marquee .container{display:flex;flex-wrap:wrap;justify-content:center;gap:2rem}
-.cms-quote-grid blockquote{margin:0}
-.content-page{padding-block:2rem 4rem;max-width:70rem}
-.content-page article{max-width:48rem}
-.content-body{white-space:normal;line-height:1.7;overflow-wrap:anywhere}
-.content-lead{font-size:1.2rem}
-@media(max-width:680px){.cms-hero{display:block}.cms-hero .hero-image{max-height:15rem;width:100%;object-fit:contain}.cms-marquee .container{gap:.5rem}}
+/* Published blog cards. The blog index still uses the generic card grid. */
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0 }
+.cms-blog-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem }
+.cms-blog-grid article { padding: 1rem; border: 1px solid #dce4ed; border-radius: 0.7rem; background: #fff }
+.content-page { padding-block: 2rem 4rem; max-width: 70rem }
+.content-page article { max-width: 48rem }
+.content-body { white-space: normal; line-height: 1.7; overflow-wrap: anywhere }
+.content-lead { font-size: 1.2rem }
+
+/* ==========================================================================================
+   Homepage composition.
+
+   These rules are the storefront theme's own homepage, taken from the reference page rather than
+   invented: a notice band, an upper row of category panel / hero / top sellers, a promo grid, a
+   white section card per product block, a features strip, a brand shelf, a tabbed product block,
+   a marquee and a closing testimonials-plus-blog row. The markup in
+   templates/storefront/home carries the theme's class names so the two stay recognisable as the
+   same page.
+
+   The section modules the admin composes are therefore laid out in the theme's slots, not as a
+   stack of full-width boxes: the modules that work together in the theme share a row.
+   ========================================================================================== */
+
+/* The notice band. */
+.notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.4rem;
+    color: #fff;
+    background: var(--storefront-notice);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.notice-inner {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+.notice-text {
+    margin: 0;
+}
+
+/* The upper row.
+
+   `home-top` alone keeps the three named areas the default welcome panel uses; the `home-top-N`
+   classes are what the CMS composition adds, and they drop an area the administrator has not
+   filled instead of leaving an empty column beside it. */
+.home-top-1,
+.home-top-2,
+.home-top-3 {
+    grid-template-areas: none;
+}
+
+.home-top-1 {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.home-top-2 {
+    grid-template-columns: minmax(0, 1fr) 278px;
+}
+
+.home-top-3 {
+    grid-template-columns: 278px minmax(0, 1fr) 278px;
+}
+
+.home-top-1 > *,
+.home-top-2 > *,
+.home-top-3 > * {
+    grid-area: auto;
+}
+
+.home-top-1 .category-panel,
+.home-top-1 .hero,
+.home-top-1 .top-sellers,
+.home-top-2 .category-panel,
+.home-top-2 .hero {
+    grid-column: 1;
+}
+
+.home-top-2 .top-sellers,
+.home-top-3 .top-sellers {
+    grid-column: 3;
+}
+
+.home-top-3 .category-panel {
+    grid-column: 1;
+}
+
+.home-top-3 .hero {
+    grid-column: 2;
+}
+
+.home-top-2 .top-sellers {
+    grid-column: 2;
+}
+
+/* The category panel's rows. */
+.category-panel {
+    height: 460px;
+    overflow: hidden;
+}
+
+.cat-row {
+    display: grid;
+    grid-template-columns: 1.9rem minmax(0, 1fr) 0.9rem;
+    align-items: center;
+    min-height: 3.4rem;
+    padding: 0 1rem;
+    border-top: 1px solid var(--storefront-line);
+    color: #5c656e;
+    font-size: 0.85rem;
+}
+
+.cat-row:first-child {
+    border-top: 0;
+}
+
+.cat-row:hover {
+    color: #1c3555;
+    background: #fafafa;
+}
+
+.cat-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.cat-icon {
+    color: #7b838a;
+    font-size: 1.1rem;
+    text-align: center;
+}
+
+.cat-arrow {
+    color: #bec2c5;
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+/* The hero slider.
+
+   Every slide is absolutely stacked in the same frame and only the active one is opaque, which is
+   what lets the cross-fade work without the layout moving. A hidden slide is aria-hidden as well,
+   so assistive technology is told the same thing the eye is. */
+.hero {
+    position: relative;
+    height: 460px;
+    overflow: hidden;
+    border-radius: 0.3rem;
+    color: #fff;
+    background: #050505;
+}
+
+.hero-slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    opacity: 0;
+    background: #050505;
+    transition: opacity 0.5s;
+}
+
+.hero-slide.active {
+    z-index: 1;
+    opacity: 1;
+}
+
+.hero-photo {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70%;
+    object-fit: cover;
+    object-position: center 52%;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding-top: 2.4rem;
+    text-align: center;
+}
+
+.hero-label {
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 0.25rem;
+    color: #173459;
+    background: #eef2f7;
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+
+.hero-title {
+    max-width: 34rem;
+    margin: 0 auto 0.6rem;
+    padding: 0 1rem;
+    font-size: clamp(1.6rem, 3vw, 2.5rem);
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.hero-description {
+    max-width: 30rem;
+    margin: 0 auto 1.4rem;
+    padding: 0 1rem;
+    color: #c2d0df;
+    font-size: 0.85rem;
+}
+
+.hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.9rem;
+}
+
+.hero-actions .shop-now {
+    display: inline-flex;
+    padding: 0.8rem 1.85rem;
+    border-radius: 0.25rem;
+    color: #173459;
+    background: var(--storefront-yellow);
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.slider-controls {
+    position: absolute;
+    z-index: 5;
+    top: 13rem;
+    right: 1.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.slider-btn {
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 50%;
+    color: #555;
+    background: #e6e6e6;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.slider-btn.prev {
+    color: #222;
+    background: #777;
+}
+
+.slide-count {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+/* The top-sellers column. */
+.top-sellers {
+    height: 460px;
+    padding: 1.4rem 1.4rem 0;
+    overflow: hidden;
+}
+
+.top-sellers-title {
+    margin: 0.55rem 0 1rem;
+    font-size: 1.05rem;
+    font-weight: 750;
+}
+
+.seller {
+    display: grid;
+    grid-template-columns: 2.1rem minmax(0, 1fr) 3.1rem;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 3.3rem;
+    border-top: 1px solid var(--storefront-line);
+}
+
+.rank {
+    color: #fff;
+    font-size: 2.3rem;
+    font-weight: 300;
+    line-height: 1;
+    -webkit-text-stroke: 1.5px #8c9297;
+}
+
+.seller-body {
+    min-width: 0;
+}
+
+.seller-name {
+    display: block;
+    overflow: hidden;
+    color: #6b7075;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.seller-price {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 750;
+}
+
+.seller img {
+    width: 3.1rem;
+    height: 3.1rem;
+    border-radius: 0.3rem;
+    background: #fafafa;
+    object-fit: contain;
+}
+
+/* The white card every full-width block sits in. */
+.home-section {
+    margin-top: 1.4rem;
+}
+
+.section-card {
+    padding: 1.4rem;
+    border-radius: 0.35rem;
+    background: var(--storefront-card);
+}
+
+.section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+}
+
+.section-head h2 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.section-head p {
+    margin: 0.25rem 0 0;
+    color: var(--storefront-muted);
+    font-size: 0.8rem;
+}
+
+.see-all {
+    color: #304a6a;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* The product grid. The theme runs five columns on a desktop and steps down at its own two
+   breakpoints; the catalogue pages keep their own three-column rule. */
+.home-section .product-grid,
+.testimonial-blog .product-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+/* The promotional row. */
+.promo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.promo-card {
+    display: block;
+    overflow: hidden;
+    border-radius: 0.35rem;
+    background: var(--storefront-card);
+}
+
+.promo-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* The trust strip. */
+.features {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    overflow: hidden;
+    border-radius: 0.35rem;
+    background: var(--storefront-card);
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1.3rem;
+    border-right: 1px solid var(--storefront-line);
+}
+
+.feature:last-child {
+    border-right: 0;
+}
+
+.feature-ico {
+    flex: 0 0 auto;
+    font-size: 1.55rem;
+}
+
+.feature-copy b {
+    display: block;
+    font-size: 0.9rem;
+}
+
+.feature-copy span {
+    display: block;
+    margin-top: 0.2rem;
+    color: #81868b;
+    font-size: 0.65rem;
+}
+
+/* The brand shelf. */
+.brand-strip {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+
+.brand-strip .brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 4.1rem;
+    padding: 0 0.4rem;
+    overflow: hidden;
+    border: 1px solid #e5e6e8;
+    border-radius: 0.25rem;
+    color: #6d747a;
+    background: #fafafa;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+    text-overflow: ellipsis;
+}
+
+/* The tabbed product block. */
+.top-products-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.tab-btn {
+    padding: 0.4rem 0.7rem;
+    border: 1px solid #d9dce0;
+    border-radius: 0.25rem;
+    color: inherit;
+    background: #fff;
+    font-size: 0.8rem;
+}
+
+.tab-btn.active {
+    border-color: var(--storefront-navy);
+    color: #fff;
+    background: var(--storefront-navy);
+}
+
+/* The marquee band. */
+.marquee {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.75rem;
+    height: 4.3rem;
+    margin-top: 1.5rem;
+    overflow: hidden;
+    color: #0d294e;
+    background: var(--storefront-yellow);
+    font-size: 1.7rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.marquee .dot {
+    font-size: 0.9rem;
+}
+
+/* The closing row: quotes beside the blog feed. */
+.testimonial-blog {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 1rem;
+}
+
+.quote {
+    padding: 1.4rem;
+    border-radius: 0.35rem;
+    background: var(--storefront-card);
+}
+
+.quote h2 {
+    margin: 0 0 0.8rem;
+    font-size: 1.4rem;
+}
+
+.quote-item {
+    margin: 0 0 1rem;
+    padding: 0 0 1rem;
+    border-top: 1px solid var(--storefront-line);
+}
+
+.quote-item:first-of-type {
+    padding-top: 0.8rem;
+}
+
+.quote-item blockquote {
+    margin: 0;
+}
+
+.quote-item figcaption {
+    margin-top: 0.5rem;
+    color: var(--storefront-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.blog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.blog-card {
+    display: block;
+    overflow: hidden;
+    border: 1px solid #e4e5e7;
+    border-radius: 0.35rem;
+    color: inherit;
+    background: var(--storefront-card);
+}
+
+.blog-cover {
+    display: block;
+    height: 7rem;
+    background: linear-gradient(135deg, #193f71, #c9d9ef);
+}
+
+.blog-card .content {
+    display: block;
+    padding: 0.8rem;
+}
+
+.blog-card h3 {
+    margin: 0 0 0.4rem;
+    font-size: 0.9rem;
+}
+
+.blog-card p {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: #777;
+    font-size: 0.7rem;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* The theme's two upper breakpoints, and the mobile one, applied to the homepage composition. */
+@media (max-width: 1300px) {
+    .home-top-2 {
+        grid-template-columns: minmax(0, 1fr) 224px;
+    }
+
+    .home-top-3 {
+        grid-template-columns: 224px minmax(0, 1fr) 224px;
+    }
+
+    .category-panel,
+    .hero,
+    .top-sellers {
+        height: 400px;
+    }
+
+    .cat-row {
+        min-height: 2.8rem;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .home-section .product-grid,
+    .testimonial-blog .product-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .promo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1024px) {
+    .home-top-2,
+    .home-top-3 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .home-top-1 .category-panel,
+    .home-top-2 .category-panel,
+    .home-top-2 .hero,
+    .home-top-2 .top-sellers,
+    .home-top-3 .category-panel,
+    .home-top-3 .hero,
+    .home-top-3 .top-sellers {
+        grid-column: 1;
+    }
+
+    .home-top-3 .category-panel,
+    .home-top-3 .top-sellers {
+        display: none;
+    }
+
+    .hero {
+        height: 416px;
+    }
+
+    .home-section .product-grid,
+    .testimonial-blog .product-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .features,
+    .testimonial-blog {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .brand-strip {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .blog-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .hero {
+        height: 336px;
+    }
+
+    .hero-title {
+        font-size: 1.6rem;
+    }
+
+    .slider-controls {
+        top: 12rem;
+        right: 0.75rem;
+    }
+
+    .home-section .product-grid,
+    .testimonial-blog .product-grid,
+    .promo-grid,
+    .features,
+    .testimonial-blog,
+    .blog-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .features {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .brand-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .marquee {
+        gap: 0.8rem;
+        font-size: 1.2rem;
+    }
+}
 
 /* Post-purchase account area: order list, order detail, returns. */
 .order-list { display: grid; gap: 1rem; margin-top: 1.25rem; }

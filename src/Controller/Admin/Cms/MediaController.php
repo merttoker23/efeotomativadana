@@ -42,6 +42,12 @@ final class MediaController extends AbstractController
                 ]);
             } catch (\InvalidArgumentException $exception) { $error = $exception->getMessage(); }
         }
-        return $this->render('admin/cms/media.html.twig', ['path' => $path, 'error' => $error], new Response(status: null === $error ? 200 : 422));
+        return $this->render('admin/cms/media.html.twig', [
+            'path' => $path,
+            'error' => $error,
+            // The section forms read their image picker from the same library, so what an operator
+            // sees here is exactly what the next hero or banner field will offer.
+            'files' => $storage->library(200),
+        ], new Response(status: null === $error ? 200 : 422));
     }
 }

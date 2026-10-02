@@ -27,6 +27,9 @@ final readonly class CmsMediaStorage
     /** Refuses an image so large that decoding it is itself a denial of service. */
     private const int MAX_DIMENSION = 6000;
 
+    /** The only file name {@see self::store()} can produce, and the only one this class reads back. */
+    private const string STORED_NAME = '[a-f0-9]{32}\.(?:jpg|png|webp)';
+
     /** @var array<string, string> */
     private const array ALLOWED_TYPES = [
         'image/jpeg' => 'jpg',
@@ -77,5 +80,56 @@ final readonly class CmsMediaStorage
         @chmod($stored, 0644);
 
         return '/uploads/cms/'.$name;
+    }
+
+    /**
+     * The images already uploaded, newest first, so a section form can offer a picker instead of
+     * making an administrator paste a stored path into a text box.
+     *
+     * The directory is configuration rather than request input, but the listing is still filtered
+     * down to exactly the names this class itself mints. Anything else in the folder — a
+     * half-written upload, an operator's own copy, a file dropped by a deployment — is invisible
+     * here, and therefore cannot be attached to a section.
+     *
+     * @return list<array{path: string, filename: string, bytes: int, modified: int}>
+     */
+    public function library(int $limit = 60): array
+    {
+        $limit = max(1, $limit);
+        if (!is_dir($this->directory)) {
+            return [];
+        }
+
+        $entries = @scandir($this->directory);
+        if (false === $entries) {
+            return [];
+        }
+
+        $images = [];
+        foreach ($entries as $entry) {
+            if (1 !== preg_match('~^'.self::STORED_NAME.'$~', $entry)) {
+                continue;
+            }
+            $file = $this->directory.'/'.$entry;
+            if (!is_file($file) || !is_readable($file)) {
+                continue;
+            }
+            $images[] = [
+                'path' => '/uploads/cms/'.$entry,
+                'filename' => $entry,
+                'bytes' => (int) @filesize($file),
+                'modified' => (int) @filemtime($file),
+            ];
+        }
+
+        usort($images, static fn (array $a, array $b): int => $b['modified'] <=> $a['modified'] ?: strcmp($b['filename'], $a['filename']));
+
+        return \array_slice($images, 0, $limit);
+    }
+
+    /** True when the path names an image this storage could have written. */
+    public function holds(string $path): bool
+    {
+        return 1 === preg_match('~^/uploads/cms/'.self::STORED_NAME.'$~', $path);
     }
 }

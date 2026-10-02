@@ -1,1 +1,35 @@
-{% if section.data.products %}<section class="container home-section section-card" aria-label="{{ section.title }}"><div class="section-heading"><div><h2>{{ section.title }}</h2>{% if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}</div><a href="{{ path('storefront_catalog_index') }}">Tüm ürünler</a></div><div class="product-grid home-product-grid">{% for product in section.data.products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}</div></section>{% endif %}
+{# One section type, the theme's two placements.
+
+   In the upper band a product carousel is the ranked "top sellers" column beside the hero; on its
+   own it is the theme's full-width product grid with a section head. Both renderings come from
+   the same selected products — the placement is the theme's, not a second set of content. #}
+{% if region == 'sellers' %}
+    {% if section.data.products %}
+        <aside class="panel top-sellers" aria-label="{{ section.title }}">
+            <h3 class="top-sellers-title">{{ section.title }}</h3>
+            {% for product in section.data.products %}
+                <a class="seller" href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">
+                    <span class="rank" aria-hidden="true">{{ loop.index }}</span>
+                    <span class="seller-body">
+                        <span class="seller-name">{{ product.name }}</span>
+                        <span class="seller-price">{% if product.sellPrice %}{{ product.sellPrice|storefront_money }}{% else %}Fiyat için iletişime geçin{% endif %}</span>
+                    </span>
+                    <img src="{{ product_image_url(product.imagePath) }}" alt="" width="50" height="50" loading="lazy" decoding="async">
+                </a>
+            {% endfor %}
+        </aside>
+    {% endif %}
+{% elseif section.data.products %}
+    <section class="container home-section section-card" aria-label="{{ section.title }}">
+        <div class="section-head">
+            <div>
+                <h2>{{ section.title }}</h2>
+                {% if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}
+            </div>
+            <a class="see-all" href="{{ path('storefront_catalog_index') }}">Tüm ürünler</a>
+        </div>
+        <div class="product-grid">
+            {% for product in section.data.products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}
+        </div>
+    </section>
+{% endif %}

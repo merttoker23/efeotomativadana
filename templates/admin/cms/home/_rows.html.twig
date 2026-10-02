@@ -1,0 +1,84 @@
+{# The repeatable part of a section: slides, banners, features, quotes, marquee items or tabs.
+
+   A blank prototype is rendered inside a `<template>`, which a browser neither displays nor
+   submits. It exists so the "add row" button can produce an empty row without a round trip, and
+   because it is never a control, nothing it contains is ever read by the server. Without
+   scripting the same button is a submit that asks the server for another blank row. #}
+{% set rows = type.rowName() %}
+<div class="cms-rows"
+     data-controller="home-section-form"
+     data-home-section-form-prefix-value="{{ rows }}"
+     data-home-section-form-target="rows">
+    <input type="hidden" name="{{ rows }}_count" value="{{ items|length }}" max="20" data-home-section-form-target="count">
+
+    {% for item in items %}
+        <fieldset class="cms-row" data-index="{{ loop.index0 }}" data-home-section-form-target="row">
+            <legend>{{ loop.index }}. satır</legend>
+            {% for field in type.rowFields %}
+                {% set name = rows ~ '_' ~ loop.parent.loop.index0 ~ '_' ~ field %}
+                {% set value = item[field]|default('') %}
+                {% if 'image' == field %}
+                    {% include 'admin/cms/home/_image.html.twig' with {name: name, current: value, library: library} only %}
+                {% elseif 'link' == field %}
+                    {% include 'admin/cms/home/_link.html.twig' with {name: name, value: value} only %}
+                {% else %}
+                    <div class="cms-field">
+                        <label for="{{ name }}">{{ type.fieldLabels()[field]|default(field) }}</label>
+                        {% if 'text' == field %}
+                            <textarea id="{{ name }}" name="{{ name }}" rows="3" maxlength="500">{{ value }}</textarea>
+                        {% else %}
+                            <input id="{{ name }}" type="text" name="{{ name }}" value="{{ value }}" maxlength="500">
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% if type.selectionPerRow %}
+                {% include 'admin/cms/home/_picker.html.twig' with {
+                    kind: type.selection(),
+                    prefix: rows ~ '_' ~ loop.index0 ~ '_p',
+                    target: rows ~ '_' ~ loop.index0 ~ '_p',
+                    slugs: item.slugs|default([]),
+                    query: query,
+                    options: options,
+                    labels: labels,
+                } only %}
+            {% endif %}
+            <button class="danger-button" type="submit" name="_pick" value="remove-row:{{ loop.index0 }}:" data-action="home-section-form#removeRow">Satırı sil</button>
+        </fieldset>
+    {% endfor %}
+
+    <button type="submit" name="_pick" value="add-row::" data-action="home-section-form#addRow">Satır ekle</button>
+
+    <template data-home-section-form-target="prototype">
+        <fieldset class="cms-row" data-index="0" data-home-section-form-target="row">
+            {% for field in type.rowFields %}
+                {% set name = rows ~ '_0_' ~ field %}
+                {% if 'image' == field %}
+                    {% include 'admin/cms/home/_image.html.twig' with {name: name, current: '', library: library} only %}
+                {% elseif 'link' == field %}
+                    {% include 'admin/cms/home/_link.html.twig' with {name: name, value: ''} only %}
+                {% else %}
+                    <div class="cms-field">
+                        <label for="{{ name }}-new">{{ type.fieldLabels()[field]|default(field) }}</label>
+                        {% if 'text' == field %}
+                            <textarea id="{{ name }}-new" name="{{ name }}" rows="3" maxlength="500"></textarea>
+                        {% else %}
+                            <input id="{{ name }}-new" type="text" name="{{ name }}" maxlength="500">
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {% if type.selectionPerRow %}
+                {% include 'admin/cms/home/_picker.html.twig' with {
+                    kind: type.selection(),
+                    prefix: rows ~ '_0_p',
+                    target: rows ~ '_0_p',
+                    slugs: [],
+                    query: query,
+                    options: options,
+                    labels: labels,
+                } only %}
+            {% endif %}
+        </fieldset>
+    </template>
+</div>

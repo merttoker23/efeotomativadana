@@ -1,1 +1,30 @@
-{% extends 'admin/base.html.twig' %}{% block title %}CMS media{% endblock %}{% block body %}<section class="panel"><h1>CMS media</h1><p>Upload a JPEG, PNG or WebP image (maximum 5 MB and 6000 × 6000 pixels), then copy its path into a banner or hero section.</p>{% if error %}<div class="alert alert-error" role="alert">{{ error }}</div>{% endif %}{% if path %}<p role="status">Uploaded image path: <code>{{ path }}</code></p>{% set dimensions = image_dimensions(path) %}<img src="{{ media_url(path) }}" alt="Uploaded preview"{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} decoding="async" style="max-width:min(100%,300px);max-height:180px;height:auto">{% endif %}<form method="post" enctype="multipart/form-data"><input type="hidden" name="_token" value="{{ csrf_token('cms_media_upload') }}"><label for="image">Image file</label><input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp" required><button type="submit">Upload image</button></form></section>{% endblock %}
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Media library{% endblock %}
+
+{% block body %}
+<section class="panel">
+    <h1>Media library</h1>
+
+    <h2>Upload an image</h2>
+    <form method="post" action="{{ path('admin_cms_media') }}" enctype="multipart/form-data">
+        <input type="hidden" name="_token" value="{{ csrf_token('cms_media_upload') }}">
+        <label for="image">JPEG, PNG or WebP — up to 5 MB</label>
+        <input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <h2>Uploaded images</h2>
+    <p class="help-text">Every image on the homepage is uploaded from its own section form, with a preview, so there is nothing here to copy anywhere. This library is what those forms read from: an image uploaded here is available to every hero and banner field.</p>
+    <ul class="admin-summary">
+        {% for file in files %}
+            <li>
+                <strong>{{ file.filename }}</strong>
+                <span>{{ (file.bytes / 1024)|round(1) }} KB</span>
+            </li>
+        {% else %}
+            <li>No images uploaded yet.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}
