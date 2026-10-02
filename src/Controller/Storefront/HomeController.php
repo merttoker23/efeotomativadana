@@ -31,7 +31,7 @@ final class HomeController extends AbstractController
                 'categories' => $categories,
                 'brands' => $catalog->brands(8),
             ],
-            'sections' => $homepage->render(),
+            'homepage' => $homepage->render(),
             'seo' => $this->seo->home(),
         ]);
     }

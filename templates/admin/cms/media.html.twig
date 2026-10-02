@@ -7,7 +7,7 @@
     <h1>Media library</h1>
 
     <h2>Upload an image</h2>
-    <form method="post" action="{{ path('admin_cms_media') }}" enctype="multipart/form-data">
+    <form method="post" action="{{ path('admin_cms_media_index') }}" enctype="multipart/form-data">
         <input type="hidden" name="_token" value="{{ csrf_token('cms_media_upload') }}">
         <label for="image">JPEG, PNG or WebP — up to 5 MB</label>
         <input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>

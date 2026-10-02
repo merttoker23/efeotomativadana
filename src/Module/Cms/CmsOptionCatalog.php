@@ -82,9 +82,9 @@ final readonly class CmsOptionCatalog
         $term = $this->search($query);
 
         return match ($kind) {
-            'product' => $this->products($term),
-            'category' => $this->categories($term),
-            'brand' => $this->brands($term),
+            'products' => $this->products($term),
+            'categories' => $this->categories($term),
+            'brands' => $this->brands($term),
             default => throw new \InvalidArgumentException('Unknown selection kind.'),
         };
     }
@@ -101,9 +101,9 @@ final readonly class CmsOptionCatalog
     public function labelSlugs(string $kind, array $slugs): array
     {
         $known = match ($kind) {
-            'product' => $this->labelProducts($slugs),
-            'category' => $this->labelOptions($this->catalog->categories(), $slugs),
-            'brand' => $this->labelOptions($this->catalog->brands(), $slugs),
+            'products' => $this->labelProducts($slugs),
+            'categories' => $this->labelOptions($this->catalog->categories(), $slugs),
+            'brands' => $this->labelOptions($this->catalog->brands(), $slugs),
             default => throw new \InvalidArgumentException('Unknown selection kind.'),
         };
 

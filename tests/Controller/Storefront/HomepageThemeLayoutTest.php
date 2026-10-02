@@ -168,8 +168,8 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame(1, $crawler->filter('.features .feature .feature-ico')->count());
         self::assertSelectorTextContains('.features .feature b', 'Hızlı kargo');
         self::assertSame(1, $crawler->filter('.section-card .brand-strip .brand')->count());
-        self::assertSame(1, $crawler->filter('.marquee .marquee-item')->count());
-        self::assertSame(2, $crawler->filter('.marquee')->count()); // theme: the item plus the dot separator
+        self::assertSame(2, $crawler->filter('.marquee .marquee-item')->count());
+        self::assertSame(1, $crawler->filter('.marquee')->count()); // theme: a single marquee container with item/dot separators
         self::assertSelectorTextContains('.marquee', 'Yetkili servis');
     }
 

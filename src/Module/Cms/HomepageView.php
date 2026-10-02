@@ -44,6 +44,6 @@ final readonly class HomepageView
 
     public function isEmpty(): bool
     {
-        return !$this->hasTopRegion() && !$this->hasBottomRegion() && [] === $this->blocks;
+        return null === $this->announcement && !$this->hasTopRegion() && !$this->hasBottomRegion() && [] === $this->blocks;
     }
 }

@@ -149,10 +149,10 @@ final class CmsWorkflowTest extends WebTestCase
         }
 
         $crawler = $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
-        $form = $crawler->selectButton('Bölümü kaydet')->form([
+        $form = $crawler->selectButton('Bölümü kaydet')->form();
+        $client->request('POST', $form->getUri(), array_merge($form->getPhpValues(), [
             'configuration' => '{"items":["Injected"],"template":"admin/some-other-template"}',
-        ]);
-        $client->submit($form);
+        ]));
         self::assertResponseStatusCodeSame(422);
         self::assertSame(0, $this->manager->getRepository(HomeSection::class)->count());
     }

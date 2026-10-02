@@ -78,6 +78,9 @@ final class SectionConfiguration
         if (!is_array($value) || !array_is_list($value) || count($value) > 20) {
             throw new \InvalidArgumentException('Configuration list must have at most 20 entries.');
         }
+        if ([] === $value) {
+            throw new \InvalidArgumentException($kind.' must not be empty.');
+        }
         foreach ($value as $item) {
             if ('slugs' === $kind) {
                 self::slug($item);
