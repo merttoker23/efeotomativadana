@@ -17,8 +17,11 @@ final class B2bBatchResourceContext
     /** @var array<string, Product> */
     private array $mappedProducts = [];
 
-    /** @var array<string, true> */
-    private array $occupiedSkus = [];
+    /** @var array<string, list<Product>> */
+    private array $skuProducts = [];
+
+    /** @var array<int, string> */
+    private array $productOwners = [];
 
     /** @var array<string, string> */
     private array $skuOwners = [];
@@ -48,11 +51,12 @@ final class B2bBatchResourceContext
      * @param list<ExternalResourceMapping> $productMappings
      * @param list<Product>                  $mappedProducts
      * @param list<Product>                  $skuProducts
-     * @param list<ExternalResourceMapping> $imageMappings
-     * @param list<B2bSyncObservation>      $observations
-     * @param list<B2bSyncObservation>      $skuObservations
+     * @param array<int, string>             $skuProductOwners
+     * @param list<ExternalResourceMapping>  $imageMappings
+     * @param list<B2bSyncObservation>       $observations
+     * @param list<B2bSyncObservation>       $skuObservations
      */
-    public function __construct(array $productMappings, array $mappedProducts, array $skuProducts, array $imageMappings, array $observations, array $skuObservations)
+    public function __construct(array $productMappings, array $mappedProducts, array $skuProducts, array $skuProductOwners, array $imageMappings, array $observations, array $skuObservations)
     {
         foreach ($productMappings as $mapping) {
             $this->productMappings[$mapping->externalId()] = $mapping;
@@ -69,7 +73,10 @@ final class B2bBatchResourceContext
             }
         }
         foreach ($skuProducts as $product) {
-            $this->occupiedSkus[$product->sku()] = true;
+            $this->skuProducts[mb_strtoupper(trim($product->sku()))][] = $product;
+        }
+        foreach ($skuProductOwners as $localProductId => $ownerExternalId) {
+            $this->productOwners[$localProductId] = $ownerExternalId;
         }
         foreach ($imageMappings as $mapping) {
             $this->imageMappings[$mapping->externalId()] = $mapping;
@@ -92,9 +99,23 @@ final class B2bBatchResourceContext
         return $this->mappedProducts[$externalId] ?? null;
     }
 
-    public function hasOccupiedSku(string $sku): bool
+    /**
+     * Every local product that already carries the given canonical SKU. More than one match
+     * means the SKU cannot identify a single provider product, so no adoption is possible.
+     *
+     * @return list<Product>
+     */
+    public function skuMatches(string $sku): array
     {
-        return isset($this->occupiedSkus[mb_strtoupper(trim($sku))]);
+        return $this->skuProducts[mb_strtoupper(trim($sku))] ?? [];
+    }
+
+    /**
+     * The provider external ID that already owns a local product, if any.
+     */
+    public function productOwnerExternalId(int $productId): ?string
+    {
+        return $this->productOwners[$productId] ?? null;
     }
 
     public function claimExternalId(string $externalId, ?string $fingerprint, ?int $position): bool
@@ -174,7 +195,14 @@ final class B2bBatchResourceContext
     {
         $this->productMappings[$externalId] = $mapping;
         $this->mappedProducts[$externalId] = $product;
-        $this->occupiedSkus[$product->sku()] = true;
+        $id = $product->id();
+        if (null !== $id) {
+            $this->productOwners[$id] = $externalId;
+        }
+        $sku = mb_strtoupper(trim($product->sku()));
+        if (!in_array($product, $this->skuProducts[$sku] ?? [], true)) {
+            $this->skuProducts[$sku][] = $product;
+        }
         $this->claimSku($product->sku(), $externalId);
     }
 

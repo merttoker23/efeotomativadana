@@ -63,6 +63,25 @@ final class EfeFeedProviderTest extends TestCase
         self::assertSame('1002', $records[0]->item()?->externalId());
     }
 
+    /**
+     * B2bRunProcessor identifies every record by the stream key and compares it against the
+     * durable checkpoint. A generator that yields auto-numbered keys restarts at zero after the
+     * checkpoint prefix is skipped, so an interrupted run could never resume and every retry
+     * failed on the very first record with "skipped or repeated a record position".
+     */
+    public function testStreamKeysAreAbsolutePositionsOnAFreshRunAndAfterAResume(): void
+    {
+        $provider = $this->provider($this->fixture());
+        $snapshot = $provider->prepareSnapshot($this->request());
+
+        $fresh = iterator_to_array($provider->streamItems($snapshot, new B2bSyncCheckpoint()), true);
+        $resumed = iterator_to_array($provider->streamItems($snapshot, new B2bSyncCheckpoint(1)), true);
+
+        self::assertSame([0, 1], array_keys($fresh));
+        self::assertSame([1], array_keys($resumed));
+        self::assertSame('1002', $resumed[1]->item()?->externalId());
+    }
+
     public function testInvalidStockIsClassifiedAsAStockError(): void
     {
         $records = json_decode($this->fixture(), true, 512, JSON_THROW_ON_ERROR);

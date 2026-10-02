@@ -120,6 +120,14 @@ final class B2bResourceResolver
             }
         }
         $skuProducts = $this->products->findBySkus($unmappedSkus);
+        $skuProductIds = [];
+        foreach ($skuProducts as $product) {
+            $id = $product->id();
+            if (null !== $id) {
+                $skuProductIds[] = $id;
+            }
+        }
+        $skuProductOwners = $this->mappings->findProductOwners($skuProductIds);
         $imageIds = [];
         foreach ($items as $item) {
             foreach ($item->imageUrls() as $sourceUrl) {
@@ -129,7 +137,7 @@ final class B2bResourceResolver
         $imageMappings = $this->mappings->findByExternalIds($this->providerKey, B2bResourceType::ProductImage, $imageIds);
         $observations = $this->observations->findByRunAndExternalIds($runId, $this->providerKey, B2bResourceType::Product, $externalIds);
         $skuObservations = $this->observations->findSkuObservationsForRun($runId, $this->providerKey, $skus);
-        $this->batch = new B2bBatchResourceContext($productMappings, $mappedProducts, $skuProducts, $imageMappings, $observations, $skuObservations);
+        $this->batch = new B2bBatchResourceContext($productMappings, $mappedProducts, $skuProducts, $skuProductOwners, $imageMappings, $observations, $skuObservations);
     }
 
     public function endBatch(): void
@@ -176,7 +184,7 @@ final class B2bResourceResolver
         $this->claimExternalIdValue($externalId, $fingerprint, $sku, $position, $runId);
     }
 
-    public function existingProduct(NormalizedCatalogFeedItem $item): ?Product
+    public function existingProduct(NormalizedCatalogFeedItem $item, ?\DateTimeImmutable $seenAt = null, ?int $runId = null): ?Product
     {
         $fingerprint = $this->itemFingerprint($item);
         if (null === $this->batch || !$this->batch->hasClaimedExternalId($item->externalId(), $fingerprint)) {
@@ -196,12 +204,82 @@ final class B2bResourceResolver
 
             return $product;
         }
-        if ((null !== $this->batch && $this->batch->hasOccupiedSku($item->sku())) || (null === $this->batch && null !== $this->products->findOneBySku($item->sku()))) {
-            throw new B2bProductIdentityConflictException(sprintf('SKU "%s" belongs to an unrelated local product.', $item->sku()));
+        $candidates = $this->skuMatches($item->sku());
+        if ([] !== $candidates) {
+            // A catalog restored without its provider mappings, or a feed that was replaced by a
+            // new provider identity, leaves provider products that exist locally but are unknown
+            // to integration_external_mapping. Rejecting them all as conflicts would drop the
+            // whole catalog, so an unambiguous provider-owned match is adopted instead.
+            $product = $this->adoptableProduct($candidates, $item);
+            if (!$product instanceof Product) {
+                throw new B2bProductIdentityConflictException(sprintf('SKU "%s" belongs to an unrelated local product.', $item->sku()));
+            }
+            $this->claimSku($item);
+            $this->adoptProduct($item, $product, $seenAt ?? new \DateTimeImmutable(), $runId ?? $this->claimRunId ?? $this->batchRunId);
+
+            return $product;
         }
         $this->claimSku($item);
 
         return null;
+    }
+
+    /**
+     * The single local product a provider external ID may take over, or null when the match is
+     * not provably safe. Only a provider-owned product that no other mapping points at qualifies:
+     * a locally authored product is human owned content and a product claimed by another provider
+     * identity must never be silently merged into this feed.
+     *
+     * @param list<Product> $candidates
+     */
+    private function adoptableProduct(array $candidates, NormalizedCatalogFeedItem $item): ?Product
+    {
+        if (1 !== count($candidates)) {
+            return null;
+        }
+        $product = $candidates[0];
+        if (CatalogSource::External !== $product->source()) {
+            return null;
+        }
+        $owner = $this->productOwnerExternalId($product);
+        if (null !== $owner && $owner !== $item->externalId()) {
+            return null;
+        }
+
+        return $product;
+    }
+
+    private function adoptProduct(NormalizedCatalogFeedItem $item, Product $product, \DateTimeImmutable $seenAt, ?int $runId): void
+    {
+        $mapping = ExternalResourceMapping::product($this->providerKey, $item->externalId(), $product->id() ?? 0, $runId, $seenAt, $this->itemFingerprint($item));
+        $this->mappings->save($mapping);
+        $this->entityManager->flush();
+        $this->batch?->registerProduct($item->externalId(), $mapping, $product);
+    }
+
+    /**
+     * @return list<Product>
+     */
+    private function skuMatches(string $sku): array
+    {
+        if (null !== $this->batch) {
+            return $this->batch->skuMatches($sku);
+        }
+
+        return $this->products->findBySkus([$sku]);
+    }
+
+    private function productOwnerExternalId(Product $product): ?string
+    {
+        $id = $product->id();
+        if (null === $id) {
+            return null;
+        }
+        if (null !== $this->batch) {
+            return $this->batch->productOwnerExternalId($id);
+        }
+
+        return $this->mappings->findProductOwner($id)?->externalId();
     }
 
     public function createProduct(NormalizedCatalogFeedItem $item, ?Brand $brand, \DateTimeImmutable $seenAt, int $runId): Product

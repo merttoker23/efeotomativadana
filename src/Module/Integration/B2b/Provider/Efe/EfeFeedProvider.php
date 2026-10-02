@@ -56,12 +56,12 @@ final readonly class EfeFeedProvider implements B2bFeedProviderInterface
                 'decoder' => new ExtJsonDecoder(true),
             ]);
             foreach ($items as $index => $record) {
-                $position = (int) $index;
+                $position = $this->recordPosition($index);
                 if ($position < $checkpoint->recordOffset) {
                     continue;
                 }
                 if (!is_array($record)) {
-                    yield B2bFeedRecord::failure(new B2bItemError(
+                    yield $position => B2bFeedRecord::failure(new B2bItemError(
                         B2bErrorType::InvalidItem,
                         'Efe feed row is not an object.',
                         null,
@@ -70,9 +70,9 @@ final readonly class EfeFeedProvider implements B2bFeedProviderInterface
                     continue;
                 }
                 try {
-                    yield B2bFeedRecord::success($this->normalizer->normalize($record));
+                    yield $position => B2bFeedRecord::success($this->normalizer->normalize($record));
                 } catch (\Throwable $exception) {
-                    yield B2bFeedRecord::failure(new B2bItemError(
+                    yield $position => B2bFeedRecord::failure(new B2bItemError(
                         $this->itemErrorType($exception),
                         'Efe feed row is invalid.',
                         $this->safeExternalId($record['id'] ?? null),
@@ -85,6 +85,23 @@ final readonly class EfeFeedProvider implements B2bFeedProviderInterface
         } catch (\Throwable $exception) {
             throw new B2bPermanentProviderException('Efe feed JSON contract is malformed.', 0, $exception);
         }
+    }
+
+    /**
+     * A resumed run identifies every record by its absolute snapshot position, so the feed key
+     * must stay numeric. Silently casting a non-numeric key to zero would turn an object shaped
+     * "data" payload into an endless stream of position zero records.
+     */
+    private function recordPosition(mixed $index): int
+    {
+        if (is_int($index)) {
+            return $index;
+        }
+        if (is_string($index) && '' !== $index && ctype_digit($index)) {
+            return (int) $index;
+        }
+
+        throw new B2bPermanentProviderException('Efe feed rows must expose a numeric record position.');
     }
 
     private function itemErrorType(\Throwable $exception): B2bErrorType

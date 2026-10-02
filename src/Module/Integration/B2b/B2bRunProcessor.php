@@ -86,11 +86,24 @@ final readonly class B2bRunProcessor implements B2bRunProcessorInterface
             }
             $expectedPosition = $checkpoint;
             $nextCheckpoint = $checkpoint;
+            $replays = 0;
             $batch = [];
             foreach ($provider->streamItems($snapshot, new B2bSyncCheckpoint($checkpoint)) as $key => $record) {
-                $position = (int) $key;
+                $position = $this->streamPosition($key, $run, $snapshot, $checkpoint, $expectedPosition, $record);
                 if ($position !== $expectedPosition) {
-                    throw new B2bRetryableProviderException('The B2B provider stream skipped or repeated a record position.');
+                    if ($position > $expectedPosition) {
+                        $this->logger->error('The B2B provider stream skipped a record position; continuing would import the snapshot with a gap.', $this->streamContext($run, $snapshot, $checkpoint, $expectedPosition, $key, $record));
+                        throw new B2bPermanentProviderException('The B2B provider stream skipped a record position; the snapshot gap cannot be reconciled.');
+                    }
+                    // The provider replayed a record that is already committed or already queued in
+                    // the open batch. Re-applying it is idempotent, so the duplicate is dropped
+                    // instead of failing a run that has tens of thousands of records left.
+                    if (++$replays > $snapshot->declaredCount) {
+                        $this->logger->error('The B2B provider stream replayed more records than the snapshot declares.', $this->streamContext($run, $snapshot, $checkpoint, $expectedPosition, $key, $record));
+                        throw new B2bPermanentProviderException('The B2B provider stream replayed more records than the snapshot declares.');
+                    }
+                    $this->logger->warning('The B2B provider stream repeated an already handled record position; the duplicate was ignored.', $this->streamContext($run, $snapshot, $checkpoint, $expectedPosition, $key, $record));
+                    continue;
                 }
                 ++$expectedPosition;
                 $nextCheckpoint = $position + 1;
@@ -109,6 +122,8 @@ final readonly class B2bRunProcessor implements B2bRunProcessorInterface
                 $checkpoint = $this->checkpoint($runId);
             }
             if ($expectedPosition !== $snapshot->declaredCount || $checkpoint !== $snapshot->declaredCount) {
+                $this->logger->error('The B2B provider stream ended before the declared snapshot count.', $this->streamContext($run, $snapshot, $checkpoint, $expectedPosition, null, null));
+
                 throw new B2bRetryableProviderException('The B2B provider stream ended before the declared snapshot count.');
             }
             $this->assertSnapshotDigest($snapshot);
@@ -131,6 +146,42 @@ final readonly class B2bRunProcessor implements B2bRunProcessorInterface
             $this->batchProcessor->endRun($runId);
             $lock->release();
         }
+    }
+
+    /**
+     * A resumed run identifies every record by its absolute snapshot position, so a non-numeric
+     * provider key is a contract violation rather than a temporary glitch: retrying cannot fix it
+     * and silently casting it to zero would look like an endless position-zero replay.
+     */
+    private function streamPosition(mixed $key, B2bSyncRun $run, B2bSnapshot $snapshot, int $checkpoint, int $expectedPosition, B2bFeedRecord $record): int
+    {
+        if (is_int($key)) {
+            return $key;
+        }
+        if (is_string($key) && '' !== $key && ctype_digit($key)) {
+            return (int) $key;
+        }
+        $this->logger->error('The B2B provider stream yielded a non-numeric record position.', $this->streamContext($run, $snapshot, $checkpoint, $expectedPosition, $key, $record));
+
+        throw new B2bPermanentProviderException('The B2B provider stream yielded a non-numeric record position.');
+    }
+
+    /** @return array<string, bool|int|string|null> */
+    private function streamContext(B2bSyncRun $run, B2bSnapshot $snapshot, int $checkpoint, int $expectedPosition, mixed $receivedPosition, ?B2bFeedRecord $record): array
+    {
+        $item = $record?->item();
+
+        return [
+            'run_id' => $run->id(),
+            'provider' => $run->providerKey(),
+            'mode' => $run->mode()->value,
+            'checkpoint' => $checkpoint,
+            'expected_position' => $expectedPosition,
+            'received_position' => is_int($receivedPosition) || is_string($receivedPosition) ? $receivedPosition : null,
+            'declared_count' => $snapshot->declaredCount,
+            'external_id' => $item?->externalId() ?? $record?->error()?->externalId(),
+            'sku' => $item?->sku(),
+        ];
     }
 
     /** @param list<B2bFeedRecord> $batch */

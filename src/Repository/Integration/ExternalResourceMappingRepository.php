@@ -5,6 +5,7 @@ namespace App\Repository\Integration;
 use App\Entity\Integration\ExternalResourceMapping;
 use App\Module\Integration\B2b\B2bResourceType;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -51,6 +52,65 @@ final class ExternalResourceMappingRepository extends ServiceEntityRepository
             ->getResult();
 
         return $mappings;
+    }
+
+    /**
+     * Which provider external ID already owns each of the given local products. Adopting an
+     * existing product for a provider external ID is only safe while no other mapping points
+     * at it, so the whole batch is resolved in a single indexed query.
+     *
+     * @param list<int> $localProductIds
+     * @return array<int, string> local product ID => owning provider external ID
+     */
+    public function findProductOwners(array $localProductIds): array
+    {
+        $localProductIds = array_values(array_unique(array_filter(array_map('strval', array_map('intval', $localProductIds)), static fn (string $id): bool => '0' !== $id)));
+        if ([] === $localProductIds) {
+            return [];
+        }
+
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative(
+            <<<'SQL'
+                SELECT external_id, local_resource_id
+                FROM integration_external_mapping
+                WHERE local_resource_type = :local_type
+                  AND local_resource_id IN (:ids)
+                SQL,
+            [
+                'local_type' => 'product',
+                'ids' => $localProductIds,
+            ],
+            [
+                'local_type' => ParameterType::STRING,
+                'ids' => ArrayParameterType::STRING,
+            ],
+        );
+
+        $owners = [];
+        foreach ($rows as $row) {
+            $owners[(int) $row['local_resource_id']] = (string) $row['external_id'];
+        }
+
+        return $owners;
+    }
+
+    public function findProductOwner(int $localProductId): ?ExternalResourceMapping
+    {
+        if ($localProductId < 1) {
+            return null;
+        }
+
+        /** @var ExternalResourceMapping|null $mapping */
+        $mapping = $this->createQueryBuilder('mapping')
+            ->andWhere('mapping.localResourceType = :localType')
+            ->andWhere('mapping.localResourceId = :id')
+            ->setParameter('localType', 'product')
+            ->setParameter('id', (string) $localProductId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $mapping;
     }
 
     /**

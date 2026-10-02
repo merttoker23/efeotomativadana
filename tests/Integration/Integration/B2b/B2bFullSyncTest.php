@@ -234,6 +234,91 @@ final class B2bFullSyncTest extends KernelTestCase
         self::assertSame(0, (int) $this->connection->fetchOne("SELECT COUNT(*) FROM integration_external_mapping WHERE resource_type = 'product' AND external_id = '1001'"));
     }
 
+    /**
+     * A provider product that exists locally without a provider mapping, as after a catalog
+     * restore or a feed identity change, used to be counted as a conflict for every record. That
+     * is what emptied a FULL run: 91k conflicts, no created, updated, price or stock row. The
+     * unambiguous provider-owned match must be adopted instead, without duplicating the product,
+     * and must take the provider price, stock and image.
+     */
+    public function testExistingProviderProductWithoutMappingIsAdoptedOnFullSync(): void
+    {
+        $existing = $this->catalog->createProduct('GVA 9120688', 'Stale provider copy', null, CatalogSource::External);
+        $existingId = $existing->id();
+        self::assertNotNull($existingId);
+
+        $result = $this->writer->importFull($this->fixtureItem(), 700);
+
+        self::assertTrue($result->isSuccess(), $result->error()?->message() ?? 'FULL adoption failed.');
+        self::assertSame(0, $result->counters()->created());
+        self::assertSame(1, $result->counters()->updated());
+        self::assertSame(1, $result->counters()->priceUpdated());
+        self::assertSame(1, $result->counters()->stockUpdated());
+        self::assertSame(1, $result->counters()->imagesImported());
+        self::assertSame(0, $result->counters()->imagesFailed());
+        self::assertSame([], $result->deferredErrors());
+        self::assertSame($existingId, $result->product()?->id());
+        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM catalog_product'));
+        self::assertSame(
+            (string) $existingId,
+            $this->connection->fetchOne("SELECT local_resource_id FROM integration_external_mapping WHERE provider_key = 'efe' AND resource_type = 'product' AND external_id = '1001'"),
+        );
+        self::assertSame(1, (int) $this->connection->fetchOne("SELECT COUNT(*) FROM integration_external_mapping WHERE resource_type = 'product'"));
+        $this->entityManager->clear();
+
+        $adopted = $this->entityManager->find(Product::class, $existingId);
+        self::assertInstanceOf(Product::class, $adopted);
+        self::assertSame(CatalogSource::External, $adopted->source());
+        self::assertSame('STOP LAMBASI SOL VW JETTA 201', $adopted->name());
+        self::assertSame('Sanitized fixture description', $adopted->description());
+        self::assertCount(1, $adopted->images());
+        self::assertSame('/uploads/products/'.hash('sha256', 'https://b2b.efeotoyedekparca.com.tr/urunler/fixture-1.jpg').'.png', $adopted->images()[0]->path());
+        $priceRepository = $this->entityManager->getRepository(ProductPrice::class);
+        self::assertInstanceOf(ProductPriceRepositoryInterface::class, $priceRepository);
+        $price = $priceRepository->findOneByProduct($adopted);
+        self::assertInstanceOf(ProductPrice::class, $price);
+        self::assertSame(100_664, $price->basePrice()->minorAmount());
+        $inventoryRepository = $this->entityManager->getRepository(ProductInventory::class);
+        self::assertInstanceOf(ProductInventoryRepositoryInterface::class, $inventoryRepository);
+        $inventory = $inventoryRepository->findOneByProduct($adopted);
+        self::assertInstanceOf(ProductInventory::class, $inventory);
+        self::assertSame(1, $inventory->quantity());
+
+        $second = $this->writer->importFull($this->fixtureItem(), 701);
+
+        self::assertTrue($second->isSuccess(), $second->error()?->message() ?? 'FULL adoption re-run failed.');
+        self::assertSame(0, $second->counters()->created());
+        self::assertSame(1, $second->counters()->updated());
+        self::assertSame(0, $second->counters()->imagesImported());
+        self::assertSame(0, $second->counters()->imagesFailed());
+        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM catalog_product'));
+        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM catalog_product_image'));
+        self::assertSame(1, (int) $this->connection->fetchOne("SELECT COUNT(*) FROM integration_external_mapping WHERE resource_type = 'product'"));
+    }
+
+    /**
+     * Adoption is only safe while the SKU match is provably the same product. A product another
+     * provider identity already owns must stay a conflict, so the run never merges two catalogs
+     * behind a shared SKU.
+     */
+    public function testProductOwnedByAnotherMappingStaysAConflict(): void
+    {
+        $existing = $this->catalog->createProduct('GVA 9120688', 'Owned by another provider', null, CatalogSource::External);
+        $existingId = $existing->id();
+        self::assertNotNull($existingId);
+        $owner = ExternalResourceMapping::product('tedarikci', '9001', $existingId, 600, new \DateTimeImmutable('2026-07-25T12:00:00+00:00'));
+        $this->entityManager->persist($owner);
+        $this->entityManager->flush();
+
+        $result = $this->writer->importFull($this->fixtureItem(), 601);
+
+        self::assertFalse($result->isSuccess());
+        self::assertSame('conflict', $result->error()?->errorType()->value);
+        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM catalog_product'));
+        self::assertSame(0, (int) $this->connection->fetchOne("SELECT COUNT(*) FROM integration_external_mapping WHERE provider_key = 'efe' AND resource_type = 'product'"));
+        self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM catalog_product_image'));
+    }
+
     public function testFullRefreshPreservesStableSlugPublicationAndLocalDescription(): void
     {
         $first = $this->writer->importFull($this->fixtureItem(), 300);

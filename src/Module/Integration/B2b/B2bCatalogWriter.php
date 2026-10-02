@@ -74,7 +74,7 @@ final class B2bCatalogWriter
         $counters = B2bSyncCounters::empty();
         $deferredErrors = [];
         try {
-            $product = $productWasResolved ? $resolvedProduct : $this->resources->existingProduct($item);
+            $product = $productWasResolved ? $resolvedProduct : $this->resources->existingProduct($item, $seenAt, $runId);
             $category = $this->resources->resolveCategory($item, $seenAt, $runId);
             $counters = $counters
                 ->recordCategoryCreated($category->createdCount)
@@ -126,7 +126,7 @@ final class B2bCatalogWriter
     {
         try {
             $seenAt = $this->clock->now();
-            $product = $this->resources->existingProduct($item);
+            $product = $this->resources->existingProduct($item, $seenAt, $runId);
             if (null === $product) {
                 $created = $this->importFull($item, $runId, null, true);
 
