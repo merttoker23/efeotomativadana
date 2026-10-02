@@ -1,14 +1,21 @@
+{# The theme's footer: four columns over a bottom bar, and nothing else.
+
+   The reference draws a store column with the shop's own mark, then Customer Service, Information
+   and My Account, and closes with a copyright line on the left and the card marks on the right.
+   Only the content is this store's — the geometry, the stacking and the type sizes are the
+   reference's, which is why each column carries its own heading and every entry sits on a line of
+   its own instead of the whole set running together in a paragraph. #}
 <footer class="site-footer">
-    <div class="container footer-grid">
+    <div class="container footer-main">
         <section aria-labelledby="footer-store-title">
-            <h2 id="footer-store-title">{{ store.name }}</h2>
+            <div class="footer-logo">{{ store.name }}</div>
             <p>Otomotiv yedek parçada doğru ürünü güvenle bulmanız için yanınızdayız.</p>
         </section>
         <section aria-labelledby="footer-service-title">
-            <h2 id="footer-service-title">Müşteri Hizmetleri</h2>
+            <h4 id="footer-service-title">Müşteri Hizmetleri</h4>
             <span>İletişim</span>
             {% if is_granted('ROLE_CUSTOMER') %}
-                {# Only a real link when it leads somewhere: a dead "Iade ve değişim" in the footer of
+                {# Only a real link when it leads somewhere: a dead "İade ve değişim" in the footer of
                    every anonymous page is a support question the store answers for free. #}
                 <a href="{{ path('customer_account_returns') }}">İade ve değişim</a>
             {% else %}
@@ -17,13 +24,14 @@
             <span>Sık sorulan sorular</span>
         </section>
         <section aria-labelledby="footer-info-title">
-            <h2 id="footer-info-title">Bilgilendirme</h2>
+            <h4 id="footer-info-title">Bilgilendirme</h4>
             <a href="{{ path('storefront_information_index') }}">Bilgi sayfaları</a>
             <a href="{{ path('storefront_blog_index') }}">Blog</a>
         </section>
         <section aria-labelledby="footer-account-title">
-            <h2 id="footer-account-title">Hesabım</h2>
+            <h4 id="footer-account-title">Hesabım</h4>
             {% if is_granted('ROLE_CUSTOMER') %}
+                <a href="{{ path('customer_account_dashboard') }}">Hesabım</a>
                 <a href="{{ path('customer_account_orders') }}">Siparişlerim</a>
                 <a href="{{ path('customer_account_addresses') }}">Adreslerim</a>
                 <a href="{{ path('storefront_wishlist_index') }}">Favorilerim</a>
@@ -35,6 +43,6 @@
     </div>
     <div class="container footer-bottom">
         <span>© {{ 'now'|date('Y') }} {{ store.name }}</span>
-        <span>Güvenli alışveriş altyapısı</span>
+        <span class="payments">VISA ● MC ● AMEX ●</span>
     </div>
 </footer>

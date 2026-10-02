@@ -24,6 +24,16 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 final class HomeSectionController extends AbstractController
 {
+    /**
+     * The homepage is composed, not sequenced.
+     *
+     * There is no reordering here on purpose. The theme's own composition decides where a module
+     * goes: the category menu, hero slider and top sellers share the upper row, the testimonials
+     * and blog feed share the closing row, and each remaining type has exactly one place in the
+     * flow. `sortOrder` is kept on the row because the seed, the renderer and the repository order
+     * by it, but nothing lets a module be moved out of the slot its type belongs in — a second
+     * product carousel simply becomes the next full-width block.
+     */
     public function __construct(
         private readonly HomeSectionDraft $drafts,
         private readonly HomeSectionInput $input,
@@ -55,23 +65,6 @@ final class HomeSectionController extends AbstractController
         $this->csrf($request, 'cms_section_'.$section->id());
         $section->setEnabled(!$section->enabled());
         $manager->flush();
-
-        return $this->redirectToRoute('admin_cms_home_index');
-    }
-
-    #[Route('/{id}/move/{direction}', name: 'move', requirements: ['id' => '\d+', 'direction' => 'up|down'], methods: ['POST'])]
-    public function move(HomeSection $section, string $direction, Request $request, HomeSectionRepository $sections, EntityManagerInterface $manager): Response
-    {
-        $this->csrf($request, 'cms_section_'.$section->id());
-        $ordered = $sections->ordered();
-        $index = array_search($section, $ordered, true);
-        if (false === $index) { throw $this->createNotFoundException(); }
-        $target = $index + ('up' === $direction ? -1 : 1);
-        if (isset($ordered[$target])) {
-            [$ordered[$index], $ordered[$target]] = [$ordered[$target], $ordered[$index]];
-            foreach ($ordered as $position => $item) { $item->setSortOrder($position * 10); }
-            $manager->flush();
-        }
 
         return $this->redirectToRoute('admin_cms_home_index');
     }

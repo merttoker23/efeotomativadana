@@ -1,0 +1,16 @@
+{# The paged reading of a listing, for a visitor whose browser does not run scripts.
+
+   It is the same navigation the page has always had, built from the route it is on and the
+   criteria it was rendered with, so the filters and the sort travel with every page number. #}
+<nav class="pagination" aria-label="Katalog sayfaları">
+    {% set route_name = app.request.attributes.get('_route') %}
+    {% set route_params = app.request.attributes.get('_route_params') %}
+    {% if page.previousPage %}<a href="{{ path(route_name, route_params|merge(criteria.queryParameters(page.previousPage, route_filter))) }}" rel="prev" aria-label="Önceki sayfa">‹</a>{% endif %}
+    {% set previous_number = 0 %}
+    {% for number in page.pageNumbers %}
+        {% if previous_number and number > previous_number + 1 %}<span aria-hidden="true">…</span>{% endif %}
+        <a href="{{ path(route_name, route_params|merge(criteria.queryParameters(number, route_filter))) }}"{% if number == page.page %} aria-current="page"{% endif %}>{{ number }}</a>
+        {% set previous_number = number %}
+    {% endfor %}
+    {% if page.nextPage %}<a href="{{ path(route_name, route_params|merge(criteria.queryParameters(page.nextPage, route_filter))) }}" rel="next" aria-label="Sonraki sayfa">›</a>{% endif %}
+</nav>

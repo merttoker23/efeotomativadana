@@ -19,6 +19,17 @@ final class CatalogController extends AbstractController
     /** Page size of the paged category and brand indexes. */
     private const BRANDS_PER_PAGE = 48;
 
+    /**
+     * How many products a category page renders, and then keeps rendering as the customer scrolls.
+     *
+     * A category is the one listing a customer stays on while browsing, so it reads as one long
+     * grid rather than as a sequence of pages: thirty at a time, appended below the grid already
+     * on screen. It is still the same paged query — page one is these thirty, page two is the next
+     * thirty — which is why the page number, the filters and the sort all keep working, and why a
+     * visitor without scripting still gets the ordinary pagination below.
+     */
+    private const CATEGORY_PAGE_SIZE = 30;
+
     public function __construct(
         private readonly CatalogQuery $catalog,
         private readonly StoreConfiguration $configuration,
@@ -40,7 +51,7 @@ final class CatalogController extends AbstractController
             throw $this->createNotFoundException('Kategori bulunamadı.');
         }
 
-        return $this->listing($request, $category->name, $category->slug);
+        return $this->listing($request, $category->name, categorySlug: $category->slug, pageSize: self::CATEGORY_PAGE_SIZE);
     }
 
     #[Route('/marka/{slug}', name: 'storefront_catalog_brand', requirements: ['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'], methods: ['GET'])]
@@ -97,27 +108,41 @@ final class CatalogController extends AbstractController
         ]));
     }
 
+    /**
+     * The catalogue listing, paged.
+     *
+     * `$pageSize` is what separates a listing that reads as a sequence of pages from one that
+     * reads as a single long grid. Nothing else changes with it: the repository still receives the
+     * same criteria and still answers one page of a sorted, filtered query, and the template
+     * renders the same grid. When a size is given, the page is also told whether a further page
+     * exists so the listing can keep loading without a page reload.
+     */
     private function listing(
         Request $request,
         string $heading,
         ?string $categorySlug = null,
         ?string $brandSlug = null,
+        ?int $pageSize = null,
     ): Response {
-        $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug);
+        $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug, $pageSize);
         // The sidebar is a filter, not an index: it renders a bounded, most-popular slice and
         // links to the paged index for the full set, which is where the unbounded read used to
         // happen. Every category and brand stays reachable through that index.
         $categories = $this->catalog->categoriesByPopularity(self::FILTER_OPTIONS);
         $brands = $this->catalog->brandsByPopularity(self::FILTER_OPTIONS);
+        $page = $this->catalog->search($criteria);
 
         return $this->render('storefront/catalog/index.html.twig', $this->context(
             [
                 'heading' => $heading,
                 'criteria' => $criteria,
-                'page' => $this->catalog->search($criteria),
+                'page' => $page,
                 'categories' => $categories,
                 'brands' => $brands,
                 'route_filter' => null !== $categorySlug ? 'category' : (null !== $brandSlug ? 'brand' : null),
+                // The page the listing would fetch next, or null on a listing that does not scroll
+                // and on the last page. The template turns it into the address of that page.
+                'next_page' => null === $pageSize ? null : $page->nextPage(),
                 'seo' => $this->seo->catalogListing($heading, $categorySlug, $brandSlug),
             ],
             ['categories' => array_slice($categories, 0, 8), 'brands' => array_slice($brands, 0, 8)],

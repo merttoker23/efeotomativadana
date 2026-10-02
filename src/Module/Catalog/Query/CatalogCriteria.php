@@ -4,6 +4,15 @@ namespace App\Module\Catalog\Query;
 
 use Symfony\Component\HttpFoundation\InputBag;
 
+/**
+ * One catalogue listing request: what is filtered, how it is sorted, and which slice of it is asked
+ * for.
+ *
+ * The default page size of 12 is the paged reading of the catalogue. A listing that loads the rest
+ * of itself as the customer scrolls passes a size of its own instead — see
+ * {@see self::fromQuery()} — because that is a different reading of the same query rather than a
+ * different query: the filters, the sort and the page number all stay exactly as they were.
+ */
 final readonly class CatalogCriteria
 {
     public ?string $query;
@@ -41,6 +50,7 @@ final readonly class CatalogCriteria
         InputBag $query,
         ?string $categorySlug = null,
         ?string $brandSlug = null,
+        ?int $perPage = null,
     ): self {
         return new self(
             query: $query->getString('q'),
@@ -49,6 +59,7 @@ final readonly class CatalogCriteria
             inStockOnly: 'in-stock' === $query->getString('availability'),
             sort: CatalogSort::tryFrom($query->getString('sort')) ?? CatalogSort::Newest,
             page: $query->getInt('page', 1),
+            perPage: $perPage ?? 12,
         );
     }
 

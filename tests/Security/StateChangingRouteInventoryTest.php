@@ -87,7 +87,6 @@ final class StateChangingRouteInventoryTest extends KernelTestCase
         'admin_cms_home_new' => 'csrf',
         'admin_cms_home_edit' => 'csrf',
         'admin_cms_home_toggle' => 'csrf',
-        'admin_cms_home_move' => 'csrf',
         'admin_cms_home_delete' => 'csrf',
         'admin_seo_product' => 'csrf',
         'admin_seo_category' => 'csrf',

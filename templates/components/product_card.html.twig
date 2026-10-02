@@ -1,4 +1,4 @@
-<article class="product-card">
+<article class="product-card" data-product="{{ product.slug }}">
     {% if product.onSale %}<span class="product-badge">İndirim</span>{% endif %}
     <a class="product-thumb" href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">
         <img src="{{ product_image_url(product.imagePath) }}" alt="{{ product.imageAlt ?? product.name }}" width="640" height="640" loading="lazy" decoding="async">
