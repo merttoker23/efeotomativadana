@@ -18,6 +18,11 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  * The storage name is 32 hex characters from `random_bytes`, so the uploaded name cannot
  * influence the path at all — which is what removes path traversal as a concern here rather
  * than checking for `../` after the fact.
+ *
+ * {@see self::installLocalAsset()} is the one way in that is not a person's upload: it puts a
+ * shipped asset here so a section can be created with content already in it. It reads the same
+ * bytes through the same verification, so it is a second door into the same room rather than a
+ * second set of rules.
  */
 final readonly class CmsMediaStorage
 {
@@ -26,6 +31,13 @@ final readonly class CmsMediaStorage
 
     /** Refuses an image so large that decoding it is itself a denial of service. */
     private const int MAX_DIMENSION = 6000;
+
+    /**
+     * 0644 explicitly rather than at the mercy of the umask: a restrictive umask in a cron or a
+     * worker container would otherwise leave stored images unreadable by the web server, and the
+     * upload would "succeed" while rendering as a broken image.
+     */
+    private const int READABLE_MODE = 0644;
 
     /** The only file name {@see self::store()} can produce, and the only one this class reads back. */
     private const string STORED_NAME = '[a-f0-9]{32}\.(?:jpg|png|webp)';
@@ -45,22 +57,11 @@ final readonly class CmsMediaStorage
             throw new \InvalidArgumentException('Image upload must be smaller than 5 MB.');
         }
 
-        $path = $file->getPathname();
-        $mime = (new \finfo(\FILEINFO_MIME_TYPE))->file($path);
-        $extension = self::ALLOWED_TYPES[$mime] ?? null;
-        $size = @getimagesize($path);
-        // Two independent readings of the same bytes must agree. `finfo` sniffs the header and
-        // `getimagesize` parses the container; a file that satisfies one and not the other is a
-        // polyglot, which is exactly the shape of a payload that passes a naive check.
-        if (null === $extension || false === $size || $size[0] < 1 || $size[1] < 1 || $size[0] > self::MAX_DIMENSION || $size[1] > self::MAX_DIMENSION || $size['mime'] !== $mime) {
-            throw new \InvalidArgumentException('Only valid JPEG, PNG or WebP images are allowed.');
-        }
+        $verified = $this->verify($file->getPathname());
 
-        if (!is_dir($this->directory) && !mkdir($this->directory, 0755, true) && !is_dir($this->directory)) {
-            throw new \RuntimeException('CMS upload directory cannot be created.');
-        }
+        $this->prepareDirectory();
 
-        $name = bin2hex(random_bytes(16)).'.'.$extension;
+        $name = bin2hex(random_bytes(16)).'.'.$verified['extension'];
         $stored = $this->directory.'/'.$name;
         $file->move($this->directory, $name);
 
@@ -68,18 +69,111 @@ final readonly class CmsMediaStorage
         // checks above ran against. The move is the last moment at which the bytes could still
         // differ, and this closes that window instead of assuming it.
         $storedMime = (new \finfo(\FILEINFO_MIME_TYPE))->file($stored);
-        if ($storedMime !== $mime) {
+        if ($storedMime !== $verified['mime']) {
             @unlink($stored);
 
             throw new \InvalidArgumentException('The stored file did not match its uploaded type.');
         }
 
-        // 0644 explicitly rather than at the mercy of the umask: a restrictive umask in a cron
-        // or a worker container would otherwise leave stored images unreadable by the web
-        // server, and the upload would "succeed" while rendering as a broken image.
-        @chmod($stored, 0644);
+        @chmod($stored, self::READABLE_MODE);
 
         return '/uploads/cms/'.$name;
+    }
+
+    /**
+     * Copy a shipped, checked-in image into this storage under a name this storage would have minted.
+     *
+     * The section configuration model only accepts an uploaded CMS image, so a section that ships
+     * with content has to own a real file in this directory rather than a reference to something
+     * served from the asset pipeline. The name is derived from `$key` instead of from randomness,
+     * so installing the same asset twice lands on the same file rather than accumulating copies,
+     * and the returned path is one {@see self::holds()} and `SectionConfiguration` both accept.
+     *
+     * The bytes are verified exactly as an upload's are. Nothing here widens what this storage
+     * accepts: the allowance stays JPEG, PNG and WebP, and an SVG is refused here for the same
+     * reason it is refused there.
+     */
+    public function installLocalAsset(string $source, string $key): string
+    {
+        $key = trim($key);
+        if ('' === $key || !is_file($source) || !is_readable($source)) {
+            throw new \InvalidArgumentException('The source asset is not a readable local file.');
+        }
+
+        $bytes = (int) filesize($source);
+        if ($bytes < 1 || $bytes > self::MAX_BYTES) {
+            throw new \InvalidArgumentException('Image must be smaller than 5 MB.');
+        }
+        $verified = $this->verify($source);
+        $this->prepareDirectory();
+
+        $name = substr(hash('sha256', 'cms-local-asset:'.$key), 0, 32).'.'.$verified['extension'];
+        $stored = $this->directory.'/'.$name;
+
+        if (!is_file($stored)) {
+            if (!@copy($source, $stored)) {
+                throw new \RuntimeException('The local asset could not be installed.');
+            }
+
+            $landed = (new \finfo(\FILEINFO_MIME_TYPE))->file($stored);
+            $landedSize = @getimagesize($stored);
+            if ($landed !== $verified['mime'] || false === $landedSize || $landedSize['mime'] !== $verified['mime']) {
+                @unlink($stored);
+
+                throw new \RuntimeException('The installed asset did not match its source type.');
+            }
+
+            @chmod($stored, self::READABLE_MODE);
+        }
+
+        return '/uploads/cms/'.$name;
+    }
+
+    /**
+     * Take back an asset {@see self::installLocalAsset()} put here.
+     *
+     * A caller that fails halfway through a multi-step write uses this so a rejected run leaves
+     * nothing behind in the media library. It can only ever name a file in this class's own
+     * directory whose name this class mints, so it cannot become a way to delete anything else.
+     */
+    public function removeInstalled(string $path): bool
+    {
+        if (!$this->holds($path)) {
+            return false;
+        }
+
+        $file = $this->directory.'/'.basename($path);
+
+        return is_file($file) && @unlink($file);
+    }
+
+    /**
+     * Two independent readings of the same bytes must agree.
+     *
+     * `finfo` sniffs the header and `getimagesize` parses the container; a file that satisfies one
+     * and not the other is a polyglot, which is exactly the shape of a payload that passes a naive
+     * check. The extension this storage will use comes from what `finfo` found, never from a name.
+     *
+     * @return array{mime: string, extension: string}
+     */
+    private function verify(string $path): array
+    {
+        $mime = (new \finfo(\FILEINFO_MIME_TYPE))->file($path);
+        $extension = self::ALLOWED_TYPES[$mime] ?? null;
+        $size = @getimagesize($path);
+
+        if (null === $extension || false === $size || $size[0] < 1 || $size[1] < 1 || $size[0] > self::MAX_DIMENSION || $size[1] > self::MAX_DIMENSION || $size['mime'] !== $mime) {
+            throw new \InvalidArgumentException('Only valid JPEG, PNG or WebP images are allowed.');
+        }
+
+        return ['mime' => $mime, 'extension' => $extension];
+    }
+
+    private function prepareDirectory(): void
+    {
+        if (!is_dir($this->directory) && !mkdir($this->directory, 0755, true) && !is_dir($this->directory)) {
+            throw new \RuntimeException('CMS upload directory cannot be created.');
+        }
     }
 
     /**

@@ -165,6 +165,14 @@ final class CsrfEnforcementTest extends WebTestCase
     {
         $this->client->loginUser($this->administrator('csrf-media@example.com'), 'admin');
 
+        // The media library is a real directory and not a fixture: a store that has run the
+        // homepage demo seed holds the images that seed installed, so an absolute "the folder is
+        // empty" assertion only holds on a machine which has never uploaded anything. What this
+        // test actually claims is that *this request* stored nothing, so the directory is compared
+        // before and after — which also catches an upload that replaced an existing file.
+        $directory = \dirname(__DIR__, 2).'/public/uploads/cms';
+        $before = glob($directory.'/*') ?: [];
+
         $this->client->request('POST', '/yeni/admin/cms/media', [
             '_token' => '',
             'image' => new \Symfony\Component\HttpFoundation\File\UploadedFile(
@@ -177,11 +185,7 @@ final class CsrfEnforcementTest extends WebTestCase
         ]);
 
         self::assertResponseStatusCodeSame(403);
-        self::assertSame(
-            0,
-            count(glob(\dirname(__DIR__, 2).'/public/uploads/cms/*') ?: []),
-            'A token-less upload was stored.',
-        );
+        self::assertSame($before, glob($directory.'/*') ?: [], 'A token-less upload was stored.');
     }
 
     /**
