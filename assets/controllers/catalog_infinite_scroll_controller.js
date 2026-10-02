@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * The category listing, read as one long grid.
+ * A catalogue listing — the whole catalogue, a category or a brand — read as one long grid.
  *
  * Thirty products arrive with the page and the next thirty of the very same query are asked for as
  * the customer reaches the bottom of the grid, then appended below the cards already on screen.
@@ -11,8 +11,8 @@ import { Controller } from '@hotwired/stimulus';
  *
  * The address of the next page is read from each fetched page rather than counted here, which is
  * what makes the page itself decide what comes next — including deciding that nothing does, and
- * that is what stops the observer on the last page. Every filter, the sort and the category stay
- * in that address because the address is built from the request that produced the page.
+ * that is what stops the observer on the last page. Every filter, the sort, the category and the
+ * brand stay in that address because the address is built from the request that produced the page.
  *
  * Changing a filter or the sort is a link or a form the browser follows, so the listing starts again
  * from the first thirty products. A browser that cannot run this file gets the paged listing

@@ -39,7 +39,7 @@
 
         <section class="catalog-results" aria-labelledby="catalog-heading">
             {# The address of the next page of this very query — same route, same filters, same sort,
-               one page further on. Empty when this listing does not scroll or has nothing left. #}
+               one page further on. Empty on the last page, and the controller then stops. #}
             {% set next_page_url = next_page ? path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(criteria.queryParameters(next_page, route_filter))) : '' %}
 
             <div class="catalog-heading-row">
@@ -62,10 +62,10 @@
 
             <p class="catalog-summary">{{ page.totalItems }} üründen <span class="catalog-summary-range" data-catalog-infinite-scroll-target="range">{{ page.firstItem }} - {{ page.lastItem }}</span> arası gösteriliyor</p>
 
-            {# A listing that reads as one long grid asks for the next page of the very same query as
-               the customer reaches the bottom of the grid, and appends it below the cards already on
-               screen. `next_page` is null on every listing that is not paged this way and on the last
-               page, and the controller then does nothing at all. #}
+            {# Every listing here — the whole catalogue, a category, a brand — reads as one long
+               grid: it asks for the next page of the very same query as the customer reaches the
+               bottom of the grid, and appends it below the cards already on screen. `next_page` is
+               null on the last page, and the controller then does nothing at all. #}
             <div class="catalog-listing" data-controller="catalog-infinite-scroll" data-catalog-infinite-scroll-next-url-value="{{ next_page_url }}">
                 {% if page.items is empty %}
                     <div class="catalog-empty" role="status"><h2>Ürün bulunamadı</h2><p>Arama veya filtre seçiminizi değiştirerek tekrar deneyin.</p></div>

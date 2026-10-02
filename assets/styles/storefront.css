@@ -2397,6 +2397,8 @@ select:focus-visible {
 
 /* The top-sellers column. */
 .top-sellers {
+    display: flex;
+    flex-direction: column;
     height: 460px;
     padding: 21.6px 21.6px 0;
     overflow: hidden;
@@ -2406,6 +2408,7 @@ select:focus-visible {
     margin: 8.8px 0 16.8px;
     font-size: 16.8px;
     font-weight: 750;
+    flex: 0 0 auto;
 }
 
 .seller {
@@ -2415,6 +2418,16 @@ select:focus-visible {
     gap: 4.8px;
     height: 82.4px;
     border-bottom: 1px solid #e2e3e5;
+}
+
+/* Five ranked rows are more than the theme's 460px panel holds once the heading above them is
+   paid for, and the panel is not getting taller. So the rows keep the height the theme gives them
+   and give up only the difference when there are more of them than fit: a short list is drawn at
+   82.4px exactly as the theme draws it, and the fifth product is whole rather than cut off by the
+   panel's own edge. The heading never gives up anything — it is the one row that must not. */
+.top-sellers .seller {
+    min-height: 0;
+    flex-shrink: 1;
 }
 
 .seller:last-child {
@@ -2945,10 +2958,6 @@ select:focus-visible {
 
     .top-sellers h3 {
         margin-bottom: 4.8px;
-    }
-
-    .seller {
-        height: 87.2px;
     }
 }
 

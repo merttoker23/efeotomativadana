@@ -177,12 +177,14 @@ final class CatalogControllerTest extends WebTestCase
         $this->client->request('GET', '/yeni/katalog?page=5&sort=price-desc%3BDELETE%20FROM%20catalog_product&ignored=leak');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.catalog-summary', '109 üründen 49 - 60 arası');
-        self::assertSelectorCount(12, '.product-card');
+        // Thirty to a page now, so page five of a hundred and nine products is past the last one
+        // and the repository answers with that last page rather than with nothing.
+        self::assertSelectorTextContains('.catalog-summary', '109 üründen 91 - 109 arası');
+        self::assertSelectorCount(19, '.product-card');
         self::assertSelectorExists('.pagination [aria-current="page"]');
-        self::assertSelectorTextContains('.pagination [aria-current="page"]', '5');
-        self::assertSelectorCount(9, '.pagination a');
-        self::assertSelectorCount(2, '.pagination > span');
+        self::assertSelectorTextContains('.pagination [aria-current="page"]', '4');
+        self::assertSelectorCount(5, '.pagination a');
+        self::assertSelectorCount(0, '.pagination > span');
         self::assertSelectorCount(0, '.pagination a[href*="ignored"]');
         self::assertSelectorCount(0, '.sort-form input[name="ignored"]');
     }

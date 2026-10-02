@@ -19,13 +19,14 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
- * A category page reads as one long grid rather than as a sequence of pages.
+ * A catalogue listing reads as one long grid rather than as a sequence of pages.
  *
  * Thirty products arrive with the page and the next thirty of the very same query are asked for as
  * the customer reaches the bottom of what is already on screen. This test pins the contract that
  * makes that work rather than the scripting that performs it: the address the page offers is the
  * next page of the same query with the same filters, the pages do not overlap, and the last page
- * offers nothing further — which is what tells the scroll to stop.
+ * offers nothing further — which is what tells the scroll to stop. The whole catalogue, a category
+ * and a brand all read the same way, so all three are asked for it here.
  *
  * It also pins what a customer changes without noticing: the search terms, the brand, the stock
  * filter and the sort all travel into the next address, and changing the sort starts the listing
@@ -174,6 +175,33 @@ final class CategoryInfiniteScrollTest extends WebTestCase
         self::assertStringContainsString('page=2', $html);
     }
 
+    /**
+     * The same reading for the whole catalogue and for a brand.
+     *
+     * A customer browses in a brand exactly as they browse in a category, so the other two
+     * listings scroll the way this one does: thirty on the page, a watchable bottom, and the
+     * address of the next thirty of the very same query rather than a link to a page of results.
+     */
+    public function testTheCatalogueIndexAndTheBrandListingScrollTheWayTheCategoryDoes(): void
+    {
+        $brandPath = '/yeni/marka/'.self::BRAND;
+
+        foreach ([
+            '/yeni/katalog' => '/yeni/katalog?sort=newest&page=2',
+            $brandPath => $brandPath.'?sort=newest&page=2',
+        ] as $path => $expected) {
+            $crawler = $this->request($path);
+            $html = (string) $this->client->getResponse()->getContent();
+
+            self::assertSame('catalog-infinite-scroll', $this->listing($crawler)->attr('data-controller'), $path.' is not read as one long grid.');
+            self::assertSame($expected, $this->nextUrl($crawler), $path.' does not offer the next page of itself.');
+            self::assertSame(1, $crawler->filter('[data-catalog-infinite-scroll-target="sentinel"]')->count(), $path.' leaves nothing to watch.');
+            self::assertSame(self::PER_PAGE, $this->products($crawler)->count(), $path.' did not render thirty products.');
+            // And it is the scroll that replaces the pagination here, exactly as it is in a category.
+            self::assertSame(1, preg_match_all('#<nav class="pagination"#', $html), $path.' shows more than the one noscript pagination.');
+        }
+    }
+
     /** @param array<string, string> $query */
     private function category(int $page = 1, array $query = []): Crawler
     {
@@ -182,7 +210,13 @@ final class CategoryInfiniteScrollTest extends WebTestCase
             $parameters['page'] = (string) $page;
         }
 
-        $this->client->request('GET', '/yeni/kategori/'.self::CATEGORY, $parameters);
+        return $this->request('/yeni/kategori/'.self::CATEGORY, $parameters);
+    }
+
+    /** @param array<string, string> $query */
+    private function request(string $path, array $query = []): Crawler
+    {
+        $this->client->request('GET', $path, $query);
         self::assertResponseIsSuccessful();
 
         return $this->client->getCrawler();

@@ -20,15 +20,16 @@ final class CatalogController extends AbstractController
     private const BRANDS_PER_PAGE = 48;
 
     /**
-     * How many products a category page renders, and then keeps rendering as the customer scrolls.
+     * How many products a listing renders, and then keeps rendering as the customer scrolls.
      *
-     * A category is the one listing a customer stays on while browsing, so it reads as one long
-     * grid rather than as a sequence of pages: thirty at a time, appended below the grid already
-     * on screen. It is still the same paged query — page one is these thirty, page two is the next
-     * thirty — which is why the page number, the filters and the sort all keep working, and why a
-     * visitor without scripting still gets the ordinary pagination below.
+     * Every catalogue listing — the whole catalogue, a category and a brand alike — is somewhere
+     * a customer stays while browsing, so all three read as one long grid rather than as a
+     * sequence of pages: thirty at a time, appended below the grid already on screen. It is still
+     * the same paged query — page one is these thirty, page two is the next thirty — which is why
+     * the page number, the filters and the sort all keep working, and why a visitor without
+     * scripting still gets the ordinary pagination below.
      */
-    private const CATEGORY_PAGE_SIZE = 30;
+    private const LISTING_PAGE_SIZE = 30;
 
     public function __construct(
         private readonly CatalogQuery $catalog,
@@ -51,7 +52,7 @@ final class CatalogController extends AbstractController
             throw $this->createNotFoundException('Kategori bulunamadı.');
         }
 
-        return $this->listing($request, $category->name, categorySlug: $category->slug, pageSize: self::CATEGORY_PAGE_SIZE);
+        return $this->listing($request, $category->name, categorySlug: $category->slug);
     }
 
     #[Route('/marka/{slug}', name: 'storefront_catalog_brand', requirements: ['slug' => '[a-z0-9]+(?:-[a-z0-9]+)*'], methods: ['GET'])]
@@ -109,22 +110,21 @@ final class CatalogController extends AbstractController
     }
 
     /**
-     * The catalogue listing, paged.
+     * The catalogue listing, paged, and read as one long grid.
      *
-     * `$pageSize` is what separates a listing that reads as a sequence of pages from one that
-     * reads as a single long grid. Nothing else changes with it: the repository still receives the
-     * same criteria and still answers one page of a sorted, filtered query, and the template
-     * renders the same grid. When a size is given, the page is also told whether a further page
-     * exists so the listing can keep loading without a page reload.
+     * The page is one page of a sorted, filtered query at a time, and it is told whether a further
+     * page exists so the listing can keep loading without a page reload. Nothing else about the
+     * query depends on that: the repository receives the same criteria and answers the same page,
+     * and the template renders the same grid whether it was reached by scrolling or by a page
+     * number a browser without scripting typed.
      */
     private function listing(
         Request $request,
         string $heading,
         ?string $categorySlug = null,
         ?string $brandSlug = null,
-        ?int $pageSize = null,
     ): Response {
-        $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug, $pageSize);
+        $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug, self::LISTING_PAGE_SIZE);
         // The sidebar is a filter, not an index: it renders a bounded, most-popular slice and
         // links to the paged index for the full set, which is where the unbounded read used to
         // happen. Every category and brand stays reachable through that index.
@@ -140,9 +140,10 @@ final class CatalogController extends AbstractController
                 'categories' => $categories,
                 'brands' => $brands,
                 'route_filter' => null !== $categorySlug ? 'category' : (null !== $brandSlug ? 'brand' : null),
-                // The page the listing would fetch next, or null on a listing that does not scroll
-                // and on the last page. The template turns it into the address of that page.
-                'next_page' => null === $pageSize ? null : $page->nextPage(),
+                // The page the listing would fetch next, or null on the last page. The template
+                // turns it into the address of that page, and a null one is what tells the scroll
+                // there is nothing left to ask for.
+                'next_page' => $page->nextPage(),
                 'seo' => $this->seo->catalogListing($heading, $categorySlug, $brandSlug),
             ],
             ['categories' => array_slice($categories, 0, 8), 'brands' => array_slice($brands, 0, 8)],
