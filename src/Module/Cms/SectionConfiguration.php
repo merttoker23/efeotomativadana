@@ -4,6 +4,27 @@ namespace App\Module\Cms;
 
 final class SectionConfiguration
 {
+    /**
+     * The fields of a hero slide that may be left out, and what "left out" means for each.
+     *
+     * A slide is the theme's frame filled with a label, a headline, and then *either* an offer pill
+     * *or* a pair of calls to action. Those trailing parts are therefore genuinely optional, and a
+     * field that is optional may not be half-filled: a button with a label but no link (or the
+     * reverse) would render a control that cannot be used, so the pair is checked together.
+     */
+    private const array OPTIONAL_SLIDE_FIELDS = [
+        'priceLabel', 'priceValue', 'primaryText', 'primaryLink', 'secondaryText', 'secondaryLink',
+    ];
+
+    /** The optional slide fields that are destinations rather than words. */
+    private const array OPTIONAL_SLIDE_LINKS = ['primaryLink', 'secondaryLink'];
+
+    /** A call to action is a label and a destination or it is nothing. */
+    private const array SLIDE_FIELD_PAIRS = [
+        ['primaryText', 'primaryLink'],
+        ['secondaryText', 'secondaryLink'],
+    ];
+
     /** @param array<string, mixed> $config
      *  @return array<string, mixed>
      */
@@ -16,6 +37,7 @@ final class SectionConfiguration
             HomeSectionType::ProductCarousel => ['slugs' => 'slugs'],
             HomeSectionType::BannerGrid => ['banners' => 'banners'],
             HomeSectionType::Features => ['features' => 'features'],
+            HomeSectionType::SplitBuilder => ['label' => 'text', 'headline' => 'text', 'description' => 'text', 'cta' => 'text', 'link' => 'link', 'slugs' => 'slugs'],
             HomeSectionType::BrandStrip => ['slugs' => 'slugs'],
             HomeSectionType::ProductTabs => ['tabs' => 'tabs'],
             HomeSectionType::Marquee => ['items' => 'items'],
@@ -37,6 +59,8 @@ final class SectionConfiguration
                 if (!is_int($value) || $value < 1 || $value > 12) {
                     throw new \InvalidArgumentException('Blog limit must be between 1 and 12.');
                 }
+            } elseif ('link' === $kind) {
+                self::link($value);
             } else {
                 self::list($kind, $value);
             }
@@ -49,6 +73,26 @@ final class SectionConfiguration
     {
         if (!is_string($value) || '' === trim($value) || mb_strlen($value) > 500) {
             throw new \InvalidArgumentException('Text must contain between 1 and 500 characters.');
+        }
+    }
+
+    /**
+     * A field the theme lets a slide leave out: absent, or a value within the same bounds the
+     * required version has. An empty string is the only way to say "not this time" here, because
+     * the key itself is part of the shape every slide shares.
+     */
+    private static function optionalText(mixed $value): void
+    {
+        if (!is_string($value) || mb_strlen($value) > 500) {
+            throw new \InvalidArgumentException('Optional text must be a string of at most 500 characters.');
+        }
+    }
+
+    private static function optionalLink(mixed $value): void
+    {
+        self::optionalText($value);
+        if ('' !== trim($value)) {
+            self::link($value);
         }
     }
 
@@ -91,7 +135,7 @@ final class SectionConfiguration
                 continue;
             }
             $fields = match ($kind) {
-                'slides' => ['title', 'description', 'image', 'link'],
+                'slides' => HomeSectionType::HeroSlider->rowFields(),
                 'banners' => ['title', 'image', 'link'],
                 'features' => ['title', 'description'],
                 'tabs' => ['title', 'slugs'],
@@ -107,12 +151,39 @@ final class SectionConfiguration
             sort($expectedFields);
             if ($actualFields !== $expectedFields) { throw new \InvalidArgumentException('Invalid '.$kind.' entry.'); }
             foreach ($fields as $field) {
+                if (\in_array($field, self::OPTIONAL_SLIDE_FIELDS, true)) {
+                    \in_array($field, self::OPTIONAL_SLIDE_LINKS, true)
+                        ? self::optionalLink($item[$field])
+                        : self::optionalText($item[$field]);
+
+                    continue;
+                }
                 match ($field) {
                     'image' => self::image($item[$field]),
                     'link' => self::link($item[$field]),
                     'slugs' => self::list('slugs', $item[$field]),
                     default => self::text($item[$field]),
                 };
+            }
+            if ('slides' === $kind) {
+                self::slidePairs($item);
+            }
+        }
+    }
+
+    /**
+     * The theme's hero calls to action: two buttons, either of which may be left out entirely.
+     *
+     * @param array<string, mixed> $slide
+     */
+    private static function slidePairs(array $slide): void
+    {
+        foreach (self::SLIDE_FIELD_PAIRS as [$text, $link]) {
+            if ('' === trim((string) $slide[$text]) xor '' === trim((string) $slide[$link])) {
+                throw new \InvalidArgumentException('A hero call to action needs both its text and its link.');
+            }
+            if ('' !== trim((string) $slide[$link])) {
+                self::link($slide[$link]);
             }
         }
     }

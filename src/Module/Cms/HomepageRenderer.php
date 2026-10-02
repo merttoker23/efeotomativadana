@@ -49,7 +49,7 @@ final readonly class HomepageRenderer
             match ($section->type()) {
                 HomeSectionType::CategoryMenu => $categorySlugs = array_merge($categorySlugs, $config['slugs']),
                 HomeSectionType::BrandStrip => $brandSlugs = array_merge($brandSlugs, $config['slugs']),
-                HomeSectionType::ProductCarousel => $productSlugs = array_merge($productSlugs, $config['slugs']),
+                HomeSectionType::ProductCarousel, HomeSectionType::SplitBuilder => $productSlugs = array_merge($productSlugs, $config['slugs']),
                 HomeSectionType::ProductTabs => $productSlugs = array_merge($productSlugs, ...array_column($config['tabs'], 'slugs')),
                 default => null,
             };
@@ -115,6 +115,12 @@ final readonly class HomepageRenderer
 
                 break;
             case HomeSectionType::ProductCarousel:
+                $data['products'] = $this->pick($productsBySlug, $config['slugs']);
+
+                break;
+            case HomeSectionType::SplitBuilder:
+                // Both draw a row of chosen products; the split builder simply draws its row
+                // beside a promotional panel rather than across a whole card.
                 $data['products'] = $this->pick($productsBySlug, $config['slugs']);
 
                 break;

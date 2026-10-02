@@ -32,7 +32,7 @@
                  aria-labelledby="{{ base }}-tab-{{ loop.index0 }}"
                  data-home-tabs-target="panel"
                  {{ loop.first ? '' : 'hidden' }}>
-                {% for product in tab.products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}
+                {% for product in tab.products %}{% include 'components/home_product_card.html.twig' with {product: product} only %}{% endfor %}
             </div>
         {% endfor %}
     </section>

@@ -1,0 +1,28 @@
+{# The theme's split builder: a three-product list beside one large promotional panel.
+
+   `tema/index.html` draws it as a 1.2fr / 1fr pair — the product list keeps the theme's section
+   card, the `.big-promo` fills the narrower column with a small label, a headline, a sentence and
+   one call to action. It sits between the features strip and the brand shelf, which is where the
+   seed puts it and where the reference has it. #}
+{% if section.data.products %}
+    <section class="container home-section split-builder" aria-label="{{ section.title }}">
+        <div class="section-card">
+            <div class="section-head">
+                <div>
+                    <h2>{{ section.title }}</h2>
+                    {% if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}
+                </div>
+                <a class="see-all" href="{{ path('storefront_catalog_index') }}">Tüm ürünler</a>
+            </div>
+            <div class="product-grid split-builder-grid">
+                {% for product in section.data.products %}{% include 'components/home_product_card.html.twig' with {product: product} only %}{% endfor %}
+            </div>
+        </div>
+        <div class="big-promo">
+            <span>{{ section.data.label }}</span>
+            <h2>{{ section.data.headline }}</h2>
+            <p>{{ section.data.description }}</p>
+            <a class="btn-yellow big-promo-cta" href="{{ section.data.link }}">{{ section.data.cta }}</a>
+        </div>
+    </section>
+{% endif %}

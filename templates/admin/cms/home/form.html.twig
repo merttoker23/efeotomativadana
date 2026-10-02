@@ -41,8 +41,12 @@
                 <label for="field-{{ field }}">{{ type.fieldLabels()[field]|default(field) }}</label>
                 {% if 'textarea' == kind %}
                     <textarea id="field-{{ field }}" name="{{ field }}" rows="3" maxlength="500">{{ draft[field]|default('') }}</textarea>
-                {% else %}
+                {% elseif 'link' == kind %}
+                    {% include 'admin/cms/home/_link.html.twig' with {name: field, value: draft[field]|default('')} only %}
+                {% elseif 'number' == kind %}
                     <input id="field-{{ field }}" type="number" name="{{ field }}" value="{{ draft[field]|default(3) }}" min="1" max="12">
+                {% else %}
+                    <input id="field-{{ field }}" type="text" name="{{ field }}" value="{{ draft[field]|default('') }}" maxlength="500">
                 {% endif %}
             </div>
         {% endfor %}

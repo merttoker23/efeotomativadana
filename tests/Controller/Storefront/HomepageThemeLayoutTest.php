@@ -17,6 +17,7 @@ use App\Module\Pricing\TaxRate;
 use App\Shared\Money\Money;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -28,6 +29,11 @@ use Symfony\Component\DomCrawler\Crawler;
  * structure: the category panel, the hero slider and the top-sellers column share one row, and the
  * testimonials share a row with the blog feed. Each module's own markup is asserted too, because
  * "the hero is a slider" is a claim about classes and a working controller, not about a heading.
+ *
+ * The last test in this class is the one that would notice a slow drift: it reads
+ * `tema/index.html` — the reference the design was taken from — parses the blocks it draws, and
+ * compares that order with the blocks this storefront actually renders. It is a real comparison
+ * against the source of truth rather than a restatement of the markup written here.
  */
 final class HomepageThemeLayoutTest extends WebTestCase
 {
@@ -59,12 +65,11 @@ final class HomepageThemeLayoutTest extends WebTestCase
         $first = $this->product('THEME-01', 'Balata', 'balata');
         $second = $this->product('THEME-02', 'Disk', 'disk');
         $third = $this->product('THEME-03', 'Balyat', 'balyat');
-        $image = $this->cmsImage();
 
         $this->section(HomeSectionType::CategoryMenu, 'Kategoriler', ['slugs' => [$category->slug()]], 10);
         $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
-            ['title' => 'Yaza özel', 'description' => 'Yedek parça fırsatları', 'image' => $image, 'link' => '/yeni/katalog'],
-            ['title' => 'Sezon sonu', 'description' => 'Stoktan hızlı çıkış', 'image' => $image, 'link' => '/yeni/katalog'],
+            $this->slide(['title' => 'Yaza özel']),
+            $this->slide(['label' => 'Efe Otomotiv', 'title' => 'Doğru parça', 'secondaryText' => 'Kategoriler', 'secondaryLink' => '/yeni/kategoriler']),
         ]], 20);
         $this->section(HomeSectionType::ProductCarousel, 'Çok satanlar', ['slugs' => [$first->slug(), $second->slug(), $third->slug()]], 30);
 
@@ -87,11 +92,10 @@ final class HomepageThemeLayoutTest extends WebTestCase
 
     public function testTheHeroIsAWorkingSliderRatherThanAStackOfPictures(): void
     {
-        $image = $this->cmsImage();
         $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
-            ['title' => 'İlk kare', 'description' => 'Açıklama bir', 'image' => $image, 'link' => '/yeni/katalog'],
-            ['title' => 'İkinci kare', 'description' => 'Açıklama iki', 'image' => $image, 'link' => '/yeni/katalog'],
-            ['title' => 'Üçüncü kare', 'description' => 'Açıklama üç', 'image' => $image, 'link' => '/yeni/katalog'],
+            $this->slide(['title' => 'İlk kare']),
+            $this->slide(['title' => 'İkinci kare']),
+            $this->slide(['title' => 'Üçüncü kare']),
         ]], 10);
 
         $crawler = $this->home();
@@ -109,6 +113,44 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame(1, $hero->filter('.slider-controls .slider-btn[data-action="home-slider#next"]')->count());
         self::assertSame(1, $hero->filter('.slider-controls .slider-btn[data-action="home-slider#previous"]')->count());
         self::assertSame('1/3', trim($hero->filter('.slide-count')->text()));
+    }
+
+    /**
+     * The reference's three slides are three compositions of one frame, and which composition a
+     * slide gets follows from its own content rather than from a fixed "Keşfet" link on all of them.
+     */
+    public function testEachHeroCompositionIsRenderedFromTheSlidesOwnContent(): void
+    {
+        $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
+            $this->slide(['label' => 'Yeni Ürünler', 'title' => 'Pilli', 'priceLabel' => 'Şu andan itibaren', 'priceValue' => '2.499,00 TL']),
+            $this->slide([
+                'label' => 'Efe Otomotiv',
+                'title' => 'İki butonlu',
+                'primaryText' => 'Hemen başla',
+                'primaryLink' => '/yeni/katalog',
+                'secondaryText' => 'Kategoriler',
+                'secondaryLink' => '/yeni/kategoriler',
+            ]),
+        ]], 10);
+
+        $crawler = $this->home();
+        $slides = $crawler->filter('.hero-slide');
+
+        self::assertSelectorTextContains('.hero-slide.active .hero-label', 'Yeni Ürünler');
+        self::assertSame(1, $slides->eq(0)->filter('.price-pill')->count());
+        self::assertSelectorTextContains('.hero-slide.active .price-pill span', 'Şu andan itibaren');
+        self::assertSelectorTextContains('.hero-slide.active .price-pill strong', '2.499,00 TL');
+        self::assertSame(0, $slides->eq(0)->filter('.hero-actions')->count());
+
+        // The second composition: two calls to action, no pill, and the theme's own left-aligned
+        // feature frame.
+        self::assertSame(0, $slides->eq(1)->filter('.price-pill')->count());
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .shop-now[href="/yeni/katalog"]')->count());
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .learn-more[href="/yeni/kategoriler"]')->count());
+        self::assertStringContainsString('mobile-feature', (string) $slides->eq(1)->attr('class'));
+        self::assertStringContainsString('alt', (string) $slides->eq(1)->attr('class'));
+
+        self::assertSame(0, $crawler->filter('.hero .hero-cta')->count(), 'No fixed per-slide call to action survives.');
     }
 
     public function testProductTabsCarryRealTabPanelsAndTabBehaviour(): void
@@ -173,6 +215,40 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSelectorTextContains('.marquee', 'Yetkili servis');
     }
 
+    /**
+     * The theme's split builder: three products on the wider side, one large promotional panel on
+     * the narrower one, with the panel's five editable parts all present.
+     */
+    public function testTheSplitBuilderPairsAProductListWithOneBigPromo(): void
+    {
+        $first = $this->product('SPLIT-01', 'Balata', 'split-balata');
+        $second = $this->product('SPLIT-02', 'Disk', 'split-disk');
+        $third = $this->product('SPLIT-03', 'Balyat', 'split-balyat');
+
+        $this->section(HomeSectionType::SplitBuilder, 'Fren aksesuarları', [
+            'label' => 'Yetkili Satıcı',
+            'headline' => '2.500 TL üzeri ücretsiz kargo',
+            'description' => 'Fiyatlar stoklarla sınırlıdır.',
+            'cta' => 'Kampanyayı İncele',
+            'link' => '/yeni/katalog',
+            'slugs' => [$first->slug(), $second->slug(), $third->slug()],
+        ], 10);
+
+        $crawler = $this->home();
+        $split = $crawler->filter('.split-builder');
+
+        self::assertSame(1, $split->count());
+        self::assertSame(3, $split->filter('.section-card .split-builder-grid .product-card')->count());
+        self::assertSelectorTextContains('.split-builder .section-head h2', 'Fren aksesuarları');
+        self::assertSelectorTextContains('.split-builder .big-promo > span', 'Yetkili Satıcı');
+        self::assertSelectorTextContains('.split-builder .big-promo h2', '2.500 TL üzeri ücretsiz kargo');
+        self::assertSelectorTextContains('.split-builder .big-promo p', 'stoklarla sınırlıdır');
+        self::assertSelectorTextContains('.split-builder .big-promo .big-promo-cta', 'Kampanyayı İncele');
+        self::assertSame('/yeni/katalog', $split->filter('.big-promo .big-promo-cta')->attr('href'));
+        // The homepage's card, not the catalogue's: the catalogue list keeps its own partial.
+        self::assertSame(3, $split->filter('.product-card.home-product-card')->count());
+    }
+
     public function testTheTestimonialsAndBlogFeedShareTheThemesClosingRow(): void
     {
         $post = new BlogPost('Fren bakımı', 'fren-bakimi', 'Fren bakımının adımları.', 'Gövde');
@@ -195,6 +271,23 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSelectorTextContains('.testimonial-blog .blog-card h3', 'Fren bakımı');
     }
 
+    /**
+     * A closing row with one of its two panels missing must not leave half a row of blank white
+     * behind it, which is what the theme's 1fr / 1.5fr would otherwise do.
+     */
+    public function testAClosingRowWithOnePanelDoesNotLeaveAHalfWidthHole(): void
+    {
+        $this->section(HomeSectionType::Testimonials, 'Müşterilerimiz ne diyor', ['quotes' => [
+            ['author' => 'Mehmet Y.', 'text' => 'Çok hızlı teslim edildi.'],
+        ]], 10);
+
+        $crawler = $this->home();
+
+        self::assertStringContainsString('testimonial-blog-1', (string) $crawler->filter('.testimonial-blog')->attr('class'));
+        self::assertSame(0, $crawler->filter('.blog-grid')->count());
+        self::assertSame(0, $crawler->filter('.testimonial-blog .blog-card')->count());
+    }
+
     public function testASectionWithoutItsThemeSlotFallsBackToAStandaloneBlock(): void
     {
         $product = $this->product('SOLO-01', 'Filtre', 'solo-filtre');
@@ -215,6 +308,10 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame(1, $crawler->filter('.home-section.section-card .see-all')->count());
     }
 
+    /**
+     * There is one notice band and it is the theme's: at the very top of the page, above the
+     * header, and carrying the CMS announcement's text.
+     */
     public function testTheAnnouncementBarUsesTheThemesNoticeBand(): void
     {
         $this->section(HomeSectionType::AnnouncementBar, 'Duyuru', ['text' => 'Yaz sezonunda ücretsiz kargo.'], 10);
@@ -223,6 +320,26 @@ final class HomepageThemeLayoutTest extends WebTestCase
 
         self::assertSame(1, $crawler->filter('.notice[role="status"] .notice-text')->count());
         self::assertSelectorTextContains('.notice .notice-text', 'ücretsiz kargo');
+
+        // The theme's position: the notice is a child of the body, before the header, not a second
+        // strip below the navigation.
+        $notice = $crawler->filter('.notice')->getNode(0);
+        self::assertSame('body', $notice->parentNode->nodeName);
+        $header = $crawler->filter('header.site-header')->getNode(0);
+        self::assertLessThan(
+            $this->documentPosition($header),
+            $this->documentPosition($notice),
+            'The notice must come before the header.',
+        );
+        self::assertSame(0, $crawler->filter('.announcement')->count());
+    }
+
+    /** A page with no CMS announcement keeps one band, holding the store's own line. */
+    public function testThereIsStillExactlyOneNoticeWhenNoAnnouncementIsConfigured(): void
+    {
+        $crawler = $this->home();
+
+        self::assertSame(1, $crawler->filter('.notice .notice-text')->count());
     }
 
     /**
@@ -240,12 +357,328 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame(1, $crawler->filter('.marquee')->count());
     }
 
+    /**
+     * The reference page and this storefront, block for block.
+     *
+     * `tema/index.html` is the design this page was taken from, so it is parsed here rather than
+     * transcribed: the test reads the reference's own block sequence out of the reference file and
+     * compares it with the sequence the rendered homepage actually produces. A block added, dropped
+     * or reordered on either side fails this, which is the whole point — the list in this file
+     * cannot drift away from `tema/index.html` without the test noticing.
+     */
+    public function testTheRenderedHomepageHasTheThemesBlockSequence(): void
+    {
+        $category = $this->category('Fren', 'fren');
+        $brand = $this->brand('Brembo', 'brembo');
+        $products = [
+            $this->product('SEQ-01', 'Balata', 'seq-balata'),
+            $this->product('SEQ-02', 'Disk', 'seq-disk'),
+            $this->product('SEQ-03', 'Balyat', 'seq-balyat'),
+        ];
+        $image = $this->cmsImage();
+        $slugs = array_map(static fn (Product $product): string => $product->slug(), $products);
+
+        $post = new BlogPost('Fren bakımı', 'fren-bakimi', 'Fren bakımının adımları.', 'Gövde');
+        $this->manager->persist($post);
+        $this->manager->flush();
+        $this->connection->executeStatement('UPDATE cms_blog_post SET published = 1 WHERE id = ?', [$post->id()]);
+
+        $this->section(HomeSectionType::AnnouncementBar, 'Duyuru', ['text' => 'Kargo duyurusu'], 10);
+        $this->section(HomeSectionType::CategoryMenu, 'Kategoriler', ['slugs' => [$category->slug()]], 20);
+        $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
+            $this->slide(['title' => 'Birinci']),
+            $this->slide(['title' => 'İkinci', 'secondaryText' => 'Kategoriler', 'secondaryLink' => '/yeni/kategoriler']),
+        ]], 30);
+        $this->section(HomeSectionType::ProductCarousel, 'Çok Satanlar', ['slugs' => $slugs], 40);
+        $this->section(HomeSectionType::BannerGrid, 'Kampanyalar', ['banners' => [
+            ['title' => 'Yaz', 'image' => $image, 'link' => '/yeni/katalog'],
+            ['title' => 'Kış', 'image' => $image, 'link' => '/yeni/katalog'],
+            ['title' => 'Bahar', 'image' => $image, 'link' => '/yeni/katalog'],
+            ['title' => 'Sonbahar', 'image' => $image, 'link' => '/yeni/katalog'],
+        ]], 50);
+        $this->section(HomeSectionType::ProductCarousel, 'Yeni Ürünler', ['slugs' => $slugs], 60);
+        $this->section(HomeSectionType::Features, 'Güvence', ['features' => [
+            ['title' => 'Hızlı kargo', 'description' => 'Aynı gün'],
+            ['title' => 'Güvenli ödeme', 'description' => 'Kart bilgisi saklanmaz'],
+            ['title' => 'Kolay iade', 'description' => '14 gün'],
+            ['title' => 'Destek', 'description' => '7/24'],
+        ]], 70);
+        $this->section(HomeSectionType::SplitBuilder, 'Fren aksesuarları', [
+            'label' => 'Yetkili Satıcı',
+            'headline' => 'Ücretsiz kargo',
+            'description' => 'Stoklarla sınırlıdır.',
+            'cta' => 'İncele',
+            'link' => '/yeni/katalog',
+            'slugs' => $slugs,
+        ], 80);
+        $this->section(HomeSectionType::BrandStrip, 'Popüler Markalar', ['slugs' => [$brand->slug()]], 90);
+        $this->section(HomeSectionType::ProductTabs, 'Ürünler', ['tabs' => [
+            ['title' => 'Çok Satanlar', 'slugs' => $slugs],
+            ['title' => 'Popüler', 'slugs' => $slugs],
+            ['title' => 'İndirimdekiler', 'slugs' => $slugs],
+            ['title' => 'Öne Çıkanlar', 'slugs' => $slugs],
+        ]], 100);
+        $this->section(HomeSectionType::Marquee, 'Avantajlarımız', ['items' => ['Hızlı Gönderim', 'Güvenilir Markalar']], 110);
+        $this->section(HomeSectionType::Testimonials, 'Müşterilerimiz', ['quotes' => [
+            ['author' => 'Mehmet Y.', 'text' => 'Çok hızlı teslim edildi.'],
+        ]], 120);
+        $this->section(HomeSectionType::BlogFeed, 'Blog', ['limit' => 3], 130);
+
+        $crawler = $this->home();
+
+        self::assertSame($this->themeBlockSequence(), $this->renderedBlockSequence($crawler));
+    }
+
+    /**
+     * The measurements, not just the markup.
+     *
+     * Block order can be right while the page still does not look like the reference: a hero that
+     * is 400px tall, a grid with four columns, a closing row split the other way round — all of
+     * that would pass every test above and still be a different design. So the storefront
+     * stylesheet is read here and compared against `tema/assets/css/style.css`'s own values, and
+     * the comparison is made between the two files rather than against a list written in this one.
+     *
+     * @param string $selector           the selector the storefront gives this measurement
+     * @param string $declaration        the declaration the storefront gives it
+     * @param string $referenceSelector  the reference's own selector for the same measurement
+     * @param string $referenceDeclaration the reference's own declaration for it
+     */
+    #[DataProvider('themeMetrics')]
+    public function testTheStorefrontStylesheetCarriesTheThemesHomepageGeometry(string $selector, string $declaration, string $referenceSelector, string $referenceDeclaration): void
+    {
+        $ours = $this->declarationsOf(dirname(__DIR__, 3).'/assets/styles/storefront.css');
+        $theirs = $this->declarationsOf(dirname(__DIR__, 3).'/tema/assets/css/style.css');
+
+        self::assertArrayHasKey($referenceSelector, $theirs, 'The reference no longer styles '.$referenceSelector.'.');
+        self::assertArrayHasKey($referenceDeclaration, $theirs[$referenceSelector], 'The reference no longer gives '.$referenceSelector.' a '.$referenceDeclaration.'.');
+        self::assertArrayHasKey($selector, $ours, 'The storefront no longer styles '.$selector.'.');
+        self::assertArrayHasKey($declaration, $ours[$selector], 'The storefront no longer gives '.$selector.' a '.$declaration.'.');
+
+        // The reference states its geometry in px at a 16px root; the storefront states the same
+        // measurements in rem, so the two are compared as the pixel values they both mean.
+        self::assertSame(
+            $this->pixelsOf($theirs[$referenceSelector][$referenceDeclaration]),
+            $this->pixelsOf($ours[$selector][$declaration]),
+            $selector.' { '.$declaration.' } does not match the reference.',
+        );
+    }
+
+    /** @return iterable<string, array{string, string, string, string}> */
+    public static function themeMetrics(): iterable
+    {
+        // The reference's own selectors and declarations. Where the storefront scopes a rule to
+        // keep it away from the catalogue, its own selector is named; the measurement compared is
+        // still the reference's.
+        yield 'upper row side columns' => ['.home-top', 'grid-template-columns', '.home-top', 'grid-template-columns'];
+        yield 'upper row gap' => ['.home-top', 'gap', '.home-top', 'gap'];
+        yield 'promo grid' => ['.promo-grid', 'grid-template-columns', '.promo-grid', 'grid-template-columns'];
+        yield 'feature strip' => ['.features', 'grid-template-columns', '.features', 'grid-template-columns'];
+        yield 'product grid' => ['.home-section .product-grid', 'grid-template-columns', '.product-grid', 'grid-template-columns'];
+        yield 'brand shelf' => ['.brand-strip', 'grid-template-columns', '.brand-strip', 'grid-template-columns'];
+        yield 'blog cards' => ['.blog-grid', 'grid-template-columns', '.blog-grid', 'grid-template-columns'];
+        yield 'closing row' => ['.testimonial-blog', 'grid-template-columns', '.testimonial-blog', 'grid-template-columns'];
+        yield 'split builder' => ['.split-builder', 'grid-template-columns', '.split-builder', 'grid-template-columns'];
+        yield 'hero height' => ['.hero', 'height', '.hero', 'height'];
+        yield 'category column height' => ['.category-panel', 'height', '.category-panel', 'height'];
+        yield 'top sellers height' => ['.top-sellers', 'height', '.top-sellers', 'height'];
+        yield 'seller row height' => ['.seller', 'height', '.seller', 'height'];
+        yield 'marquee height' => ['.marquee', 'height', '.marquee', 'height'];
+        yield 'marquee gap' => ['.marquee', 'gap', '.marquee', 'gap'];
+        yield 'marquee font size' => ['.marquee', 'font-size', '.marquee', 'font-size'];
+        yield 'section card padding' => ['.section-card', 'padding', '.section-card', 'padding'];
+        yield 'hero photo left' => ['.hero-photo', 'left', '.hero-photo', 'left'];
+        yield 'hero photo width' => ['.hero-photo', 'width', '.hero-photo', 'width'];
+        yield 'hero photo height' => ['.hero-photo', 'height', '.hero-photo', 'height'];
+        yield 'product card thumbnail' => ['.product-thumb', 'height', '.product-thumb', 'height'];
+        yield 'big promo min height' => ['.big-promo', 'min-height', '.big-promo', 'min-height'];
+        yield 'big promo padding' => ['.big-promo', 'padding', '.big-promo', 'padding'];
+    }
+
+    /**
+     * Every `selector { property: value }` pair in a stylesheet.
+     *
+     * Only a rule that states no condition of its own is kept, and the first declaration of a
+     * property is the one recorded: a later duplicate belongs to a breakpoint, and what the desktop
+     * looks like is the unconditioned rule. Anything behind `@media` is skipped on both sides, so
+     * the two files are read the same way and compared like for like.
+     *
+     * A comma-separated selector list is recorded one selector at a time, because the storefront
+     * scopes some of the reference's rules to its own markup (`minmax(0, 1fr)` instead of `1fr`,
+     * a card that only exists on the homepage) and that difference should not hide the measurement.
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function declarationsOf(string $path): array
+    {
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents($path));
+        $rules = [];
+        if (preg_match_all('#([^{}]+)\{([^{}]*)\}#', $css, $matches, \PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $list = trim(preg_replace('/\s+/', ' ', $match[1]) ?? '');
+                if ('' === $list || str_contains($list, '@')) {
+                    continue;
+                }
+                foreach (array_filter(array_map('trim', explode(';', $match[2]))) as $declaration) {
+                    [$property, $value] = array_pad(explode(':', $declaration, 2), 2, '');
+                    foreach (explode(',', $list) as $selector) {
+                        $rules[trim($selector)][trim($property)] ??= trim($value);
+                    }
+                }
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * A declaration's value as the measurement it is about.
+     *
+     * A rem value is converted at the 16px root both files are written against, so a rule can be
+     * compared across the two even though they do not spell the same number in the same unit. A
+     * `repeat()` is reduced to its column count, because the reference says `repeat(4, 1fr)` and
+     * the storefront says `repeat(4, minmax(0, 1fr))` — the same four columns, spelled the way
+     * this codebase spells them everywhere else so that long product names cannot blow a track
+     * out of the grid. Anything naming no number at all — `1fr`, `auto`, `82%` — comes back as
+     * itself with its spacing normalised, which is exactly what the other side has to say.
+     */
+    private function pixelsOf(string $value): string
+    {
+        if (preg_match('/^repeat\((\d+)\s*,/', $value, $matches)) {
+            return 'repeat('.$matches[1];
+        }
+        if (!preg_match_all('/(-?[\d.]+)(rem|px)/', $value, $numbers, \PREG_SET_ORDER)) {
+            return (string) preg_replace('/\s+/', '', $value);
+        }
+
+        return implode(' ', array_map(
+            static fn (array $number): string => self::number((float) $number[1] * ('rem' === $number[2] ? 16 : 1)),
+            $numbers,
+        ));
+    }
+
+    /** A pixel value rounded to the theme's own 0.8px granularity, so 0.0625rem reads as 1. */
+    private static function number(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 4, '.', ''), '0'), '.');
+    }
+
+    /**
+     * The blocks `tema/index.html` draws, in the order it draws them.
+     *
+     * @return list<string>
+     */
+    private function themeBlockSequence(): array
+    {
+        $reference = file_get_contents(dirname(__DIR__, 3).'/tema/index.html');
+        self::assertIsString($reference);
+        $document = new \DOMDocument();
+        self::assertTrue($document->loadHTML($reference, \LIBXML_NOERROR | \LIBXML_NOWARNING));
+        $xpath = new \DOMXPath($document);
+
+        $sequence = [];
+        // The notice band is a child of the body; every other block is a child of the page shell.
+        foreach (['//body/*', '//body/main/*'] as $query) {
+            foreach ($xpath->query($query) ?: [] as $node) {
+                foreach ($this->blockClassesOf($node) as $block) {
+                    $sequence[] = $block;
+                }
+            }
+        }
+
+        self::assertContains('home-top', $sequence, 'The reference page no longer has the upper band.');
+        self::assertContains('split-builder', $sequence, 'The reference page no longer has the split builder.');
+
+        return $sequence;
+    }
+
+    /**
+     * The same blocks, read out of the rendered homepage: the notice above the header, then the
+     * children of the page shell in document order.
+     *
+     * @return list<string>
+     */
+    private function renderedBlockSequence(Crawler $crawler): array
+    {
+        $sequence = [];
+        foreach ($crawler->filter('body > .notice') as $node) {
+            foreach ($this->blockClassesOf($node) as $block) {
+                $sequence[] = $block;
+            }
+        }
+        foreach ($crawler->filter('main#main-content > *') as $node) {
+            foreach ($this->blockClassesOf($node) as $block) {
+                $sequence[] = $block;
+            }
+        }
+
+        return $sequence;
+    }
+
+    /**
+     * The block a top-level element is, judged the way the theme's own markup is written.
+     *
+     * A block is named by the class that identifies it: the bands and grids have one
+     * (`home-top`, `promo-grid`, `features`, `split-builder`, `marquee`, `testimonial-blog`,
+     * `home-section`), and a white card is a product block whatever it is called — the theme's own
+     * three of them are all `section-card`, and so are ours.
+     *
+     * @return list<string>
+     */
+    private function blockClassesOf(\DOMNode $node): array
+    {
+        if (!$node instanceof \DOMElement) {
+            return [];
+        }
+        $classes = preg_split('/\s+/', trim($node->getAttribute('class'))) ?: [];
+
+        foreach (['home-top', 'promo-grid', 'features', 'split-builder', 'marquee', 'testimonial-blog', 'notice'] as $block) {
+            if (\in_array($block, $classes, true)) {
+                return [$block];
+            }
+        }
+
+        return \in_array('section-card', $classes, true) ? ['section-card'] : [];
+    }
+
+    private function documentPosition(\DOMNode $node): int
+    {
+        $position = 0;
+        while ($node instanceof \DOMNode) {
+            $position += 2 * max(0, $node->childNodes->length) + 1;
+            $node = $node->parentNode;
+        }
+
+        return $position;
+    }
+
     private function home(): Crawler
     {
         $crawler = static::getClient()->request('GET', '/yeni/');
         self::assertResponseIsSuccessful();
 
         return $crawler;
+    }
+
+    /**
+     * One hero slide in the theme's own shape, so a test only has to state what it is about.
+     *
+     * @param array<string, string> $overrides
+     *
+     * @return array<string, string>
+     */
+    private function slide(array $overrides = []): array
+    {
+        return array_merge([
+            'label' => 'Yeni Ürünler',
+            'title' => 'Kampanya',
+            'priceLabel' => '',
+            'priceValue' => '',
+            'primaryText' => '',
+            'primaryLink' => '',
+            'secondaryText' => '',
+            'secondaryLink' => '',
+            'image' => $this->cmsImage(),
+        ], $overrides);
     }
 
     private function category(string $name, string $slug): Category

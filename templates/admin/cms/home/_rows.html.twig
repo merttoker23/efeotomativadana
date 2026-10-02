@@ -19,7 +19,7 @@
                 {% set value = item[field]|default('') %}
                 {% if 'image' == field %}
                     {% include 'admin/cms/home/_image.html.twig' with {name: name, current: value, library: library} only %}
-                {% elseif 'link' == field %}
+                {% elseif type.isLinkField(field) %}
                     {% include 'admin/cms/home/_link.html.twig' with {name: name, value: value} only %}
                 {% else %}
                     <div class="cms-field">
@@ -55,7 +55,7 @@
                 {% set name = rows ~ '_0_' ~ field %}
                 {% if 'image' == field %}
                     {% include 'admin/cms/home/_image.html.twig' with {name: name, current: '', library: library} only %}
-                {% elseif 'link' == field %}
+                {% elseif type.isLinkField(field) %}
                     {% include 'admin/cms/home/_link.html.twig' with {name: name, value: ''} only %}
                 {% else %}
                     <div class="cms-field">

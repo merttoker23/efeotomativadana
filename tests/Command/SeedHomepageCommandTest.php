@@ -28,14 +28,14 @@ use Symfony\Component\Console\Tester\CommandTester;
 /**
  * The homepage seed fills an empty CMS and is refused a store that already has content.
  *
- * What this command is for is not that it can write twelve rows; it is that it can do so without
+ * What this command is for is not that it can write thirteen rows; it is that it can do so without
  * touching anything else. Most of what is asserted here is therefore a negative — no new catalogue
- * record, no draft ever referenced, no change at all once a section exists — because those are how
- * a convenience command quietly becomes a data-loss command.
+ * record, no draft ever referenced, no change at all once a section exists unless `--reset` says
+ * so — because those are how a convenience command quietly becomes a data-loss command.
  */
 final class SeedHomepageCommandTest extends WebTestCase
 {
-    /** The theme's twelve modules, in the order `tema/index.html` draws them. */
+    /** The theme's thirteen modules, in the order `tema/index.html` draws them. */
     private const THEME_ORDER = [
         'announcement_bar',
         'category_menu',
@@ -44,6 +44,7 @@ final class SeedHomepageCommandTest extends WebTestCase
         'banner_grid',
         'product_carousel',
         'features',
+        'split_builder',
         'brand_strip',
         'product_tabs',
         'marquee',
@@ -93,10 +94,10 @@ final class SeedHomepageCommandTest extends WebTestCase
         self::assertSame(Command::SUCCESS, $this->seed());
 
         $sections = $this->sections();
-        self::assertCount(12, $sections);
+        self::assertCount(13, $sections);
         self::assertSame(self::THEME_ORDER, $this->types($sections));
         self::assertSame(
-            [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120],
+            [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130],
             array_map(static fn (HomeSection $section): int => $section->sortOrder(), $sections),
         );
 
@@ -124,8 +125,8 @@ final class SeedHomepageCommandTest extends WebTestCase
     /**
      * A store that already has one section of any kind is left exactly as it is.
      *
-     * There is no `--replace`, so the only way this command could destroy content would be a
-     * future option or a bug; this is the assertion that would notice.
+     * Without `--reset` there is no way this command could destroy content; this is the assertion
+     * that would notice one appearing.
      */
     public function testAPopulatedHomepageIsLeftUntouched(): void
     {
@@ -150,6 +151,41 @@ final class SeedHomepageCommandTest extends WebTestCase
         self::assertSame(7, $after[0]->sortOrder(), 'An existing order must not be renumbered.');
     }
 
+    /**
+     * `--reset` rebuilds the homepage and removes exactly the homepage section rows — and nothing
+     * outside them. This is the one destructive path the command has, so the catalogue, the prices,
+     * the stock and the blog are all counted before and after.
+     */
+    public function testResetRebuildsOnlyTheHomepageSections(): void
+    {
+        $this->catalogue(12);
+        $this->publishedPost();
+        $existing = new HomeSection(HomeSectionType::Marquee, 'Eski bant', ['items' => ['ESKİ']]);
+        $existing->setEnabled(true);
+        $existing->setSortOrder(3);
+        $this->manager->persist($existing);
+        $this->manager->flush();
+        $existingId = $existing->id();
+        $catalogueBefore = $this->catalogueCounts();
+        $postsBefore = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM cms_blog_post');
+
+        self::assertSame(Command::SUCCESS, $this->seed(['--reset' => true]));
+        self::assertStringContainsString('Replaced 1 existing homepage section', $this->tester->getDisplay());
+
+        $after = $this->sections();
+        self::assertCount(13, $after);
+        self::assertSame(self::THEME_ORDER, $this->types($after));
+        self::assertNotContains($existingId, array_map(static fn (HomeSection $s): ?int => $s->id(), $after));
+        self::assertStringNotContainsString('ESKİ', json_encode($this->configurations(), \JSON_THROW_ON_ERROR));
+
+        // The guard still holds for a second plain run.
+        self::assertSame(Command::SUCCESS, $this->seed());
+        self::assertStringContainsString('Nothing was changed', $this->tester->getDisplay());
+
+        self::assertSame($catalogueBefore, $this->catalogueCounts());
+        self::assertSame($postsBefore, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM cms_blog_post'));
+    }
+
     public function testOnlyPublishedCatalogueRecordsAreReferenced(): void
     {
         $this->catalogue(12);
@@ -169,8 +205,9 @@ final class SeedHomepageCommandTest extends WebTestCase
     }
 
     /**
-     * Three products is fewer than the ten the seed draws from. It uses all three, splits them
-     * between the two carousels and fails nothing; what it cannot fill, it leaves out.
+     * Three products is fewer than the theme's rows need. It uses all three, repeats them where a
+     * row is wider than the store is stocked, and fails nothing; what it cannot fill at all, it
+     * leaves out.
      */
     public function testASmallCatalogueIsUsedAsItIsRatherThanRefused(): void
     {
@@ -179,31 +216,49 @@ final class SeedHomepageCommandTest extends WebTestCase
         self::assertSame(Command::SUCCESS, $this->seed());
 
         $sections = $this->sections();
-        // Everything except the blog feed, which has no post to feed on.
-        self::assertCount(11, $sections);
-        self::assertNotContains('blog_feed', $this->types($sections));
-        self::assertStringContainsString('Blog akışı', $this->tester->getDisplay());
+        self::assertCount(13, $sections);
+        self::assertSame(self::THEME_ORDER, $this->types($sections));
 
         $carousels = array_values(array_filter($sections, static fn (HomeSection $s): bool => HomeSectionType::ProductCarousel === $s->type()));
         self::assertCount(2, $carousels);
-        self::assertCount(2, $carousels[0]->configuration()['slugs']);
-        self::assertCount(1, $carousels[1]->configuration()['slugs']);
+        // Every one of the store's three real products is used, and no product is invented to make
+        // a five-wide row look full. The two carousels are cut from different ends of the pool.
+        self::assertEqualsCanonicalizing(['urun-1', 'urun-2', 'urun-3'], $carousels[0]->configuration()['slugs']);
+        self::assertEqualsCanonicalizing(['urun-1', 'urun-2', 'urun-3'], $carousels[1]->configuration()['slugs']);
+        self::assertNotSame($carousels[0]->configuration()['slugs'], $carousels[1]->configuration()['slugs']);
 
-        $tabs = $sections[8]->configuration()['tabs'];
-        self::assertCount(1, $tabs, 'A tab with no products is left out rather than offered empty.');
-        self::assertCount(3, $tabs[0]['slugs']);
+        $split = $sections[7];
+        self::assertSame(HomeSectionType::SplitBuilder, $split->type());
+        self::assertCount(3, $split->configuration()['slugs']);
+        self::assertSame('Kampanyayı İncele', $split->configuration()['cta']);
+
+        $tabs = $sections[9]->configuration()['tabs'];
+        self::assertCount(4, $tabs, 'The theme has four tabs and a small store still gets four.');
+        self::assertSame(['Çok Satanlar', 'Popüler', 'İndirimdekiler', 'Öne Çıkanlar'], array_column($tabs, 'title'));
+        foreach ($tabs as $tab) {
+            // The row is the theme's five-wide grid, so it is five entries long even when the
+            // store has three products; every one of them is a product that really exists.
+            self::assertCount(5, $tab['slugs']);
+            self::assertSame([], array_diff($tab['slugs'], ['urun-1', 'urun-2', 'urun-3']));
+        }
+        self::assertEqualsCanonicalizing(
+            ['urun-1', 'urun-2', 'urun-3'],
+            array_values(array_unique(array_merge(...array_column($tabs, 'slugs')))),
+            'The tabs together show the whole catalogue.',
+        );
 
         self::assertCount(3, $sections[1]->configuration()['slugs'], 'All three published categories are used.');
-        self::assertCount(3, $sections[7]->configuration()['slugs'], 'All three published brands are used.');
+        self::assertCount(3, $sections[8]->configuration()['slugs'], 'All three published brands are used.');
 
         static::getClient()->request('GET', '/yeni/');
         self::assertResponseIsSuccessful();
     }
 
     /**
-     * Nothing published at all: the six sections that reference no catalogue record are still
-     * written, the six that would render an empty frame are skipped and reported, and no
-     * placeholder catalogue is invented to fill them.
+     * Nothing published at all: the sections that reference no catalogue record are still written,
+     * the six that would render an empty frame are skipped and reported, and no placeholder
+     * catalogue is invented to fill them. The blog is the documented exception: three editable
+     * demo posts are written so the closing row is not half empty, and nothing else is created.
      */
     public function testAnEmptyCatalogueSkipsEveryCatalogueBackedSection(): void
     {
@@ -216,9 +271,10 @@ final class SeedHomepageCommandTest extends WebTestCase
             'features',
             'marquee',
             'testimonials',
+            'blog_feed',
         ], $this->types($this->sections()));
 
-        foreach (['Kategori menüsü', 'Çok satanlar', 'Marka şeridi', 'Ürün sekmeleri', 'Yeni gelenler karuseli', 'Blog akışı'] as $label) {
+        foreach (['Kategori menüsü', 'Çok satanlar', 'Marka şeridi', 'Ürün sekmeleri', 'Yeni gelenler karuseli', 'Split builder'] as $label) {
             self::assertStringContainsString($label, $this->tester->getDisplay());
         }
 
@@ -227,23 +283,44 @@ final class SeedHomepageCommandTest extends WebTestCase
         self::assertSame(1, $crawler->filter('.notice .notice-text')->count());
         self::assertSame(3, $crawler->filter('.hero .hero-slide')->count());
         self::assertSame(4, $crawler->filter('.promo-grid .promo-card')->count());
+        self::assertSame(4, $crawler->filter('.features .feature')->count());
         self::assertSame(0, $crawler->filter('.top-sellers')->count());
         self::assertSame(0, $crawler->filter('.brand-strip')->count());
+        self::assertSame(0, $crawler->filter('.split-builder')->count());
+        // The testimonial and the blog are both there, so the closing row has no empty half.
+        self::assertSame(1, $crawler->filter('.testimonial-blog .quote .quote-item')->count());
+        self::assertSame(3, $crawler->filter('.testimonial-blog .blog-card')->count());
         self::assertSame([0, 0, 0, 0, 0], array_values($this->catalogueCounts()));
+        self::assertSame(3, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM cms_blog_post'));
     }
 
-    public function testTheSeededHomepageRendersInTheThemesBandsAndOrder(): void
+    /**
+     * A store with its own published posts keeps them: the seed never writes a demo post when there
+     * is already something to show.
+     */
+    public function testDemoBlogPostsAreOnlyWrittenWhenThereIsNoBlogAtAll(): void
     {
         $this->catalogue(12);
         $this->publishedPost();
 
         self::assertSame(Command::SUCCESS, $this->seed());
 
+        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM cms_blog_post'));
+    }
+
+    public function testTheSeededHomepageRendersInTheThemesBandsAndOrder(): void
+    {
+        $this->catalogue(12);
+        $this->publishedPosts(3);
+
+        self::assertSame(Command::SUCCESS, $this->seed());
+
         $crawler = static::getClient()->request('GET', '/yeni/');
         self::assertResponseIsSuccessful();
 
-        // The theme's bands, in the theme's order: notice, the three-column upper row, the promo
-        // grid, the new-arrivals grid, features, brands, tabs, marquee, and the closing row.
+        // The theme's bands, in the theme's order: one notice, the three-column upper row, the
+        // promo grid, the new-arrivals grid, features, the split builder, brands, tabs, the
+        // marquee, and the closing row.
         foreach ([
             '.notice .notice-text',
             '.home-top .category-panel .cat-row',
@@ -252,6 +329,8 @@ final class SeedHomepageCommandTest extends WebTestCase
             '.promo-grid .promo-card',
             '.home-section.section-card .product-grid',
             '.features .feature',
+            '.split-builder .split-builder-grid .product-card',
+            '.split-builder .big-promo',
             '.brand-strip .brand',
             '.top-products-tabs .tab-btn',
             '.marquee .marquee-item',
@@ -261,9 +340,17 @@ final class SeedHomepageCommandTest extends WebTestCase
             self::assertGreaterThan(0, $crawler->filter($selector)->count(), $selector.' is missing from the seeded homepage.');
         }
 
+        self::assertSame(1, $crawler->filter('.notice')->count(), 'Exactly one notice band.');
+        self::assertSame(4, $crawler->filter('.promo-grid .promo-card')->count());
+        self::assertSame(4, $crawler->filter('.features .feature')->count());
+        self::assertSame(3, $crawler->filter('.split-builder .split-builder-grid .product-card')->count());
+        self::assertSame(5, $crawler->filter('.home-section.section-card .product-grid')->first()->filter('.product-card')->count());
         self::assertSame(10, $crawler->filter('.brand-strip .brand')->count());
-        self::assertSame(3, $crawler->filter('.top-products-tabs .tab-btn')->count());
+        self::assertSame(4, $crawler->filter('.top-products-tabs .tab-btn')->count());
+        self::assertSame(1, $crawler->filter('.marquee')->count());
         self::assertSame(5, $crawler->filter('.top-sellers .seller')->count());
+        self::assertSame(1, $crawler->filter('.testimonial-blog .quote .quote-item')->count());
+        self::assertSame(3, $crawler->filter('.testimonial-blog .blog-card')->count());
 
         // Every seeded image is a real file in the CMS media library, not a reference to nothing.
         foreach ($crawler->filter('.hero-photo, .promo-card img')->each(static fn ($node): string => (string) $node->attr('src')) as $source) {
@@ -271,11 +358,35 @@ final class SeedHomepageCommandTest extends WebTestCase
         }
     }
 
-    private function seed(): int
+    /**
+     * The three hero compositions the reference draws are all produced by the seed, so an
+     * administrator can edit any of them without the layout losing a shape it had.
+     */
+    public function testTheSeedProducesTheThemesThreeHeroCompositions(): void
+    {
+        $this->catalogue(12);
+        $this->publishedPost();
+
+        self::assertSame(Command::SUCCESS, $this->seed());
+
+        $crawler = static::getClient()->request('GET', '/yeni/');
+        self::assertResponseIsSuccessful();
+
+        $slides = $crawler->filter('.hero-slide');
+        self::assertSame(3, $slides->count());
+        self::assertSame(2, $crawler->filter('.hero-slide .price-pill')->count());
+        self::assertStringContainsString('mobile-feature', (string) $slides->eq(1)->attr('class'));
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .shop-now')->count());
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .learn-more')->count());
+        self::assertSame(0, $crawler->filter('.hero .hero-cta')->count());
+    }
+
+    /** @param array<string, mixed> $input */
+    private function seed(array $input = []): int
     {
         $this->tester = new CommandTester((new Application(self::$kernel))->find('app:cms:seed-homepage'));
 
-        return $this->tester->execute([]);
+        return $this->tester->execute($input);
     }
 
     /**
@@ -336,9 +447,19 @@ final class SeedHomepageCommandTest extends WebTestCase
 
     private function publishedPost(): void
     {
-        $post = new BlogPost('Fren bakımı', 'fren-bakimi', 'Fren bakımının adımları.', 'Gövde');
-        $post->setPublished(true);
-        $this->manager->persist($post);
+        $this->publishedPosts(1);
+    }
+
+    /**
+     * @param int $count how many published blog posts the store already has
+     */
+    private function publishedPosts(int $count): void
+    {
+        for ($index = 1; $index <= $count; ++$index) {
+            $post = new BlogPost('Fren bakımı '.$index, 'fren-bakimi-'.$index, 'Fren bakımının adımları.', 'Gövde');
+            $post->setPublished(true);
+            $this->manager->persist($post);
+        }
         $this->manager->flush();
     }
 

@@ -1,8 +1,8 @@
-{# The theme's notice band: one dark strip above everything on the homepage. #}
+{# The CMS announcement, rendered into the theme's single notice band.
+
+   This partial owns no markup of its own: it hands the stored text to the one notice template the
+   layout has, so an administrator's announcement replaces the store's default line in the theme's
+   position rather than appearing as a second bar. #}
 {% if section.data.text %}
-    <div class="notice" role="status">
-        <div class="container notice-inner">
-            <p class="notice-text">{{ section.data.text }}</p>
-        </div>
-    </div>
+    {% include 'storefront/layout/_notice.html.twig' with {text: section.data.text} only %}
 {% endif %}

@@ -10,6 +10,7 @@ enum HomeSectionType: string
     case ProductCarousel = 'product_carousel';
     case BannerGrid = 'banner_grid';
     case Features = 'features';
+    case SplitBuilder = 'split_builder';
     case BrandStrip = 'brand_strip';
     case ProductTabs = 'product_tabs';
     case Marquee = 'marquee';
@@ -42,11 +43,27 @@ enum HomeSectionType: string
         };
     }
 
+    /**
+     * The ordered fields of one hero slide, in the order the theme stacks them.
+     *
+     * `tema/index.html`'s three slides are three different compositions of the same frame: a label,
+     * a headline, and then either an offer pill ("Starting at $1,999", "Up to 50% OFF") or a pair
+     * of calls to action. Both of those trailing parts are optional, which is why a slide is nine
+     * fields rather than the four the frame could get by with.
+     */
+    private const array HERO_SLIDE_FIELDS = [
+        'label', 'title',
+        'priceLabel', 'priceValue',
+        'primaryText', 'primaryLink',
+        'secondaryText', 'secondaryLink',
+        'image',
+    ];
+
     /** @return list<string> */
     public function rowFields(): array
     {
         return match ($this) {
-            self::HeroSlider => ['title', 'description', 'image', 'link'],
+            self::HeroSlider => self::HERO_SLIDE_FIELDS,
             self::BannerGrid => ['title', 'image', 'link'],
             self::Features => ['title', 'description'],
             self::ProductTabs => ['title'],
@@ -62,8 +79,23 @@ enum HomeSectionType: string
         return match ($this) {
             self::AnnouncementBar => ['text' => 'textarea'],
             self::BlogFeed => ['limit' => 'number'],
+            // The promotional panel beside the split builder's product list: the theme's
+            // `.big-promo`, which is a small label, a headline, a sentence and one call to action.
+            self::SplitBuilder => ['label' => 'text', 'headline' => 'text', 'description' => 'textarea', 'cta' => 'text', 'link' => 'link'],
             default => [],
         };
+    }
+
+    /**
+     * Whether a declared field holds a destination, and so needs the local-path control rather than
+     * a plain text box.
+     *
+     * The hero's two calls to action carry their destination in their own field names, because a
+     * slide has several buttons and one "link" would not say which one it belonged to.
+     */
+    public function isLinkField(string $field): bool
+    {
+        return \in_array($field, ['link', 'primaryLink', 'secondaryLink'], true);
     }
 
     /** 'products', 'categories', 'brands' or null when the section references no catalogue record. */
@@ -71,7 +103,7 @@ enum HomeSectionType: string
     {
         return match ($this) {
             self::CategoryMenu => 'categories',
-            self::ProductCarousel => 'products',
+            self::ProductCarousel, self::SplitBuilder => 'products',
             self::BrandStrip => 'brands',
             self::ProductTabs => 'products',
             default => null,
@@ -98,6 +130,7 @@ enum HomeSectionType: string
             self::ProductCarousel => 'Ürün Karuseli',
             self::BannerGrid => 'Banner Grid',
             self::Features => 'Özellikler',
+            self::SplitBuilder => 'Split Builder',
             self::BrandStrip => 'Marka Şeridi',
             self::ProductTabs => 'Ürün Sekmeleri',
             self::Marquee => 'Kayan Yazı',
@@ -110,12 +143,13 @@ enum HomeSectionType: string
     public function placement(): string
     {
         return match ($this) {
-            self::AnnouncementBar => 'Tema bildirim şeridi düzeninde, ana sayfanın en üstünde görünür.',
+            self::AnnouncementBar => 'Tema bildirim şeridi düzeninde, sayfanın en üstünde ve header’ın dışında tek bir duyuru olarak görünür.',
             self::HeroSlider => 'Üst bölgede, kategori menüsü ile çok satanlar arasındaki hero slider alanında görünür.',
             self::CategoryMenu => 'Üst bölgede, hero slider’ın solundaki kategori panelinde görünür.',
             self::ProductCarousel => 'Sıralamada ilk ürün karuseli üst bölgede “Çok satanlar” sütununda, sonrakiler tema ürün grid bölümünde görünür.',
             self::BannerGrid => 'Tema promo grid düzeninde, görselli tanıtım kartları olarak görünür.',
             self::Features => 'Tema özellikler şeridi düzeninde görünür.',
+            self::SplitBuilder => 'Özellikler ile marka şeridi arasında, solda üç ürünlü liste ve sağda büyük kampanya paneli olarak görünür.',
             self::BrandStrip => 'Tema marka şeridi düzeninde, “Popüler Markalar” başlığıyla görünür.',
             self::ProductTabs => 'Tema ürün sekmeleri düzeninde, gerçek sekme davranışıyla görünür.',
             self::Marquee => 'Tema kayan yazı bandı düzeninde görünür.',
@@ -129,12 +163,21 @@ enum HomeSectionType: string
     {
         return [
             'title' => 'Başlık',
+            'headline' => 'Kampanya başlığı',
+            'label' => 'Üst etiket',
             'description' => 'Açıklama',
             'image' => 'Görsel',
             'link' => 'Bağlantı',
+            'cta' => 'Buton metni',
             'text' => 'Metin',
             'author' => 'Yazar / müşteri adı',
             'limit' => 'Gösterilecek yazı sayısı',
+            'priceLabel' => 'Fiyat etiketi (isteğe bağlı)',
+            'priceValue' => 'Fiyat / kampanya değeri (isteğe bağlı)',
+            'primaryText' => 'Birincil buton metni (isteğe bağlı)',
+            'primaryLink' => 'Birincil buton bağlantısı (isteğe bağlı)',
+            'secondaryText' => 'İkincil buton metni (isteğe bağlı)',
+            'secondaryLink' => 'İkincil buton bağlantısı (isteğe bağlı)',
         ];
     }
 
@@ -154,9 +197,10 @@ enum HomeSectionType: string
             self::AnnouncementBar => ['text' => ''],
             self::BlogFeed => ['limit' => 3],
             self::Marquee => ['items' => [self::blankRow(['text'])]],
-            self::HeroSlider => ['slides' => [self::blankRow(['title', 'description', 'image', 'link'])]],
+            self::HeroSlider => ['slides' => [self::blankRow(self::HERO_SLIDE_FIELDS)]],
             self::BannerGrid => ['banners' => [self::blankRow(['title', 'image', 'link'])]],
             self::Features => ['features' => [self::blankRow(['title', 'description'])]],
+            self::SplitBuilder => ['label' => '', 'headline' => '', 'description' => '', 'cta' => '', 'link' => '', 'slugs' => []],
             self::Testimonials => ['quotes' => [self::blankRow(['author', 'text'])]],
             self::ProductTabs => ['tabs' => [['title' => '', 'slugs' => []]]],
             self::CategoryMenu, self::ProductCarousel, self::BrandStrip => ['slugs' => []],

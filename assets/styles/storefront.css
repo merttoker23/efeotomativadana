@@ -74,7 +74,7 @@ select:focus-visible {
     outline-offset: 3px;
 }
 
-.announcement button:focus-visible,
+.notice button:focus-visible,
 .header-primary a:focus-visible,
 .header-primary button:focus-visible,
 .header-primary input:focus-visible,
@@ -118,36 +118,11 @@ select:focus-visible {
     background: var(--storefront-navy);
 }
 
-.announcement {
-    min-height: 38px;
-    color: #dce5ef;
-    background: var(--storefront-notice);
-    font-size: 0.78rem;
-}
-
-.announcement-inner,
 .topbar-inner,
 .header-primary-inner,
 .navigation-inner {
     display: flex;
     align-items: center;
-}
-
-.announcement-inner {
-    min-height: 38px;
-    justify-content: center;
-    position: relative;
-}
-
-.announcement-close {
-    position: absolute;
-    right: 0;
-    width: 2rem;
-    height: 2rem;
-    border: 0;
-    color: inherit;
-    background: transparent;
-    font-size: 1.2rem;
 }
 
 .header-topbar {
@@ -367,9 +342,9 @@ select:focus-visible {
 .home-top {
     display: grid;
     grid-template-areas: "categories hero support";
-    grid-template-columns: 278px minmax(0, 1fr) 278px;
+    grid-template-columns: 280px minmax(0, 1fr) 280px;
     gap: 1rem;
-    align-items: stretch;
+    align-items: start;
 }
 
 .category-panel,
@@ -1563,17 +1538,6 @@ select:focus-visible {
         width: calc(100% - 24px);
     }
 
-    .announcement,
-    .announcement-inner {
-        min-height: 34px;
-    }
-
-    .announcement-inner {
-        justify-content: flex-start;
-        padding-right: 2.5rem;
-        font-size: 0.66rem;
-    }
-
     .header-primary-inner {
         grid-template-columns: auto minmax(0, 1fr) auto;
         gap: 0.55rem;
@@ -2065,37 +2029,57 @@ select:focus-visible {
 /* ==========================================================================================
    Homepage composition.
 
-   These rules are the storefront theme's own homepage, taken from the reference page rather than
-   invented: a notice band, an upper row of category panel / hero / top sellers, a promo grid, a
-   white section card per product block, a features strip, a brand shelf, a tabbed product block,
-   a marquee and a closing testimonials-plus-blog row. The markup in
+   These rules are the storefront theme's own homepage, taken from `tema/index.html` and
+   `tema/assets/css/style.css` rather than invented: one notice band above the header, an upper row
+   of category panel / hero / top sellers, a four-up promo grid, a five-up product grid, a features
+   strip, the split builder's product list beside one big promotional panel, a ten-tile brand
+   shelf, a tabbed product block, a marquee and a closing testimonials-plus-blog row. The markup in
    templates/storefront/home carries the theme's class names so the two stay recognisable as the
    same page.
 
-   The section modules the admin composes are therefore laid out in the theme's slots, not as a
-   stack of full-width boxes: the modules that work together in the theme share a row.
+   Every measurement below is the reference's own, expressed in rem at the theme's 16px root: the
+   280px side columns and 16px gutter of the upper row, the 460px height the three columns share,
+   the five and four column grids, the 1.2fr/1fr split, the ten-tile shelf, and the 1fr/1.5fr
+   closing row. The three breakpoints are the theme's own — 1300px, 1024px, 680px — and the
+   composition steps down at exactly those widths.
+
+   Two deliberate departures from the reference are marked where they occur, and only those two.
    ========================================================================================== */
 
-/* The notice band. */
+/* The notice band.
+
+   The theme's only announcement: one dark strip at the very top of the page, above the header. The
+   CMS announcement section feeds this same strip, so an administrator's text replaces the store's
+   default line rather than becoming a second band. */
 .notice {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 2.4rem;
+    height: 2.3rem;
+    padding-inline: 4rem;
     color: #fff;
     background: var(--storefront-notice);
     font-size: 0.9rem;
     font-weight: 600;
 }
 
-.notice-inner {
-    display: flex;
-    justify-content: center;
-    text-align: center;
-}
-
 .notice-text {
     margin: 0;
+    letter-spacing: 0.1px;
+}
+
+.notice-close {
+    position: absolute;
+    top: 0;
+    right: 0.35rem;
+    width: 2rem;
+    height: 2.3rem;
+    border: 0;
+    color: #fff;
+    background: transparent;
+    font-size: 1.45rem;
+    line-height: 1;
 }
 
 /* The upper row.
@@ -2114,11 +2098,11 @@ select:focus-visible {
 }
 
 .home-top-2 {
-    grid-template-columns: minmax(0, 1fr) 278px;
+    grid-template-columns: minmax(0, 1fr) 280px;
 }
 
 .home-top-3 {
-    grid-template-columns: 278px minmax(0, 1fr) 278px;
+    grid-template-columns: 280px minmax(0, 1fr) 280px;
 }
 
 .home-top-1 > *,
@@ -2135,11 +2119,6 @@ select:focus-visible {
     grid-column: 1;
 }
 
-.home-top-2 .top-sellers,
-.home-top-3 .top-sellers {
-    grid-column: 3;
-}
-
 .home-top-3 .category-panel {
     grid-column: 1;
 }
@@ -2152,6 +2131,10 @@ select:focus-visible {
     grid-column: 2;
 }
 
+.home-top-3 .top-sellers {
+    grid-column: 3;
+}
+
 /* The category panel's rows. */
 .category-panel {
     height: 460px;
@@ -2160,17 +2143,17 @@ select:focus-visible {
 
 .cat-row {
     display: grid;
-    grid-template-columns: 1.9rem minmax(0, 1fr) 0.9rem;
+    grid-template-columns: 30.4px minmax(0, 1fr) 14.4px;
     align-items: center;
-    min-height: 3.4rem;
+    height: 54.4px;
     padding: 0 1rem;
-    border-top: 1px solid var(--storefront-line);
-    color: #5c656e;
-    font-size: 0.85rem;
+    border-bottom: 1px solid #e4e5e7;
+    color: #666;
+    font-size: 13.6px;
 }
 
-.cat-row:first-child {
-    border-top: 0;
+.cat-row:last-child {
+    border-bottom: 0;
 }
 
 .cat-row:hover {
@@ -2186,13 +2169,13 @@ select:focus-visible {
 
 .cat-icon {
     color: #7b838a;
-    font-size: 1.1rem;
+    font-size: 17.6px;
     text-align: center;
 }
 
 .cat-arrow {
     color: #bec2c5;
-    font-size: 0.9rem;
+    font-size: 14.4px;
     text-align: right;
 }
 
@@ -2205,7 +2188,7 @@ select:focus-visible {
     position: relative;
     height: 460px;
     overflow: hidden;
-    border-radius: 0.3rem;
+    border-radius: 4.8px;
     color: #fff;
     background: #050505;
 }
@@ -2226,91 +2209,126 @@ select:focus-visible {
     opacity: 1;
 }
 
+/* The photograph is inset from both sides rather than filling the frame: the theme leaves a dark
+   margin on the left and a narrower one on the right, which is what gives the hero its asymmetry. */
 .hero-photo {
     position: absolute;
     bottom: 0;
-    left: 0;
-    width: 100%;
+    left: 10%;
+    width: 82%;
     height: 70%;
     object-fit: cover;
     object-position: center 52%;
+}
+
+.hero-slide.alt .hero-photo {
+    filter: hue-rotate(22deg) saturate(0.75);
 }
 
 .hero-content {
     position: relative;
     z-index: 2;
     width: 100%;
-    padding-top: 2.4rem;
+    padding-top: 36px;
     text-align: center;
 }
 
+/* The reference sets `opacity: 0` here, which hides the very label it defines; a field an
+   administrator is asked to fill in has to be visible to be worth filling in, so the label keeps
+   the theme's colour and size and simply shows. */
 .hero-label {
     display: inline-block;
-    margin-bottom: 0.4rem;
-    padding: 0.35rem 0.7rem;
-    border-radius: 0.25rem;
-    color: #173459;
-    background: #eef2f7;
-    font-size: 0.8rem;
+    margin-bottom: 6.4px;
+    color: #ffdf57;
+    font-size: 11.2px;
     line-height: 1.2;
 }
 
 .hero-title {
-    max-width: 34rem;
-    margin: 0 auto 0.6rem;
-    padding: 0 1rem;
-    font-size: clamp(1.6rem, 3vw, 2.5rem);
+    max-width: 608px;
+    margin: 0 auto 33.6px;
+    font-size: 40px;
     line-height: 1.05;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -1.9px;
 }
 
-.hero-description {
-    max-width: 30rem;
-    margin: 0 auto 1.4rem;
-    padding: 0 1rem;
-    color: #c2d0df;
-    font-size: 0.85rem;
+.price-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7.2px;
+    padding: 6.4px 12px;
+    border-radius: 4px;
+    color: #4f555b;
+    background: #fff;
+    box-shadow: 0 4px 9.6px rgb(0 0 0 / 27%);
+    font-size: 12.8px;
+}
+
+.price-pill strong {
+    color: #171b20;
+    font-size: 16px;
 }
 
 .hero-actions {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1.9rem;
+    gap: 30px;
 }
 
 .hero-actions .shop-now {
     display: inline-flex;
-    padding: 0.8rem 1.85rem;
-    border-radius: 0.25rem;
+    padding: 15px 31px;
+    border-radius: 4px;
     color: #173459;
     background: var(--storefront-yellow);
-    font-size: 0.85rem;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.hero-actions .learn-more {
+    color: #fff;
+    font-size: 14px;
     font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* The theme's yellow tab in the corner of the hero frame. */
+.hero-marker,
+.home-top .hero-marker {
+    position: absolute;
+    z-index: 3;
+    top: 0;
+    right: auto;
+    left: 0;
+    width: 12px;
+    height: 4px;
+    background: var(--storefront-yellow);
 }
 
 .slider-controls {
     position: absolute;
     z-index: 5;
-    top: 13rem;
-    right: 1.85rem;
+    top: 208px;
+    right: 29.6px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.4rem;
+    gap: 6.4px;
 }
 
 .slider-btn {
     display: grid;
     place-items: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 40px;
+    height: 40px;
     border: 0;
     border-radius: 50%;
     color: #555;
     background: #e6e6e6;
-    font-size: 1.5rem;
+    font-size: 24.8px;
     line-height: 1;
 }
 
@@ -2320,35 +2338,39 @@ select:focus-visible {
 }
 
 .slide-count {
-    font-size: 0.9rem;
+    font-size: 14.4px;
     font-weight: 700;
 }
 
 /* The top-sellers column. */
 .top-sellers {
     height: 460px;
-    padding: 1.4rem 1.4rem 0;
+    padding: 21.6px 21.6px 0;
     overflow: hidden;
 }
 
-.top-sellers-title {
-    margin: 0.55rem 0 1rem;
-    font-size: 1.05rem;
+.top-sellers h3 {
+    margin: 8.8px 0 16.8px;
+    font-size: 16.8px;
     font-weight: 750;
 }
 
 .seller {
     display: grid;
-    grid-template-columns: 2.1rem minmax(0, 1fr) 3.1rem;
+    grid-template-columns: 33.6px minmax(0, 1fr) 56px;
     align-items: center;
-    gap: 0.3rem;
-    min-height: 3.3rem;
-    border-top: 1px solid var(--storefront-line);
+    gap: 4.8px;
+    height: 82.4px;
+    border-bottom: 1px solid #e2e3e5;
+}
+
+.seller:last-child {
+    border-bottom: 0;
 }
 
 .rank {
     color: #fff;
-    font-size: 2.3rem;
+    font-size: 37.6px;
     font-weight: 300;
     line-height: 1;
     -webkit-text-stroke: 1.5px #8c9297;
@@ -2362,34 +2384,34 @@ select:focus-visible {
     display: block;
     overflow: hidden;
     color: #6b7075;
-    font-size: 0.8rem;
+    font-size: 12.8px;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
 .seller-price {
     display: block;
-    margin-top: 0.25rem;
-    font-size: 0.85rem;
+    margin-top: 4px;
+    font-size: 13.6px;
     font-weight: 750;
 }
 
 .seller img {
-    width: 3.1rem;
-    height: 3.1rem;
-    border-radius: 0.3rem;
+    width: 49.6px;
+    height: 49.6px;
+    border-radius: 4.8px;
     background: #fafafa;
     object-fit: contain;
 }
 
 /* The white card every full-width block sits in. */
 .home-section {
-    margin-top: 1.4rem;
+    margin-top: 22.4px;
 }
 
 .section-card {
-    padding: 1.4rem;
-    border-radius: 0.35rem;
+    padding: 22.4px;
+    border-radius: 5.6px;
     background: var(--storefront-card);
 }
 
@@ -2398,23 +2420,23 @@ select:focus-visible {
     align-items: end;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 1.1rem;
+    margin-bottom: 17.6px;
 }
 
 .section-head h2 {
     margin: 0;
-    font-size: 1.4rem;
+    font-size: 22.4px;
 }
 
 .section-head p {
-    margin: 0.25rem 0 0;
-    color: var(--storefront-muted);
+    margin: 4px 0 0;
+    color: #7b8288;
     font-size: 0.8rem;
 }
 
 .see-all {
     color: #304a6a;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 700;
 }
 
@@ -2424,7 +2446,7 @@ select:focus-visible {
 .testimonial-blog .product-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0.8rem;
+    gap: 12.8px;
 }
 
 /* The promotional row. */
@@ -2437,7 +2459,7 @@ select:focus-visible {
 .promo-card {
     display: block;
     overflow: hidden;
-    border-radius: 0.35rem;
+    border-radius: 5.6px;
     background: var(--storefront-card);
 }
 
@@ -2452,16 +2474,16 @@ select:focus-visible {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     overflow: hidden;
-    border-radius: 0.35rem;
+    border-radius: 5.6px;
     background: var(--storefront-card);
 }
 
 .feature {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
-    padding: 1.3rem;
-    border-right: 1px solid var(--storefront-line);
+    gap: 12.8px;
+    padding: 20.8px;
+    border-right: 1px solid #e2e3e5;
 }
 
 .feature:last-child {
@@ -2469,38 +2491,102 @@ select:focus-visible {
 }
 
 .feature-ico {
-    flex: 0 0 auto;
-    font-size: 1.55rem;
+    font-size: 24.8px;
 }
 
 .feature-copy b {
     display: block;
-    font-size: 0.9rem;
 }
 
 .feature-copy span {
     display: block;
-    margin-top: 0.2rem;
     color: #81868b;
-    font-size: 0.65rem;
+    font-size: 10.4px;
+}
+
+/* The split builder: a three-product list beside one large promotional panel. */
+.split-builder {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 1rem;
+}
+
+/* The theme pins this grid to three columns with an inline style, which no breakpoint can reach;
+   the class carries the same three columns down to the phone width, where they step to the theme's
+   own two-column product grid. */
+.split-builder .split-builder-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.big-promo {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 240px;
+    padding: 35.2px;
+    overflow: hidden;
+    border-radius: 5.6px;
+    color: #fff;
+    background: #10294e;
+}
+
+.big-promo::after {
+    content: "";
+    position: absolute;
+    top: -32px;
+    right: -56px;
+    width: 272px;
+    height: 272px;
+    border-radius: 50%;
+    background: #173b70;
+}
+
+.big-promo > * {
+    position: relative;
+    z-index: 1;
+}
+
+.big-promo > span {
+    color: #bcd2ec;
+    font-size: 11.2px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.big-promo h2 {
+    margin: 9.6px 0;
+    font-size: 30.4px;
+    line-height: 1.12;
+}
+
+.big-promo p {
+    margin: 0 0 19.2px;
+    color: #dbe6f5;
+    font-size: 0.85rem;
+}
+
+.big-promo-cta {
+    width: max-content;
 }
 
 /* The brand shelf. */
 .brand-strip {
     display: grid;
     grid-template-columns: repeat(10, minmax(0, 1fr));
-    gap: 0.4rem;
+    gap: 6.4px;
 }
 
 .brand-strip .brand {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 4.1rem;
-    padding: 0 0.4rem;
+    height: 65.6px;
+    padding: 0 4px;
     overflow: hidden;
     border: 1px solid #e5e6e8;
-    border-radius: 0.25rem;
+    border-radius: 4px;
     color: #6d747a;
     background: #fafafa;
     font-size: 0.8rem;
@@ -2513,14 +2599,14 @@ select:focus-visible {
 .top-products-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 8px;
     margin-bottom: 1rem;
 }
 
 .tab-btn {
-    padding: 0.4rem 0.7rem;
+    padding: 6.4px 11.2px;
     border: 1px solid #d9dce0;
-    border-radius: 0.25rem;
+    border-radius: 4px;
     color: inherit;
     background: #fff;
     font-size: 0.8rem;
@@ -2537,19 +2623,19 @@ select:focus-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1.75rem;
-    height: 4.3rem;
+    gap: 28px;
+    height: 68.8px;
     margin-top: 1.5rem;
     overflow: hidden;
     color: #0d294e;
     background: var(--storefront-yellow);
-    font-size: 1.7rem;
+    font-size: 27.2px;
     font-weight: 800;
     text-align: center;
 }
 
 .marquee .dot {
-    font-size: 0.9rem;
+    font-size: 14.4px;
 }
 
 /* The closing row: quotes beside the blog feed. */
@@ -2559,33 +2645,45 @@ select:focus-visible {
     gap: 1rem;
 }
 
+/* One of the two panels missing must not leave half a row of blank white behind it. */
+.testimonial-blog-1 {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .quote {
-    padding: 1.4rem;
-    border-radius: 0.35rem;
+    padding: 22.4px;
+    border-radius: 5.6px;
     background: var(--storefront-card);
 }
 
 .quote h2 {
-    margin: 0 0 0.8rem;
-    font-size: 1.4rem;
+    margin: 0 0 11.2px;
+    font-size: 22.4px;
 }
 
 .quote-item {
-    margin: 0 0 1rem;
-    padding: 0 0 1rem;
-    border-top: 1px solid var(--storefront-line);
+    margin: 0;
+    padding: 12.8px 0 0;
+    border-top: 1px solid #e2e3e5;
 }
 
-.quote-item:first-of-type {
-    padding-top: 0.8rem;
+.quote-item + .quote-item {
+    margin-top: 12.8px;
 }
 
 .quote-item blockquote {
     margin: 0;
 }
 
+.quote-item p {
+    margin: 0;
+    color: #3f474f;
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+
 .quote-item figcaption {
-    margin-top: 0.5rem;
+    margin-top: 8px;
     color: var(--storefront-muted);
     font-size: 0.8rem;
     font-weight: 700;
@@ -2594,31 +2692,31 @@ select:focus-visible {
 .blog-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.7rem;
+    gap: 11.2px;
 }
 
 .blog-card {
     display: block;
     overflow: hidden;
     border: 1px solid #e4e5e7;
-    border-radius: 0.35rem;
+    border-radius: 5.6px;
     color: inherit;
     background: var(--storefront-card);
 }
 
 .blog-cover {
     display: block;
-    height: 7rem;
+    height: 112px;
     background: linear-gradient(135deg, #193f71, #c9d9ef);
 }
 
 .blog-card .content {
     display: block;
-    padding: 0.8rem;
+    padding: 12.8px;
 }
 
 .blog-card h3 {
-    margin: 0 0 0.4rem;
+    margin: 0 0 6.4px;
     font-size: 0.9rem;
 }
 
@@ -2627,12 +2725,180 @@ select:focus-visible {
     margin: 0;
     overflow: hidden;
     color: #777;
-    font-size: 0.7rem;
+    font-size: 10.4px;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
 
+/* The homepage's product card.
+
+   The theme gives a homepage card its own, tighter shape than the catalogue's. Everything here is
+   scoped to `.home-product-card`, which only the homepage's own grids render, so a catalogue page
+   keeps `components/product_card.html.twig` and the rules that go with it. The card is still the
+   real record: the real price, the real brand, the real product, the real cart and wishlist posts. */
+.home-product-card {
+    border-radius: 4px;
+}
+
+.home-product-card .product-thumb {
+    height: 176px;
+}
+
+.home-product-card .product-info {
+    padding: 13.6px;
+}
+
+.home-product-card .product-brand {
+    margin: 0;
+    color: #7d858c;
+    font-size: 9.6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.home-product-card .product-name {
+    margin: 4px 0 5.6px;
+    font-size: 12.8px;
+    font-weight: 700;
+}
+
+.home-product-card .product-price {
+    margin: 0;
+    font-size: 14.4px;
+    font-weight: 800;
+}
+
+.home-product-card .product-old {
+    margin-left: 4.8px;
+    color: #999;
+    font-size: 10.4px;
+    text-decoration: line-through;
+}
+
+.home-product-card .badge {
+    position: absolute;
+    top: 8.8px;
+    left: 8.8px;
+    padding: 4px 5.6px;
+    border-radius: 4px;
+    color: #5277b2;
+    background: #d9e6ff;
+    font-size: 9.6px;
+}
+
+.home-product-card .product-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 5.6px;
+    margin-top: 11.2px;
+}
+
+.home-product-card .product-actions form {
+    flex: 0 0 auto;
+}
+
+.home-product-card .cart-add-form {
+    flex: 1 1 auto;
+}
+
+.home-product-card .product-actions button,
+.home-product-card .btn-yellow,
+.home-product-card .btn-ghost {
+    min-height: 0;
+    width: auto;
+    padding: 7.2px 9.6px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.home-product-card .cart-add-form .btn-yellow {
+    width: 100%;
+    border: 0;
+    color: #0d294e;
+    background: var(--storefront-yellow);
+}
+
+.home-product-card .btn-ghost {
+    border: 1px solid #d9dbde;
+    color: inherit;
+    background: #fff;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
 /* The theme's two upper breakpoints, and the mobile one, applied to the homepage composition. */
+@media (min-width: 1301px) {
+    .notice,
+    .notice-close {
+        height: 2.4rem;
+    }
+
+    /* The reference's second slide composition: content to the left over a full-bleed
+       photograph, with two calls to action instead of an offer pill. */
+    .hero-slide.alt .hero-photo {
+        filter: none;
+    }
+
+    .hero-slide.mobile-feature {
+        background: #bd875c;
+    }
+
+    .hero-slide.mobile-feature .hero-photo {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .hero-slide.mobile-feature .hero-content {
+        padding-top: 172.8px;
+        padding-right: 120px;
+        padding-left: 32px;
+        text-align: left;
+    }
+
+    .hero-slide.mobile-feature .hero-label {
+        margin-bottom: 24px;
+        padding: 7px 12px;
+        border-radius: 4px;
+        color: #2868c8;
+        background: #eef2f7;
+        font-size: 13px;
+    }
+
+    .hero-slide.mobile-feature .hero-title {
+        max-width: 760px;
+        margin: 0;
+        font-size: 39px;
+        letter-spacing: -1.5px;
+        text-align: left;
+    }
+
+    .hero-slide.mobile-feature .hero-actions {
+        justify-content: flex-start;
+        gap: 30px;
+        margin-top: 38.4px;
+    }
+
+    .hero-slide.mobile-feature .hero-actions .shop-now {
+        padding: 13px 29.6px;
+    }
+
+    .top-sellers {
+        padding: 21.6px 2rem 0;
+    }
+
+    .top-sellers h3 {
+        margin-bottom: 4.8px;
+    }
+
+    .seller {
+        height: 87.2px;
+    }
+}
+
 @media (max-width: 1300px) {
     .home-top-2 {
         grid-template-columns: minmax(0, 1fr) 224px;
@@ -2649,11 +2915,15 @@ select:focus-visible {
     }
 
     .cat-row {
-        min-height: 2.8rem;
+        height: 44.8px;
     }
 
     .hero-title {
-        font-size: 2rem;
+        font-size: 32px;
+    }
+
+    .seller {
+        height: 70.4px;
     }
 
     .home-section .product-grid,
@@ -2696,39 +2966,82 @@ select:focus-visible {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .features,
-    .testimonial-blog {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .split-builder {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .brand-strip {
         grid-template-columns: repeat(5, minmax(0, 1fr));
     }
 
+    .testimonial-blog,
+    .testimonial-blog-1 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The reference leaves this grid at three columns on a tablet and at three on a phone, where
+       three blog cards in a row cannot be read; it steps down with everything else. */
     .blog-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 680px) {
+    .notice {
+        height: 2rem;
+    }
+
+    .notice-text {
+        font-size: 0.7rem;
+    }
+
     .hero {
         height: 336px;
     }
 
     .hero-title {
-        font-size: 1.6rem;
+        padding: 0 12.8px;
+        margin-bottom: 20px;
+        font-size: 25.6px;
+    }
+
+    .hero-photo {
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 62%;
+    }
+
+    .hero-slide.alt .hero-photo {
+        filter: none;
+    }
+
+    .hero-slide.mobile-feature .hero-photo {
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .hero-slide.mobile-feature .hero-actions .shop-now {
+        padding: 13px 29.6px;
     }
 
     .slider-controls {
-        top: 12rem;
-        right: 0.75rem;
+        top: 196px;
+        right: 12px;
     }
 
     .home-section .product-grid,
     .testimonial-blog .product-grid,
     .promo-grid,
-    .features,
-    .testimonial-blog,
+    .blog-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .promo-grid,
     .blog-grid {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -2737,13 +3050,28 @@ select:focus-visible {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .feature {
+        border-bottom: 1px solid #e2e3e5;
+    }
+
     .brand-strip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .big-promo {
+        padding: 24px;
+    }
+
+    .big-promo h2 {
+        font-size: 24px;
+    }
+
+    .home-product-card .product-thumb {
+        height: 136px;
+    }
+
     .marquee {
-        gap: 0.8rem;
-        font-size: 1.2rem;
+        font-size: 19.2px;
     }
 }
 

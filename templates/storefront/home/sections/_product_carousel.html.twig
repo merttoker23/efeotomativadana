@@ -29,7 +29,7 @@
             <a class="see-all" href="{{ path('storefront_catalog_index') }}">Tüm ürünler</a>
         </div>
         <div class="product-grid">
-            {% for product in section.data.products %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}
+            {% for product in section.data.products %}{% include 'components/home_product_card.html.twig' with {product: product} only %}{% endfor %}
         </div>
     </section>
 {% endif %}

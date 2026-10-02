@@ -41,17 +41,76 @@ final class HomeSectionInputTest extends TestCase
         @rmdir($this->directory);
     }
 
+    /**
+     * A hero slide is nine fields, six of which the theme lets a slide leave out; a draft that
+     * predates them arrives with only the four a slide used to have and is filled out from there.
+     *
+     * @param array<string, string> $overrides
+     *
+     * @return array<string, string>
+     */
+    private function slide(array $overrides = []): array
+    {
+        return array_merge([
+            'label' => 'Yeni Ürünler',
+            'title' => 'Kampanya',
+            'priceLabel' => 'Şu andan itibaren',
+            'priceValue' => '2.499,00 TL',
+            'primaryText' => '',
+            'primaryLink' => '',
+            'secondaryText' => '',
+            'secondaryLink' => '',
+            'image' => $this->storedImage(),
+        ], $overrides);
+    }
+
     public function testARowTheAdministratorNeverFilledInIsDroppedRatherThanRejected(): void
     {
         $configuration = $this->input->configuration(HomeSectionType::HeroSlider, ['slides' => [
-            ['title' => 'Kampanya', 'description' => 'Açıklama', 'image' => $this->storedImage(), 'link' => '/yeni/katalog'],
-            ['title' => '', 'description' => '', 'image' => '', 'link' => ''],
-            ['title' => '  ', 'description' => '   ', 'image' => '', 'link' => ''],
+            $this->slide(),
+            $this->slide(['title' => '', 'label' => '', 'priceLabel' => '', 'priceValue' => '', 'image' => '']),
+            $this->slide(['title' => '  ', 'label' => '   ', 'priceLabel' => '', 'priceValue' => '', 'image' => '']),
         ]], $this->files);
 
         self::assertCount(1, $configuration['slides']);
         self::assertSame('Kampanya', $configuration['slides'][0]['title']);
     }
+
+    /**
+     * The theme's own three hero compositions: a slide may carry an offer pill, a pair of calls to
+     * action, or neither, and the shape stored has to say which without any of them being invented.
+     */
+    public function testEachHeroCompositionIsStoredWithItsOwnOptionalParts(): void
+    {
+        $configuration = $this->input->configuration(HomeSectionType::HeroSlider, ['slides' => [
+            $this->slide(),
+            $this->slide([
+                'label' => 'Efe Otomotiv',
+                'title' => 'Doğru parçayı bulun',
+                'priceLabel' => '',
+                'priceValue' => '',
+                'primaryText' => 'Hemen başla',
+                'primaryLink' => '/yeni/katalog',
+                'secondaryText' => 'Kategoriler',
+                'secondaryLink' => '/yeni/kategoriler',
+            ]),
+        ]], $this->files);
+
+        self::assertSame('Şu andan itibaren', $configuration['slides'][0]['priceLabel']);
+        self::assertSame('', $configuration['slides'][0]['primaryText']);
+        self::assertSame('Hemen başla', $configuration['slides'][1]['primaryText']);
+        self::assertSame('/yeni/kategoriler', $configuration['slides'][1]['secondaryLink']);
+    }
+
+    public function testAHeroCallToActionWithoutItsOtherHalfIsRefused(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->input->configuration(HomeSectionType::HeroSlider, ['slides' => [
+            $this->slide(['primaryText' => 'Hemen başla', 'primaryLink' => '']),
+        ]], $this->files);
+    }
+
     public function testTextIsTrimmedAndBoundedBeforeTheDomainSeesIt(): void
     {
         $configuration = $this->input->configuration(HomeSectionType::AnnouncementBar, [
@@ -66,7 +125,7 @@ final class HomeSectionInputTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $this->input->configuration(HomeSectionType::HeroSlider, ['slides' => [
-            ['title' => 'Kampanya', 'description' => 'Açıklama', 'image' => '/uploads/cms/../../etc/passwd', 'link' => '/yeni/katalog'],
+            $this->slide(['image' => '/uploads/cms/../../etc/passwd']),
         ]], $this->files);
     }
 
@@ -75,7 +134,7 @@ final class HomeSectionInputTest extends TestCase
         $this->files->set('slides_0_file', $this->upload('hero.png'));
 
         $configuration = $this->input->configuration(HomeSectionType::HeroSlider, ['slides' => [
-            ['title' => 'Kampanya', 'description' => 'Açıklama', 'image' => '', 'link' => '/yeni/katalog'],
+            $this->slide(['image' => '']),
         ]], $this->files);
 
         $image = $configuration['slides'][0]['image'];

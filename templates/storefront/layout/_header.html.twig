@@ -1,6 +1,7 @@
-<header class="site-header" data-controller="storefront-shell">
-    {% include 'storefront/layout/_announcement.html.twig' %}
-
+{# The header itself. The notice band above it is not part of the header: the theme puts it at the
+   top of the page, above this element, and `storefront/layout/_notice.html.twig` renders it there.
+   The shell controller lives on the body so it can reach both. #}
+<header class="site-header">
     <div class="header-topbar">
         <div class="container topbar-inner">
             <p>Otomotiv yedek parçada yerel uzmanlık</p>

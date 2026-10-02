@@ -1,5 +1,16 @@
 {% extends 'storefront/base.html.twig' %}
 
+{# The homepage is the theme's page. Every block below is one of `tema/index.html`'s, in the order
+   that file draws them, so the rendered document can be compared with the reference block for block
+   rather than block for block. #}
+
+{% block notice %}
+    {% if homepage.announcement %}
+        {% include homepage.announcement.template with {section: homepage.announcement} only %}
+    {% else %}
+        {{ parent() }}
+    {% endif %}
+{% endblock %}
 
 {% block body %}
 <main id="main-content" class="page-shell" tabindex="-1">
@@ -16,9 +27,6 @@
             </div>
         </section>
     {% else %}
-        {# The theme's notice band sits above everything else on the page. #}
-        {% if homepage.announcement %}{% include homepage.announcement.template with {section: homepage.announcement, region: 'notice'} only %}{% endif %}
-
         {# The theme's upper band: category panel, hero slider and top sellers are one row.
            A column with no module is left out of the grid rather than rendered as an empty frame. #}
         {% if homepage.hasTopRegion %}
@@ -31,9 +39,11 @@
 
         {% for section in homepage.blocks %}{% include section.template with {section: section, region: 'block', blockId: loop.index} only %}{% endfor %}
 
-        {# The theme's lower band: the testimonial panel and the blog feed share one row. #}
+        {# The theme's lower band: the testimonial panel and the blog feed share one row. The
+           modifier counts the panels that are actually there, so a band with one of the two
+           missing does not leave half a row of blank white behind it. #}
         {% if homepage.hasBottomRegion %}
-            <section class="container home-section testimonial-blog">
+            <section class="container home-section testimonial-blog testimonial-blog-{{ (homepage.testimonials ? 1 : 0) + (homepage.blogFeed ? 1 : 0) }}">
                 {% if homepage.testimonials %}{% include homepage.testimonials.template with {section: homepage.testimonials, region: 'quote'} only %}{% endif %}
                 {% if homepage.blogFeed %}{% include homepage.blogFeed.template with {section: homepage.blogFeed, region: 'blog'} only %}{% endif %}
             </section>

@@ -51,8 +51,11 @@ final class HomeControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('html[lang="tr"]');
         self::assertSelectorTextContains('a.storefront-brand', 'Efe Otomotiv Adana');
-        self::assertSelectorExists('header.site-header[data-controller~="storefront-shell"]');
-        self::assertSelectorExists('.announcement[role="status"]');
+        // The shell controller now sits on the body so it can reach both the notice band above the
+        // header and the navigation inside it; the band itself is the theme's single `.notice`.
+        self::assertSelectorExists('body[data-controller~="storefront-shell"]');
+        self::assertSelectorExists('.notice[role="status"]');
+        self::assertSame(1, $crawler->filter('.notice')->count(), 'There is exactly one notice band.');
         self::assertSelectorExists('nav[aria-label="Ana navigasyon"]');
         self::assertSelectorExists('button[aria-controls="mobile-navigation"][aria-expanded="false"]');
         self::assertSelectorExists('#mobile-navigation[hidden]');

@@ -1,0 +1,38 @@
+{# The homepage's product card.
+
+   `tema/index.html` gives a homepage card its own, tighter shape than the catalogue's: a fixed
+   thumbnail box, the brand as a small uppercase line, one-line name, the price with the struck
+   original beside it, and two controls — the yellow add-to-cart and the wishlist heart. The
+   catalogue list keeps `components/product_card.html.twig` and its own rules, so this presentation
+   is scoped to the homepage's own grid classes and cannot reach a catalogue page.
+
+   What the card shows is still the real record: the real price, the real brand, the real product,
+   and the real cart and wishlist posts. #}
+<article class="product-card home-product-card">
+    {% if product.onSale %}<span class="badge">İndirim</span>{% endif %}
+    <a class="product-thumb" href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">
+        <img src="{{ product_image_url(product.imagePath) }}" alt="{{ product.imageAlt ?? product.name }}" width="640" height="640" loading="lazy" decoding="async">
+    </a>
+
+    <div class="product-info">
+        {% if product.brandName %}<a class="product-brand" href="{{ path('storefront_catalog_brand', {slug: product.brandSlug}) }}">Marka: {{ product.brandName }}</a>{% endif %}
+        <a class="product-name" href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">{{ product.name }}</a>
+        <div class="product-price">
+            {% if product.sellPrice %}{{ product.sellPrice|storefront_money }}{% else %}Fiyat için iletişime geçin{% endif %}
+            {%- if product.onSale and product.basePrice %} <span class="product-old">{{ product.basePrice|storefront_money }}</span>{% endif -%}
+        </div>
+        <div class="product-actions">
+            {% if product.sellable and product.sellPrice %}
+                <form class="cart-add-form" method="post" action="{{ path('storefront_cart_add', {id: product.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('cart_add_' ~ product.id) }}">
+                    <input type="hidden" name="quantity" value="1">
+                    <button class="btn-yellow" type="submit">Sepete ekle</button>
+                </form>
+            {% endif %}
+            <form class="wishlist-add-form" method="post" action="{{ path('storefront_wishlist_add', {id: product.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('wishlist_add_' ~ product.id) }}">
+                <button class="btn-ghost" type="submit" aria-label="{{ product.name }} ürününü istek listesine ekle">♡</button>
+            </form>
+        </div>
+    </div>
+</article>
