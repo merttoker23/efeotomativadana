@@ -44,7 +44,7 @@
 
             <div class="catalog-heading-row">
                 <div>
-                    <p class="panel-kicker">Yerel katalog</p>
+                    <p class="panel-kicker">{% if criteria.onSaleOnly %}Aktif indirim{% else %}Yerel katalog{% endif %}</p>
                     <h1 id="catalog-heading">{{ heading }}</h1>
                     {% if criteria.query %}<p class="search-context">“{{ criteria.query }}” için sonuçlar</p>{% endif %}
                 </div>
@@ -68,7 +68,14 @@
                null on the last page, and the controller then does nothing at all. #}
             <div class="catalog-listing" data-controller="catalog-infinite-scroll" data-catalog-infinite-scroll-next-url-value="{{ next_page_url }}">
                 {% if page.items is empty %}
-                    <div class="catalog-empty" role="status"><h2>Ürün bulunamadı</h2><p>Arama veya filtre seçiminizi değiştirerek tekrar deneyin.</p></div>
+                    {# An empty collections page is not an error and not the same thing as an empty
+                       search, so it says which of the two it is rather than sending the shopper back
+                       to the catalogue to be told a product list came back empty. #}
+                    {% if criteria.onSaleOnly %}
+                        <div class="catalog-empty" role="status"><h2>Şu anda indirimli ürün yok</h2><p>Yeni bir indirim başladığında ürünler burada listelenir.</p></div>
+                    {% else %}
+                        <div class="catalog-empty" role="status"><h2>Ürün bulunamadı</h2><p>Arama veya filtre seçiminizi değiştirerek tekrar deneyin.</p></div>
+                    {% endif %}
                 {% else %}
                     <div class="product-grid" data-catalog-infinite-scroll-target="grid">
                         {% for product in page.items %}{% include 'components/product_card.html.twig' with {product: product} only %}{% endfor %}

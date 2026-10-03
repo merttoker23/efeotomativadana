@@ -12,6 +12,12 @@ use Symfony\Component\HttpFoundation\InputBag;
  * of itself as the customer scrolls passes a size of its own instead — see
  * {@see self::fromQuery()} — because that is a different reading of the same query rather than a
  * different query: the filters, the sort and the page number all stay exactly as they were.
+ *
+ * `onSaleOnly` is the one restriction that is not a filter a customer chose. It is the question a
+ * collections page asks — which published products are on a discount right now — and it belongs to
+ * the page rather than to the address, so it is deliberately absent from
+ * {@see self::filterParameters()}: the next page of a collections listing is asked for at the same
+ * collections address, and a reader who edits the query string cannot switch it off.
  */
 final readonly class CatalogCriteria
 {
@@ -19,6 +25,7 @@ final readonly class CatalogCriteria
     public ?string $categorySlug;
     public ?string $brandSlug;
     public bool $inStockOnly;
+    public bool $onSaleOnly;
     public CatalogSort $sort;
     public int $page;
     public int $perPage;
@@ -31,11 +38,13 @@ final readonly class CatalogCriteria
         CatalogSort $sort = CatalogSort::Newest,
         int $page = 1,
         int $perPage = 12,
+        bool $onSaleOnly = false,
     ) {
         $this->query = self::text($query, 120);
         $this->categorySlug = self::slug($categorySlug);
         $this->brandSlug = self::slug($brandSlug);
         $this->inStockOnly = $inStockOnly;
+        $this->onSaleOnly = $onSaleOnly;
         $this->sort = $sort;
         $this->page = max(1, $page);
         $this->perPage = min(48, max(1, $perPage));
@@ -51,6 +60,7 @@ final readonly class CatalogCriteria
         ?string $categorySlug = null,
         ?string $brandSlug = null,
         ?int $perPage = null,
+        bool $onSaleOnly = false,
     ): self {
         return new self(
             query: $query->getString('q'),
@@ -60,6 +70,7 @@ final readonly class CatalogCriteria
             sort: CatalogSort::tryFrom($query->getString('sort')) ?? CatalogSort::Newest,
             page: $query->getInt('page', 1),
             perPage: $perPage ?? 12,
+            onSaleOnly: $onSaleOnly,
         );
     }
 

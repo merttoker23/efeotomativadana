@@ -87,6 +87,27 @@ final readonly class StorefrontSeo
         ));
     }
 
+    /**
+     * The collections page: the products that are on a discount at this moment.
+     *
+     * A landing page with an address of its own rather than a filtered view of the catalogue, so
+     * its canonical is the collections address and the whole catalogue is never presented to a
+     * crawler as this page. The trail still starts at the catalogue, because a shopper who lands
+     * here is looking at the same products the catalogue lists — from the discounted subset of them.
+     */
+    public function collections(): SeoMetadata
+    {
+        return $this->metadata->for(new SeoPage(
+            route: 'storefront_collections_index',
+            label: 'Koleksiyonlar',
+            text: 'Şu anda indirimli olan yayınlanmış ürünler.',
+            breadcrumbs: $this->trail([
+                new SeoBreadcrumb('Ürünler', $this->urls->absolute('storefront_catalog_index')),
+                new SeoBreadcrumb('Koleksiyonlar', $this->urls->absolute('storefront_collections_index')),
+            ]),
+        ));
+    }
+
     public function product(CatalogProductDetail $product): SeoMetadata
     {
         $canonical = $this->urls->absolute('storefront_catalog_product', ['slug' => $product->slug]);

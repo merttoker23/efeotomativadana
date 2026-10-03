@@ -4,6 +4,7 @@ namespace App\Controller\Storefront\Catalog;
 
 use App\Module\Catalog\Query\CatalogCriteria;
 use App\Module\Catalog\Query\CatalogQuery;
+use App\Module\Seo\SeoMetadata;
 use App\Module\Seo\StorefrontSeo;
 use App\Module\Settings\StoreConfiguration;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -110,6 +111,23 @@ final class CatalogController extends AbstractController
     }
 
     /**
+     * The collections page: the published products that are on a discount at this moment.
+     *
+     * A sale in this store is a second price with a window around it, not a flag anybody sets, so
+     * "on a discount right now" is the same three conditions the pricing module evaluates for every
+     * price it prints: a sale price that exists, that has already started, that has not ended. It is
+     * therefore the catalogue's own listing asked a different question — not a second listing
+     * system — so the filters, the sort, the paging, the infinite scroll and the product cards are
+     * exactly the ones every other listing uses. A sale that has ended or has not begun is not on
+     * this page, and neither is a draft.
+     */
+    #[Route('/koleksiyonlar', name: 'storefront_collections_index', methods: ['GET'])]
+    public function collections(Request $request): Response
+    {
+        return $this->listing($request, 'Koleksiyonlar', onSaleOnly: true, seo: $this->seo->collections());
+    }
+
+    /**
      * The catalogue listing, paged, and read as one long grid.
      *
      * The page is one page of a sorted, filtered query at a time, and it is told whether a further
@@ -123,8 +141,10 @@ final class CatalogController extends AbstractController
         string $heading,
         ?string $categorySlug = null,
         ?string $brandSlug = null,
+        bool $onSaleOnly = false,
+        ?SeoMetadata $seo = null,
     ): Response {
-        $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug, self::LISTING_PAGE_SIZE);
+        $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug, self::LISTING_PAGE_SIZE, $onSaleOnly);
         // The sidebar is a filter, not an index: it renders a bounded, most-popular slice and
         // links to the paged index for the full set, which is where the unbounded read used to
         // happen. Every category and brand stays reachable through that index.
@@ -144,7 +164,7 @@ final class CatalogController extends AbstractController
                 // turns it into the address of that page, and a null one is what tells the scroll
                 // there is nothing left to ask for.
                 'next_page' => $page->nextPage(),
-                'seo' => $this->seo->catalogListing($heading, $categorySlug, $brandSlug),
+                'seo' => $seo ?? $this->seo->catalogListing($heading, $categorySlug, $brandSlug),
             ],
             ['categories' => array_slice($categories, 0, 8), 'brands' => array_slice($brands, 0, 8)],
         ));

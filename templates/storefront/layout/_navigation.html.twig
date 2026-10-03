@@ -4,7 +4,16 @@
    reference, which is where the two of them came from.
 
    The cart block is the theme's own: a yellow pill carrying the item count, the total and the cart
-   mark, and both numbers are this store's real summary rather than the reference's placeholder. #}
+   mark, and both numbers are this store's real summary rather than the reference's placeholder.
+
+   The reference's fourth link is its SALE item, which points at a specials page. This store's
+   equivalent is Koleksiyonlar — the published products that are on a discount right now — so the
+   reference's sale link is a real link here rather than the dimmed text it used to be. Its "-75%"
+   tag is the reference's own placeholder rather than a figure this store measures, so it is left
+   off and the label says plainly what the page holds. #}
+{% set route = app.request.attributes.get('_route') %}
+{% set route_parameters = app.request.attributes.get('_route_params') %}
+
 <div class="container nav-row">
     <a class="departments" href="{{ path('storefront_catalog_index') }}">
         <span class="hamb" aria-hidden="true">☷</span>
@@ -13,17 +22,17 @@
     </a>
 
     <nav class="main-navigation" aria-label="Ana navigasyon">
-        <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
-        <a href="{{ path('storefront_catalog_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_catalog_' and app.request.attributes.get('_route') != 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Ürünler</a>
-        <a href="{{ path('storefront_catalog_brands') }}"{% if app.request.attributes.get('_route') == 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Markalar</a>
-        <span aria-disabled="true">Kampanyalar</span>
+        <a href="{{ path('app_home') }}"{% if route == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
+        <a href="{{ path('storefront_catalog_index') }}"{% if route starts with 'storefront_catalog_' and route != 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Ürünler</a>
+        <a href="{{ path('storefront_catalog_brands') }}"{% if route == 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Markalar</a>
+        <a href="{{ path('storefront_collections_index') }}"{% if route == 'storefront_collections_index' %} aria-current="page"{% endif %}>Koleksiyonlar</a>
     </nav>
 
     <div class="nav-spacer"></div>
 
     <nav class="quick-navigation" aria-label="Hızlı erişim">
-        <a class="header-action" href="{{ path('storefront_wishlist_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}><span class="action-icon" aria-hidden="true">♡</span>&nbsp;İstek Listem</a>
-        <a class="header-action" href="{{ path('storefront_compare_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_compare_' %} aria-current="page"{% endif %}><span class="action-icon" aria-hidden="true">↬</span>&nbsp;Karşılaştır</a>
+        <a class="header-action" href="{{ path('storefront_wishlist_index') }}"{% if route starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}><span class="action-icon" aria-hidden="true">♡</span>&nbsp;İstek Listem</a>
+        <a class="header-action" href="{{ path('storefront_compare_index') }}"{% if route starts with 'storefront_compare_' %} aria-current="page"{% endif %}><span class="action-icon" aria-hidden="true">↬</span>&nbsp;Karşılaştır</a>
     </nav>
 
     {# A cart whose lines are not all available has no total to print, so the total segment is left
@@ -44,12 +53,13 @@
     hidden
 >
     <div class="container mobile-navigation-inner">
-        <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
-        <a href="{{ path('storefront_catalog_index') }}">Ürünler</a>
-        <a href="{{ path('storefront_catalog_brands') }}">Markalar</a>
-        <a href="{{ path('storefront_wishlist_index') }}">İstek Listem</a>
-        <a href="{{ path('storefront_compare_index') }}">Karşılaştır</a>
-        {% for category in catalog_navigation.categories|default([])|slice(0, 5) %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }} <small>{{ category.productCount }}</small></a>{% endfor %}
-        <a href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}">Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
+        <a href="{{ path('app_home') }}"{% if route == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
+        <a href="{{ path('storefront_catalog_index') }}"{% if route starts with 'storefront_catalog_' and route != 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Ürünler</a>
+        <a href="{{ path('storefront_catalog_brands') }}"{% if route == 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Markalar</a>
+        <a href="{{ path('storefront_collections_index') }}"{% if route == 'storefront_collections_index' %} aria-current="page"{% endif %}>Koleksiyonlar</a>
+        <a href="{{ path('storefront_wishlist_index') }}"{% if route starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}>İstek Listem</a>
+        <a href="{{ path('storefront_compare_index') }}"{% if route starts with 'storefront_compare_' %} aria-current="page"{% endif %}>Karşılaştır</a>
+        {% for category in catalog_navigation.categories|default([])|slice(0, 5) %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}"{% if route == 'storefront_catalog_category' and route_parameters.slug|default('') == category.slug %} aria-current="page"{% endif %}>{{ category.name }} <small>{{ category.productCount }}</small></a>{% endfor %}
+        <a href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}"{% if route starts with 'customer_account_' %} aria-current="page"{% endif %}>Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
     </div>
 </nav>

@@ -90,6 +90,33 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame(1, $top->filter('.hero .hero-slide.active')->count());
     }
 
+    /**
+     * Every category row has to be a whole row.
+     *
+     * The panel is 460px tall because the hero beside it is, which is what lines the three columns
+     * of the upper band up — and it is seeded with nine categories. A fixed row height only ever
+     * fills a fixed panel when the row count divides it exactly, and nine rows of 54.4px is
+     * 489.6px, so the ninth row was clipped in half by `overflow: hidden` and the panel looked
+     * broken at the bottom of it. The rows now share the panel's height instead.
+     *
+     * That is a property of the stylesheet and of nothing else: the markup renders nine rows either
+     * way, so this reads the stylesheet rather than the response, which is the same reason the
+     * geometry test above reads both stylesheets.
+     */
+    public function testTheCategoryPanelGivesEveryRowAWholeRowToSitIn(): void
+    {
+        $declarations = $this->desktopDeclarationsOf(dirname(__DIR__, 3).'/assets/styles/storefront.css');
+
+        self::assertSame('flex', $declarations['.category-panel']['display'] ?? null, 'The category panel is no longer a column.');
+        self::assertSame('column', $declarations['.category-panel']['flex-direction'] ?? null);
+        self::assertArrayHasKey('flex', $declarations['.cat-row'] ?? [], 'A category row no longer grows to share the panel.');
+        self::assertArrayNotHasKey('height', $declarations['.cat-row'] ?? [], 'A fixed category row height is where the cut rows came from.');
+
+        // Past the rows the panel can show whole, it scrolls. Clipping is the one thing it must not
+        // do, because a clipped row cannot be reached at all.
+        self::assertSame('auto', $declarations['.category-panel']['overflow-y'] ?? null, 'The category panel clips the rows it cannot fit.');
+    }
+
     public function testTheHeroIsAWorkingSliderRatherThanAStackOfPictures(): void
     {
         $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
@@ -552,9 +579,42 @@ final class HomepageThemeLayoutTest extends WebTestCase
      *
      * @return array<string, array<string, string>>
      */
+    /**
+     * The same rules with every `@media` block removed first.
+     *
+     * {@see self::declarationsOf()} reads the whole sheet, and a flat `selector { … }` pattern
+     * cannot tell a rule inside a breakpoint from one outside it: it pairs each rule with the
+     * declarations that happen to follow its braces, so a `display: none` written for the tablet
+     * breakpoint lands on whatever rule was parsed just before it. That is harmless for a
+     * measurement the reference states at the desktop size, and wrong for a question about which
+     * declarations a selector carries, so the breakpoints are taken out of the file before it is
+     * parsed rather than worked around afterwards.
+     *
+     * @return array<string, array<string, string>>
+     */
+    private function desktopDeclarationsOf(string $path): array
+    {
+        // Comments come off first: they are prose about the rules, they carry braces and at-rule
+        // words of their own, and a comment is not a rule the parser should be reading.
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents($path));
+        $css = (string) preg_replace('#@media[^{}]*\{(?:[^{}]*\{[^{}]*\}[^{}]*)*\}#s', '', $css);
+
+        return $this->declarationsOfString($css);
+    }
+
+    /** @return array<string, array<string, string>> */
     private function declarationsOf(string $path): array
     {
         $css = (string) preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents($path));
+
+        return $this->declarationsOfString($css);
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private function declarationsOfString(string $css): array
+    {
         $rules = [];
         if (preg_match_all('#([^{}]+)\{([^{}]*)\}#', $css, $matches, \PREG_SET_ORDER)) {
             foreach ($matches as $match) {

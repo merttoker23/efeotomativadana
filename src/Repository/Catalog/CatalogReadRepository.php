@@ -570,6 +570,26 @@ final readonly class CatalogReadRepository
                 SQL);
         }
 
+        if ($criteria->onSaleOnly) {
+            // The collections page, and it states the same question the pricing module does: a sale
+            // price that exists, that has already started and that has not ended. Written as the
+            // same three conditions {@see self::saleIsActive()} evaluates in PHP, against the same
+            // database clock the sort's effective price uses, so a product shown here is one whose
+            // card actually prints the struck-through original beside the price.
+            $query
+                ->andWhere(<<<'SQL'
+                    EXISTS (
+                        SELECT 1
+                        FROM commerce_product_price sale_price
+                        WHERE sale_price.product_id = product.id
+                          AND sale_price.sale_minor_amount IS NOT NULL
+                          AND (sale_price.sale_starts_at IS NULL OR sale_price.sale_starts_at <= :now)
+                          AND (sale_price.sale_ends_at IS NULL OR :now < sale_price.sale_ends_at)
+                    )
+                    SQL)
+                ->setParameter('now', $this->databaseTime($this->clock->now()));
+        }
+
         return $query;
     }
 

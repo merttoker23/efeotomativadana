@@ -21,13 +21,26 @@
             {% if product.sellPrice %}{{ product.sellPrice|storefront_money }}{% else %}Fiyat için iletişime geçin{% endif %}
             {%- if product.onSale and product.basePrice %} <span class="product-old">{{ product.basePrice|storefront_money }}</span>{% endif -%}
         </div>
+        {# The theme's card puts the yellow add-to-cart and the wishlist heart on one row, and the
+           row is sized by that yellow button. A product that cannot be bought today still has to
+           keep the row: an empty slot is what makes the cards of a grid sit at different heights,
+           and it reads as a card the shop forgot to finish rather than as a product it cannot sell
+           right now. So the button is replaced by a disabled control of the same size that says
+           why, and the wishlist form is left exactly as it was.
+
+           Nothing here decides what a POST to the cart accepts. The form still carries the CSRF
+           token and still posts to the cart route; what it posts is decided there, as before. #}
         <div class="product-actions">
-            {% if product.sellable and product.sellPrice %}
+            {% if product.sellPrice is null %}
+                <button class="is-disabled" type="button" disabled>Fiyat Sorun</button>
+            {% elseif product.sellable %}
                 <form class="cart-add-form" method="post" action="{{ path('storefront_cart_add', {id: product.id}) }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('cart_add_' ~ product.id) }}">
                     <input type="hidden" name="quantity" value="1">
-                    <button class="btn-yellow" type="submit">Sepete ekle</button>
+                    <button class="btn-yellow" type="submit">Sepete Ekle</button>
                 </form>
+            {% else %}
+                <button class="is-disabled" type="button" disabled>Stokta Yok</button>
             {% endif %}
             <form class="wishlist-add-form" method="post" action="{{ path('storefront_wishlist_add', {id: product.id}) }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('wishlist_add_' ~ product.id) }}">
