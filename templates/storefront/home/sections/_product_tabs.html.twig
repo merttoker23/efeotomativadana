@@ -2,7 +2,12 @@
 
    The reference theme draws the tab strip but never switches the panel behind it. This one does:
    every tab owns a real `tabpanel`, the controller shows exactly one, and the arrow keys move
-   between them the way a tablist is expected to behave. #}
+   between them the way a tablist is expected to behave.
+
+   What a panel holds is the tab's own source's answer, which the renderer resolved from the
+   section's configuration rather than from the tab's title. A source with nothing behind it keeps
+   its tab and its panel and says so inside the panel — an empty grid would read as a layout fault,
+   and dropping the tab would hide a question the store asked and could not answer yet. #}
 {% if section.data.tabs %}
     {% set base = 'home-tabs-' ~ (blockId|default(0)) %}
     <section class="container home-section section-card" aria-label="{{ section.title }}">
@@ -33,6 +38,11 @@
                  data-home-tabs-target="panel"
                  {{ loop.first ? '' : 'hidden' }}>
                 {% for product in tab.products %}{% include 'components/home_product_card.html.twig' with {product: product} only %}{% endfor %}
+                {% if tab.products is empty %}
+                    {# The panel still occupies the grid's own row box, so switching to an empty tab
+                       does not collapse the section under the visitor's cursor. #}
+                    <p class="product-grid-empty">{{ tab.source.emptyMessage }}</p>
+                {% endif %}
             </div>
         {% endfor %}
     </section>

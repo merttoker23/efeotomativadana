@@ -23,6 +23,19 @@
                     {% if 'mobileImage' == field %}<p class="help-text">680px ve altında kullanılır. Görsel seçilmezse mağazanın placeholder görseli gösterilir.</p>{% endif %}
                 {% elseif type.isLinkField(field) %}
                     {% include 'admin/cms/home/_link.html.twig' with {name: name, value: value} only %}
+                {% elseif type.isSourceField(field) %}
+                    {# Where this row's products come from. Only the manual source has products to
+                       pick, so the four options name what each one will actually show and the picker
+                       below appears for that one alone. #}
+                    <div class="cms-field">
+                        <label for="{{ name }}">{{ type.fieldLabels()[field] }}</label>
+                        <select id="{{ name }}" name="{{ name }}">
+                            {% for choice in type.sourceChoices %}
+                                <option value="{{ choice.value }}"{{ choice.value == value ? ' selected' : '' }}>{{ choice.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="help-text">Bu kaynak seçiliyken ürünler mağazadaki gerçek verilerden sıralanır. Yalnızca “Öne Çıkanlar” seçilirse aşağıdaki listeden manuel ürün seçebilirsiniz.</p>
+                    </div>
                 {% else %}
                     <div class="cms-field">
                         <label for="{{ name }}">{{ type.fieldLabels()[field]|default(field) }}</label>
@@ -34,7 +47,7 @@
                     </div>
                 {% endif %}
             {% endfor %}
-            {% if type.selectionPerRow %}
+            {% if type.selectionPerRow and (item.source|default('featured') == 'featured') %}
                 {% include 'admin/cms/home/_picker.html.twig' with {
                     kind: type.selection(),
                     prefix: rows ~ '_' ~ loop.index0 ~ '_p',
@@ -61,6 +74,18 @@
                     {% if 'mobileImage' == field %}<p class="help-text">680px ve altında kullanılır. Görsel seçilmezse mağazanın placeholder görseli gösterilir.</p>{% endif %}
                 {% elseif type.isLinkField(field) %}
                     {% include 'admin/cms/home/_link.html.twig' with {name: name, value: ''} only %}
+                {% elseif type.isSourceField(field) %}
+                    {# A brand new row starts on the manual source, which is the only one whose
+                       products an administrator fills in — so the picker below comes with it. #}
+                    <div class="cms-field">
+                        <label for="{{ name }}-new">{{ type.fieldLabels()[field] }}</label>
+                        <select id="{{ name }}-new" name="{{ name }}">
+                            {% for choice in type.sourceChoices %}
+                                <option value="{{ choice.value }}"{{ choice.value == 'featured' ? ' selected' : '' }}>{{ choice.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="help-text">Bu kaynak seçiliyken ürünler mağazadaki gerçek verilerden sıralanır. Yalnızca “Öne Çıkanlar” seçilirse aşağıdaki listeden manuel ürün seçebilirsiniz.</p>
+                    </div>
                 {% else %}
                     <div class="cms-field">
                         <label for="{{ name }}-new">{{ type.fieldLabels()[field]|default(field) }}</label>

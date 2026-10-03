@@ -3,6 +3,7 @@
 namespace App\Module\Cart;
 
 use App\Entity\Catalog\Product;
+use App\Module\Catalog\ProductAttributeLabels;
 use App\Module\Catalog\PublicationStatus;
 use App\Module\Catalog\Query\CatalogQuery;
 use App\Repository\Catalog\ProductRepository;
@@ -71,7 +72,7 @@ final readonly class ComparisonManager
             $attributes = [];
             foreach ($product->attributes() as $attribute) {
                 $attributes[$attribute->key()] = $attribute->value();
-                $rows[$attribute->key()]['label'] = mb_convert_case(str_replace('-', ' ', $attribute->key()), \MB_CASE_TITLE, 'UTF-8');
+                $rows[$attribute->key()]['label'] = ProductAttributeLabels::label($attribute->key());
                 $rows[$attribute->key()]['values'][$id] = $attribute->value();
             }
             $views[] = new SavedProductView(

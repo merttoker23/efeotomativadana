@@ -1,1 +1,62 @@
-{% extends 'storefront/base.html.twig' %}{% block body %}{% set pager = page %}<main id="main-content" class="container content-page" tabindex="-1"><h1>Blog</h1><div class="cms-blog-grid">{% for post in posts %}<article><h2><a href="{{ path('storefront_blog_show', {slug: post.slug}) }}">{{ post.title }}</a></h2><p>{{ post.excerpt }}</p></article>{% else %}<p>Hen&#252;z yay&#305;nlanm&#305;&#351; yaz&#305; yok.</p>{% endfor %}</div>{% if pager.totalPages > 1 %}<nav class="pagination" aria-label="Blog sayfaları">{% if pager.hasPrevious %}<a href="{{ path('storefront_blog_index', {page: pager.page - 1}) }}" rel="prev" aria-label="Onceki sayfa">&#8249;</a>{% endif %}{% for number in pager.pageNumbers %}<a href="{{ path('storefront_blog_index', {page: number}) }}"{% if number == pager.page %} aria-current="page"{% endif %}>{{ number }}</a>{% endfor %}{% if pager.hasNext %}<a href="{{ path('storefront_blog_index', {page: pager.page + 1}) }}" rel="next" aria-label="Sonraki sayfa">&#8250;</a>{% endif %}</nav>{% endif %}</main>{% endblock %}
+{% extends 'storefront/base.html.twig' %}
+
+{# The blog archive as `tema/blog.html` draws it.
+
+   The reference is one breadcrumb row, then a single white card holding the page title and a
+   three-across grid of cards; every card is one link carrying a cover block, the title and the
+   summary. Its own numbers are the numbers below — the 5.6px card radius, the 24px card padding,
+   the 27.2px page title, the 16px grid gap, the 176px cover and the 17.6px inner padding — and its
+   own two breakpoints are the repository's: three columns, two from 1024px, one from 680px.
+
+   What is in the grid is this store's own published posts. The reference's cards are filled with a
+   placeholder gradient because the reference theme has no cover images at all, and this store's
+   `BlogPost` has no cover field either, so that same placeholder is used here rather than
+   inventing a table, a migration or an image nobody chose. When a post does grow a cover, only the
+   cover block below changes.
+
+   The published filter and the pager are the ones the controller already applies; this template
+   draws them and decides nothing about which posts are visible. #}
+
+{% block body %}
+    {% set pager = page %}
+    <main id="main-content" class="page-shell" tabindex="-1">
+        <nav class="container breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana Sayfa</a>
+            <span aria-hidden="true">/</span>
+            <span>Blog</span>
+        </nav>
+
+        <div class="container generic-card blog-listing">
+            <h1 class="page-title">Blog</h1>
+
+            <div class="blog-list">
+                {% for post in posts %}
+                    <a class="blog-post-card" href="{{ path('storefront_blog_show', {slug: post.slug}) }}">
+                        {# The reference's cover block, with no image inside it. Hidden from assistive
+                           technology because it is decoration: the link already says where it goes
+                           and what it is called. #}
+                        <span class="blog-post-cover" aria-hidden="true"></span>
+                        <span class="blog-post-body">
+                            <h2>{{ post.title }}</h2>
+                            {% if post.excerpt %}<p>{{ post.excerpt }}</p>{% endif %}
+                        </span>
+                    </a>
+                {% else %}
+                    {# The archive with nothing in it says so inside the same card the posts would
+                       have been in, rather than leaving a title floating over an empty page. #}
+                    <p class="blog-empty">Henüz yayımlanmış yazı yok.</p>
+                {% endfor %}
+            </div>
+
+            {% if pager.totalPages > 1 %}
+                <nav class="pagination" aria-label="Blog sayfaları">
+                    {% if pager.hasPrevious %}<a href="{{ path('storefront_blog_index', {page: pager.page - 1}) }}" rel="prev" aria-label="Önceki sayfa">‹</a>{% endif %}
+                    {% for number in pager.pageNumbers %}
+                        <a href="{{ path('storefront_blog_index', {page: number}) }}"{% if number == pager.page %} aria-current="page"{% endif %}>{{ number }}</a>
+                    {% endfor %}
+                    {% if pager.hasNext %}<a href="{{ path('storefront_blog_index', {page: pager.page + 1}) }}" rel="next" aria-label="Sonraki sayfa">›</a>{% endif %}
+                </nav>
+            {% endif %}
+        </div>
+    </main>
+{% endblock %}

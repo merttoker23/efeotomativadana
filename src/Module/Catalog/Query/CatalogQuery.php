@@ -2,6 +2,7 @@
 
 namespace App\Module\Catalog\Query;
 
+use App\Module\Catalog\ProductFeedSource;
 use App\Repository\Catalog\CatalogReadRepository;
 
 final readonly class CatalogQuery
@@ -34,6 +35,20 @@ final readonly class CatalogQuery
     public function products(array $slugs): array
     {
         return $this->repository->findPublishedProductViews($slugs);
+    }
+
+    /**
+     * A ranked list of published products for one automatic feed.
+     *
+     * The manual source is not reachable here: the products an administrator picked are addressed
+     * by slug and go through {@see self::products()}, so this is only ever asked for a feed that
+     * the store's own data decides.
+     *
+     * @return list<CatalogProductView>
+     */
+    public function productsBySource(ProductFeedSource $source, int $limit): array
+    {
+        return $this->repository->productViewsBySource($source, $limit);
     }
 
     /**

@@ -2,6 +2,8 @@
 
 namespace App\Module\Cms;
 
+use App\Module\Catalog\ProductFeedSource;
+
 final class SectionConfiguration
 {
     /**
@@ -150,6 +152,11 @@ final class SectionConfiguration
             if ('slides' === $kind && !array_key_exists('mobileImage', $item)) {
                 $item['mobileImage'] = '';
             }
+            if ('tabs' === $kind) {
+                self::tab($item);
+
+                continue;
+            }
             $actualFields = array_keys($item);
             sort($actualFields);
             $expectedFields = $fields;
@@ -174,6 +181,61 @@ final class SectionConfiguration
             if ('slides' === $kind) {
                 self::slidePairs($item);
             }
+        }
+    }
+
+    /**
+     * One product tab: a title, the source its products come from, and the products themselves when
+     * the source is the manual one.
+     *
+     * `source` is the only optional field in any row in this configuration, and it is optional for
+     * one reason only: the tabs already stored carry a title and a list of slugs and nothing else.
+     * A row without it is read as {@see ProductFeedSource::legacyDefault()} — the manual source,
+     * which is what a hand-picked list of slugs already was — so an existing homepage keeps working
+     * and no configuration is rewritten. Any other set of fields is still refused.
+     *
+     * The two interact as they must: the automatic sources name their own products, so a row that
+     * also carries a slug list would have two answers to the same question, and the manual source
+     * with nothing in it would be a tab the storefront can never fill. So an automatic row carries
+     * no slugs, and a manual row carries at least one.
+     *
+     * @param array<string, mixed> $tab
+     */
+    private static function tab(array $tab): void
+    {
+        if (!array_key_exists('source', $tab)) {
+            $tab['source'] = ProductFeedSource::legacyDefault()->value;
+        }
+
+        $fields = array_keys($tab);
+        sort($fields);
+        $expected = ['slugs', 'source', 'title'];
+        if ($fields !== $expected) {
+            throw new \InvalidArgumentException('Invalid tabs entry.');
+        }
+
+        self::text($tab['title']);
+
+        $source = ProductFeedSource::tryFrom(\is_string($tab['source']) ? $tab['source'] : '');
+        if (null === $source) {
+            throw new \InvalidArgumentException('Unknown product tab source.');
+        }
+
+        $slugs = $tab['slugs'];
+        if (!is_array($slugs) || !array_is_list($slugs) || count($slugs) > 20) {
+            throw new \InvalidArgumentException('Configuration list must have at most 20 entries.');
+        }
+        foreach ($slugs as $slug) {
+            self::slug($slug);
+        }
+
+        if ($source->isManual()) {
+            self::list('slugs', $slugs);
+
+            return;
+        }
+        if ([] !== $slugs) {
+            throw new \InvalidArgumentException('An automatic product tab takes its products from its own source.');
         }
     }
 

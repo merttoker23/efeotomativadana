@@ -42,7 +42,7 @@ final class HomeSectionDraftTest extends TestCase
         self::assertSame(['limit' => 3], $this->drafts->fromConfiguration(HomeSectionType::BlogFeed, null));
         self::assertSame(['slugs' => []], $this->drafts->fromConfiguration(HomeSectionType::BrandStrip, null));
         self::assertSame(
-            [['title' => '', 'slugs' => []]],
+            [['title' => '', 'source' => 'featured', 'slugs' => []]],
             $this->drafts->fromConfiguration(HomeSectionType::ProductTabs, null)['tabs'],
         );
     }

@@ -1,3 +1,31 @@
+/* The store's one typeface, self-hosted from `assets/fonts` so no page waits on a third party.
+
+   Inter Tight is a variable font covering the 100-900 weight range, so the whole interface's
+   400/650/700/750/800/850/900 weights come from these two files rather than from a family of
+   static cuts. Only the two subsets Turkish needs are shipped: `latin` carries ç ğ ı İ ö ş ü
+   Ö Ş Ü, and `latin-ext` carries the rest of the Latin Extended-A range the interface may print
+   in a product name. `font-display: swap` and the preload in the document head mean text is
+   painted in the fallback immediately and swapped once, rather than being invisible while a
+   stylesheet's own font loads. The fallback stack below is what a reader sees for those few
+   hundred milliseconds, and it is the stack the site is designed to survive without the webfont. */
+@font-face {
+    font-family: "Inter Tight";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter-tight-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: "Inter Tight";
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url("../fonts/inter-tight-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
     color-scheme: light;
     --storefront-notice: #071e3c;
@@ -10,7 +38,7 @@
     --storefront-muted: #69717a;
     --storefront-line: #e1e3e6;
     --storefront-container: 1456px;
-    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: "Inter Tight", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     color: var(--storefront-ink);
     background: var(--storefront-notice);
 }
@@ -55,9 +83,13 @@ body {
     background: var(--storefront-body);
 }
 
+/* Every form control inherits the page's own typeface: a control that fell back to the browser
+   default would be the one place on a page set in a different family. `textarea` was missing here,
+   which is why it is named explicitly rather than left to the shorthand's shorter list. */
 button,
 input,
-select {
+select,
+textarea {
     font: inherit;
 }
 
@@ -286,6 +318,106 @@ select:focus-visible {
     background: #fff;
     font-size: 12.8px;
     white-space: nowrap;
+}
+
+/* The account pill's own list.
+
+   The reference draws the pill and the caret and stops there, so every measurement below is taken
+   from the reference's own vocabulary rather than invented: the panel is white on the same 5.6px
+   card radius the theme's white cards use, its items are set in the pill's own 12.8px at the
+   reference's 8.8px/14.4px row padding, and it is hung from the pill by the same 8px gap the
+   header's own columns are separated by. The pointer is the 10px square the reference's card
+   corners are cut on, drawn in the panel's own colour so it reads as part of the panel. */
+.account-menu {
+    position: relative;
+}
+
+.account-menu-panel {
+    position: absolute;
+    z-index: 60;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 208px;
+    padding-block: 6.4px;
+    border: 1px solid var(--storefront-line);
+    border-radius: 5.6px;
+    background: var(--storefront-card);
+    box-shadow: 0 14px 34px rgb(7 30 60 / 18%);
+}
+
+/* The pointer, aligned to the caret the pill shows at its right-hand end. */
+.account-menu-panel::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    right: 26px;
+    width: 10px;
+    height: 10px;
+    border-top: 1px solid var(--storefront-line);
+    border-left: 1px solid var(--storefront-line);
+    background: var(--storefront-card);
+    transform: rotate(45deg);
+}
+
+.account-menu-heading {
+    margin: 0;
+    padding: 0 14.4px 6.4px;
+    border-bottom: 1px solid var(--storefront-line);
+    color: var(--storefront-muted);
+    font-size: 10.4px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.account-menu-panel a,
+.account-menu-form button {
+    display: block;
+    width: 100%;
+    padding: 8.8px 14.4px;
+    border: 0;
+    color: #3b4249;
+    background: none;
+    font-size: 12.8px;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.account-menu-panel a:hover,
+.account-menu-form button:hover {
+    color: var(--storefront-navy);
+    background: #eef3fb;
+}
+
+.account-menu-panel a[aria-current="page"] {
+    color: var(--storefront-navy);
+    font-weight: 850;
+}
+
+.account-menu-form {
+    margin: 6.4px 0 0;
+    padding-top: 6.4px;
+    border-top: 1px solid var(--storefront-line);
+}
+
+.account-menu-form button {
+    cursor: pointer;
+}
+
+/* An open pill keeps the pill's own shape and says which way the list went. */
+.account-menu.is-open .action-caret {
+    transform: rotate(180deg);
+}
+
+.action-caret {
+    transition: transform 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .action-caret {
+        transition: none;
+    }
 }
 
 /* The reference's marks are text in the same run as the labels, so they take the label's 12.8px
@@ -1743,6 +1875,12 @@ select:focus-visible {
         display: none;
     }
 
+    /* The account dropdown is a desktop control, so its wrapper goes with the pill it hangs from
+       and the mobile navigation's own "Hesabım" row is the small screen's way in. */
+    .account-menu {
+        display: none;
+    }
+
     .mobile-menu-toggle {
         display: flex;
     }
@@ -2308,6 +2446,157 @@ select:focus-visible {
 .content-page article { max-width: 48rem }
 .content-body { white-space: normal; line-height: 1.7; overflow-wrap: anywhere }
 .content-lead { font-size: 1.2rem }
+
+/* The blog, as `tema/blog.html` and `tema/blog-welcome.html` draw it.
+
+   The reference puts both pages inside one white card — the 24px padding and 5.6px radius its own
+   `.generic-card` has — with a 27.2px title at the top of it. The archive's cards are a three
+   column grid at a 16px gap, each with a 176px cover block and 17.6px of padding around the title
+   and the summary; the article is the same card held to 1050px with a 360px cover beneath the
+   title and the paragraphs under it. Those are the reference's numbers and they are the ones here,
+   and the reference's own two breakpoints are the repository's: three columns, two from 1024px and
+   one from 680px.
+
+   The cover blocks are the reference's placeholder gradient rather than an image, because a post
+   with no picture is the normal case in both the reference theme and this store. */
+.generic-card {
+    padding: 24px;
+    border-radius: 5.6px;
+    background: var(--storefront-card);
+}
+
+.page-title {
+    margin: 0 0 19.2px;
+    font-size: 27.2px;
+    line-height: 1.2;
+}
+
+.blog-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.blog-post-card {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--storefront-line);
+    border-radius: 5.6px;
+    color: inherit;
+    background: var(--storefront-card);
+}
+
+.blog-post-card:hover {
+    border-color: var(--storefront-navy);
+}
+
+/* The reference's cover block, which is a gradient and not a picture. */
+.blog-post-cover {
+    display: block;
+    height: 176px;
+    background: linear-gradient(135deg, #113768, #e4ebf4);
+}
+
+.blog-post-body {
+    display: block;
+    padding: 17.6px;
+}
+
+.blog-post-body h2 {
+    margin: 0 0 6.4px;
+    font-size: 16px;
+    line-height: 1.3;
+}
+
+.blog-post-body p {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--storefront-muted);
+    font-size: 12.8px;
+    line-height: 1.5;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.blog-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 48px 8px;
+    color: var(--storefront-muted);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.blog-listing .pagination {
+    margin-top: 24px;
+}
+
+/* The article card: the reference's 1050px measure, held to the middle of the container. */
+.blog-article {
+    max-width: 1050px;
+    margin-inline: auto;
+}
+
+.blog-post-hero {
+    height: 360px;
+    margin-bottom: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #113768, #e4ebf4);
+}
+
+/* A readable line length. The card is the reference's width, but a paragraph running the whole of
+   it is not a line a person can find the end of, so the text holds its own measure inside it. */
+.blog-lead,
+.blog-prose {
+    max-width: 68ch;
+    overflow-wrap: anywhere;
+}
+
+.blog-lead {
+    margin: 0 0 16px;
+    color: #3f474f;
+    font-size: 15.2px;
+    font-weight: 650;
+    line-height: 1.6;
+}
+
+.blog-prose {
+    color: #4a545e;
+    font-size: 14.4px;
+    line-height: 1.7;
+}
+
+@media (max-width: 1024px) {
+    .blog-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .generic-card {
+        padding: 17.6px;
+    }
+
+    .page-title {
+        margin-bottom: 14.4px;
+        font-size: 22.4px;
+    }
+
+    .blog-list {
+        grid-template-columns: 1fr;
+    }
+
+    .blog-post-cover {
+        height: 152px;
+    }
+
+    .blog-post-hero {
+        height: 176px;
+        margin-bottom: 19.2px;
+    }
+}
 
 /* ==========================================================================================
    Homepage composition.
@@ -2971,6 +3260,19 @@ select:focus-visible {
     border-color: var(--storefront-navy);
     color: #fff;
     background: var(--storefront-navy);
+}
+
+/* A tab whose own source has nothing behind it. The grid's own row box is kept, so switching to an
+   empty tab does not pull the section up under the visitor's cursor. */
+.product-grid-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 48px 16px;
+    border: 1px dashed #cbd1d7;
+    border-radius: 5.6px;
+    color: var(--storefront-muted);
+    font-size: 0.85rem;
+    text-align: center;
 }
 
 /* The marquee band. */

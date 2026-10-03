@@ -12,6 +12,7 @@ use App\Entity\Cms\HomeSection;
 use App\Entity\Commerce\ProductInventory;
 use App\Entity\Commerce\ProductPrice;
 use App\Entity\Customer\AdminUser;
+use App\Module\Catalog\ProductFeedSource;
 use App\Module\Cms\HomeSectionType;
 use App\Module\Pricing\TaxCategory;
 use App\Module\Pricing\TaxRate;
@@ -21,6 +22,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Everything the seed writes has to be editable afterwards, in the ordinary form.
@@ -117,9 +119,17 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
                         if ('slugs' === $field) {
                             // A row's catalogue selection is its own picker with its own field
                             // prefix, so it is checked with the selection rather than as a value.
+                            // Only a row that names its own products has a picker at all: the
+                            // others take theirs from the source the row declares.
+                            $picker = $rowCrawler->filter(sprintf('[name="%s_%d_p_count"]', $rows, $index));
+                            if (!$this->isManualRow($row)) {
+                                self::assertSame(0, $picker->count(), $type->value.' row '.$index.' offers a picker for a source that brings its own products.');
+
+                                continue;
+                            }
                             self::assertSame(
                                 \count($row['slugs']),
-                                (int) $rowCrawler->filter(sprintf('[name="%s_%d_p_count"]', $rows, $index))->attr('value'),
+                                (int) $picker->attr('value'),
                                 $type->value.' row '.$index.' does not offer its own selection back.',
                             );
 
@@ -138,11 +148,13 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
 
                             continue;
                         }
-                        // A long value is edited in a textarea rather than a one-line input; both have to
-                        // come back holding what the configuration stores.
+                        // A long value is edited in a textarea rather than a one-line input, and a
+                        // closed set is chosen from a select; all three have to come back holding
+                        // what the configuration stores.
                         self::assertSame(
                             (string) $values[$field],
-                            'textarea' === $control->nodeName() ? $control->text() : (string) $control->attr('value'),
+                            $this->controlValue($control),
+                            $type->value.' row '.$index.' does not offer its own "'.$field.'" back.',
                         );
                     }
                 }
@@ -153,6 +165,9 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
                 if ($type->selectionPerRow()) {
                     $rendered = $crawler->filter('.cms-rows > fieldset.cms-row');
                     foreach ($section->configuration()[$rows] as $index => $row) {
+                        if (!$this->isManualRow($row)) {
+                            continue;
+                        }
                         self::assertNotEmpty($row['slugs'], $type->value.' row '.$index.' was seeded with an empty selection.');
                         foreach ($row['slugs'] as $position => $slug) {
                             self::assertSame(
@@ -176,6 +191,28 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
                 }
             }
         }
+    }
+
+    /**
+     * Whether a row names its own products, which is the only case where the form offers a picker.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function isManualRow(array $row): bool
+    {
+        return ProductFeedSource::normalize($row['source'] ?? null)->isManual();
+    }
+
+    /**
+     * What a control currently holds: a textarea's text, a select's chosen option, an input's value.
+     */
+    private function controlValue(Crawler $control): string
+    {
+        return match ($control->nodeName()) {
+            'textarea' => $control->text(),
+            'select' => (string) $control->filter('option[selected]')->attr('value'),
+            default => (string) $control->attr('value'),
+        };
     }
 
     /**

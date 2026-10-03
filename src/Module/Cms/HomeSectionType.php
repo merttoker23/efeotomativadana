@@ -2,6 +2,8 @@
 
 namespace App\Module\Cms;
 
+use App\Module\Catalog\ProductFeedSource;
+
 enum HomeSectionType: string
 {
     case AnnouncementBar = 'announcement_bar';
@@ -66,7 +68,7 @@ enum HomeSectionType: string
             self::HeroSlider => self::HERO_SLIDE_FIELDS,
             self::BannerGrid => ['title', 'image', 'link'],
             self::Features => ['title', 'description'],
-            self::ProductTabs => ['title'],
+            self::ProductTabs => ['title', 'source'],
             self::Testimonials => ['author', 'text'],
             self::Marquee => ['text'],
             default => [],
@@ -96,6 +98,31 @@ enum HomeSectionType: string
     public function isLinkField(string $field): bool
     {
         return \in_array($field, ['link', 'primaryLink', 'secondaryLink'], true);
+    }
+
+    /**
+     * Whether a row field chooses where its products come from rather than naming them.
+     *
+     * Only a product tab has one. The field is a `<select>` rather than a text box because the set
+     * of sources is closed: four of them, defined once on {@see ProductFeedSource} and rendered from
+     * there, so a form can never offer a tab a source the storefront cannot answer.
+     */
+    public function isSourceField(string $field): bool
+    {
+        return self::ProductTabs === $this && 'source' === $field;
+    }
+
+    /**
+     * The sources a product tab may be drawn from, in the order the storefront presents them.
+     *
+     * @return list<array{value: string, label: string}>
+     */
+    public function sourceChoices(): array
+    {
+        return array_map(
+            static fn (ProductFeedSource $source): array => ['value' => $source->value, 'label' => $source->label()],
+            ProductFeedSource::all(),
+        );
     }
 
     /** 'products', 'categories', 'brands' or null when the section references no catalogue record. */
@@ -163,6 +190,7 @@ enum HomeSectionType: string
     {
         return [
             'title' => 'Başlık',
+            'source' => 'Ürün kaynağı',
             'headline' => 'Kampanya başlığı',
             'label' => 'Üst etiket',
             'description' => 'Açıklama',
@@ -203,7 +231,7 @@ enum HomeSectionType: string
             self::Features => ['features' => [self::blankRow(['title', 'description'])]],
             self::SplitBuilder => ['label' => '', 'headline' => '', 'description' => '', 'cta' => '', 'link' => '', 'slugs' => []],
             self::Testimonials => ['quotes' => [self::blankRow(['author', 'text'])]],
-            self::ProductTabs => ['tabs' => [['title' => '', 'slugs' => []]]],
+            self::ProductTabs => ['tabs' => [['title' => '', 'source' => ProductFeedSource::legacyDefault()->value, 'slugs' => []]]],
             self::CategoryMenu, self::ProductCarousel, self::BrandStrip => ['slugs' => []],
         };
     }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Cms;
 
+use App\Module\Catalog\ProductFeedSource;
+
 /**
  * The editable state of one section form, in the stored configuration's own shape.
  *
@@ -382,7 +384,40 @@ final class HomeSectionDraft
             $normalized['slugs'] = $this->normalizeSlugs($row['slugs'] ?? []);
         }
 
-        return $normalized;
+        return $this->normalizeSources($type, $normalized);
+    }
+
+    /**
+     * A row's closed-set fields, read as one of the values this store has.
+     *
+     * A source arrives from a form and from storage alike, and neither is allowed to carry a value
+     * outside the four. Reading it through {@see ProductFeedSource} rather than trimming it means
+     * the form always has a selected option — including for a row stored before the field existed,
+     * which is shown as the manual source it always was.
+     *
+     * @param array<string, mixed> $row
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizeSources(HomeSectionType $type, array $row): array
+    {
+        $source = null;
+        foreach (array_keys($row) as $field) {
+            if ($type->isSourceField((string) $field)) {
+                $source = ProductFeedSource::normalize($row[$field]);
+                $row[$field] = $source->value;
+            }
+        }
+
+        // An automatic source names its own products, so a list left over from when the row was the
+        // manual one is dropped here rather than being carried into a save the domain would refuse.
+        // Switching back is the administrator's next move, and the list they lost is one they can
+        // pick again.
+        if (null !== $source && !$source->isManual()) {
+            $row['slugs'] = [];
+        }
+
+        return $row;
     }
 
     /**
@@ -400,9 +435,12 @@ final class HomeSectionDraft
             foreach ($type->rowFields() as $field) {
                 $row[$field] = self::text($fields, $rows.'_'.$index.'_'.$field);
             }
-            $read[] = $type->selectionPerRow()
-                ? [...$row, 'slugs' => $this->readSlugs($rows.'_'.$index.'_p', $fields)]
-                : $row;
+            $read[] = $this->normalizeSources(
+                $type,
+                $type->selectionPerRow()
+                    ? [...$row, 'slugs' => $this->readSlugs($rows.'_'.$index.'_p', $fields)]
+                    : $row,
+            );
         }
 
         return [] === $read && \is_array($current) ? array_values($current) : $read;

@@ -1,1 +1,32 @@
-{% extends 'storefront/base.html.twig' %}{% block body %}<main id="main-content" class="container content-page" tabindex="-1"><article><a href="{{ path('storefront_blog_index') }}">Blog</a><h1>{{ post.title }}</h1><p class="content-lead">{{ post.excerpt }}</p><div class="content-body">{{ post.body|nl2br }}</div></article></main>{% endblock %}
+{% extends 'storefront/base.html.twig' %}
+
+{# A blog post as `tema/blog-welcome.html` draws it.
+
+   The reference is the breadcrumb row, then one white card held to 1050px with the title at its
+   top, a wide cover block beneath it and the article's own paragraphs under that. Those three
+   measurements are the ones below — the card's 24px padding and 5.6px radius, the 27.2px title,
+   the 360px cover at a 6px radius and 28px of space beneath it — with the paragraphs held to a
+   line length a person can actually read across rather than run the full 1050px.
+
+   The cover is the reference's own placeholder for a post that has no picture, because this store's
+   `BlogPost` has no cover field and inventing one is not this page's business. Everything below it
+   is the post itself: its excerpt as the lead, its body as the article. #}
+
+{% block body %}
+    <main id="main-content" class="page-shell" tabindex="-1">
+        <nav class="container breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana Sayfa</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ path('storefront_blog_index') }}">Blog</a>
+        </nav>
+
+        <article class="container generic-card blog-article">
+            <h1 class="page-title">{{ post.title }}</h1>
+
+            <div class="blog-post-hero" aria-hidden="true"></div>
+
+            {% if post.excerpt %}<p class="blog-lead">{{ post.excerpt }}</p>{% endif %}
+            {% if post.body %}<div class="blog-prose">{{ post.body|nl2br }}</div>{% endif %}
+        </article>
+    </main>
+{% endblock %}

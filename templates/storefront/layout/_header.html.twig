@@ -12,6 +12,8 @@
    page, above the header, and `storefront/layout/_notice.html.twig` renders it there. The shell
    controller lives on the body so it can reach both. #}
 <header class="site-header">
+    {# The route this page is, so the account menu can mark the entry the visitor is already on. #}
+    {% set route = app.request.attributes.get('_route') %}
     <div class="header-topbar">
         <div class="container topbar">
             <div class="topbar-left">
@@ -39,15 +41,57 @@
                 <button type="submit" aria-label="Ürün ara">⌕</button>
             </form>
 
-            {# The theme's three white pills, in its order. The account pill leads to the login form
-               or to the account itself depending on the visitor, which is the behaviour it already
-               had; the state is carried by the link's own label rather than by a second line the
-               reference does not have. #}
+            {# The theme's three white pills, in its order.
+
+               The account pill is the reference's own — the user mark, the word and the caret that
+               says a list is under here — except that the reference never opens one. It is now a
+               button that owns a real menu, and what the menu holds is decided by who is asking:
+               a visitor is offered the two ways in this store actually has, and a customer is
+               offered the account pages that already exist, with the same CSRF-protected POST the
+               account navigation has always used. No GET logout is invented for a dropdown, and
+               the header keeps no state of its own — `is_granted` is the whole answer.
+
+               `{% set %}` rather than a repeated call, so the two branches cannot disagree about
+               whether this is a customer. #}
+            {% set signed_in = is_granted('ROLE_CUSTOMER') %}
             {% set header_cart = storefront_cart() %}
             <div class="header-actions" aria-label="Mağaza kısayolları">
-                <a class="header-action action-btn account"
-                   href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}"
-                   aria-label="{{ is_granted('ROLE_CUSTOMER') ? 'Hesabım (Profil)' : 'Hesabım (Giriş)' }}"><span class="action-icon" aria-hidden="true">♙</span>Hesabım<span class="action-caret" aria-hidden="true">⌄</span></a>
+                <div class="account-menu" data-controller="header-account">
+                    <button
+                        class="header-action action-btn account"
+                        type="button"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        aria-controls="header-account-menu"
+                        aria-label="{{ signed_in ? 'Hesabım menüsü' : 'Hesabım (Giriş ve kayıt)' }}"
+                        data-header-account-target="trigger"
+                        data-action="header-account#toggle"
+                    ><span class="action-icon" aria-hidden="true">♙</span>Hesabım<span class="action-caret" aria-hidden="true">⌄</span></button>
+
+                    <div class="account-menu-panel" id="header-account-menu" data-header-account-target="menu" hidden>
+                        {% if signed_in %}
+                            <p class="account-menu-heading">Hesabım</p>
+                            <a href="{{ path('customer_account_dashboard') }}"{% if route == 'customer_account_dashboard' %} aria-current="page"{% endif %}>Hesabım</a>
+                            <a href="{{ path('customer_account_profile') }}"{% if route == 'customer_account_profile' %} aria-current="page"{% endif %}>Profil</a>
+                            <a href="{{ path('customer_account_addresses') }}"{% if route starts with 'customer_account_address' %} aria-current="page"{% endif %}>Adresler</a>
+                            <a href="{{ path('customer_account_orders') }}"{% if route starts with 'customer_account_order' %} aria-current="page"{% endif %}>Siparişlerim</a>
+                            <a href="{{ path('customer_account_returns') }}"{% if route starts with 'customer_account_return' %} aria-current="page"{% endif %}>İadelerim</a>
+                            <a href="{{ path('storefront_wishlist_index') }}"{% if route starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}>İstek Listem</a>
+                            <a href="{{ path('customer_account_rewards') }}"{% if route == 'customer_account_rewards' %} aria-current="page"{% endif %}>Puanlarım</a>
+                            {# The very same logout the account pages use: a POST carrying the logout
+                               CSRF token, against the firewall's own route. Nothing here is a link
+                               that a prefetcher, a crawler or a stray `<img>` could follow. #}
+                            <form class="account-menu-form" method="post" action="{{ path('customer_logout') }}">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                                <button type="submit">Çıkış Yap</button>
+                            </form>
+                        {% else %}
+                            <p class="account-menu-heading">Hoş geldiniz</p>
+                            <a href="{{ path('customer_login') }}">Giriş Yap</a>
+                            <a href="{{ path('customer_registration') }}">Kayıt Ol</a>
+                        {% endif %}
+                    </div>
+                </div>
                 <a class="header-action action-btn contact" href="{{ path('storefront_information_index') }}"><span class="action-icon" aria-hidden="true">✉</span>İletişim</a>
                 <a class="header-action action-btn blog" href="{{ path('storefront_blog_index') }}"><span class="action-icon" aria-hidden="true">▤</span>Blog</a>
                 <button

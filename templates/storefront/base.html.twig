@@ -32,6 +32,11 @@
                cannot close this element. Autoescaping is deliberately NOT applied here. #}
             {% for graph in seo.jsonLd %}<script type="application/ld+json">{{ graph|raw }}</script>{% endfor %}
         {% endif %}
+        {# The typeface the stylesheet below declares, asked for before the stylesheet has been
+           parsed. Without this the browser discovers the font only after the CSS arrives and
+           paints the page in the fallback first; with it, one request starts earlier. Only the
+           `latin` subset is preloaded because that is the subset every page's own copy uses. #}
+        <link rel="preload" href="{{ asset('fonts/inter-tight-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
         <link rel="stylesheet" href="{{ asset('styles/storefront.css') }}" data-storefront-stylesheet>
         <style data-storefront-colors>
             :root {

@@ -2,6 +2,8 @@
 
 namespace App\Repository\Catalog;
 
+use App\Module\Catalog\ProductAttributeLabels;
+use App\Module\Catalog\ProductFeedSource;
 use App\Module\Catalog\ProductIdentifierType;
 use App\Module\Catalog\PublicationStatus;
 use App\Module\Catalog\Query\CatalogCriteria;
@@ -10,6 +12,7 @@ use App\Module\Catalog\Query\CatalogPage;
 use App\Module\Catalog\Query\CatalogProductDetail;
 use App\Module\Catalog\Query\CatalogProductView;
 use App\Module\Catalog\Query\CatalogSort;
+use App\Module\Order\OrderState;
 use App\Shared\Money\Money;
 use App\Shared\PagedResult;
 use Doctrine\DBAL\ArrayParameterType;
@@ -203,7 +206,7 @@ final readonly class CatalogReadRepository
         $attributes = array_map(
             static fn (array $attribute): array => [
                 'key' => (string) $attribute['attribute_key'],
-                'label' => mb_convert_case(str_replace('-', ' ', (string) $attribute['attribute_key']), \MB_CASE_TITLE, 'UTF-8'),
+                'label' => ProductAttributeLabels::label((string) $attribute['attribute_key']),
                 'value' => (string) $attribute['attribute_value'],
             ],
             $this->connection->fetchAllAssociative(
@@ -388,36 +391,9 @@ final readonly class CatalogReadRepository
             return [];
         }
 
-        $rows = $this->connection->createQueryBuilder()
-            ->select(
-                'product.id',
-                'product.sku',
-                'product.name',
-                'product.slug',
-                'brand.name AS brand_name',
-                'brand.slug AS brand_slug',
-                '(SELECT image.path FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_path',
-                '(SELECT image.alt_text FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_alt',
-                'price.base_minor_amount',
-                'price.sale_minor_amount',
-                'price.currency',
-                'price.sale_starts_at',
-                'price.sale_ends_at',
-                'COALESCE(inventory.quantity, 0) AS quantity',
-                'COALESCE(inventory.available_for_sale, 0) AS available_for_sale',
-            )
-            ->from('catalog_product', 'product')
-            ->leftJoin(
-                'product',
-                'catalog_brand',
-                'brand',
-                'brand.id = product.brand_id AND brand.publication_status = :published',
-            )
-            ->leftJoin('product', 'commerce_product_price', 'price', 'price.product_id = product.id')
-            ->leftJoin('product', 'commerce_product_inventory', 'inventory', 'inventory.product_id = product.id')
-            ->where('product.slug IN (:slugs)')
-            ->andWhere('product.publication_status = :published')
-            ->setParameter('published', PublicationStatus::Published->value)
+        $rows = $this->productViewQuery()
+            ->select(...$this->productViewColumns())
+            ->andWhere('product.slug IN (:slugs)')
             ->setParameter('slugs', $unique, ArrayParameterType::STRING)
             ->executeQuery()
             ->fetchAllAssociative();
@@ -435,6 +411,143 @@ final readonly class CatalogReadRepository
         }
 
         return $views;
+    }
+
+    /**
+     * A ranked, bounded list of published products for one automatic feed.
+     *
+     * The ranking itself is an aggregate over the table that already holds the answer — order lines
+     * for the best sellers, wishlist entries for the popular ones, the price row for the discounts
+     * — and the product card is then joined onto the aggregate's output rather than looked up per
+     * row. So one feed costs one query no matter how many products the shop has ever sold, and no
+     * product can appear twice: the aggregate is grouped by product and the row it produces is the
+     * only row that survives the join.
+     *
+     * A source with nothing to rank returns an empty list rather than a fallback. Filling a feed
+     * with other products would make a shop advertise its best sellers as something it chose
+     * instead, which is the one thing a "best sellers" list must never do.
+     *
+     * @return list<CatalogProductView>
+     */
+    public function productViewsBySource(ProductFeedSource $source, int $limit): array
+    {
+        $limit = max(1, min(24, $limit));
+        $query = $this->productViewQuery()
+            ->select(...$this->productViewColumns())
+            ->innerJoin(
+                'product',
+                '('.$this->ranking($source).')',
+                'ranking',
+                'ranking.product_id = product.id',
+            )
+            ->orderBy('ranking.weight', 'DESC')
+            ->addOrderBy('product.name', 'ASC')
+            ->setMaxResults($limit);
+
+        if (ProductFeedSource::BestSellers === $source) {
+            $query->setParameter(
+                'sold_states',
+                [OrderState::Confirmed->value, OrderState::Completed->value],
+                ArrayParameterType::STRING,
+            );
+        }
+        if (ProductFeedSource::OnSale === $source) {
+            $query->setParameter('now', $this->databaseTime($this->clock->now()));
+        }
+
+        return array_map(
+            fn (array $row): CatalogProductView => $this->productView($row),
+            $query->executeQuery()->fetchAllAssociative(),
+        );
+    }
+
+    /**
+     * The aggregate that decides one feed's order, as a derived table joined onto the products.
+     *
+     * Each arm states the shop's own question in the shop's own tables and adds nothing: the sale
+     * arm reuses the pricing module's three conditions — a sale price that exists, that has already
+     * started and that has not ended — against the same database clock the product card uses, so a
+     * product listed as a discount is one whose card actually prints the struck-through price.
+     */
+    private function ranking(ProductFeedSource $source): string
+    {
+        return match ($source) {
+            // Real units sold, and only from orders the domain accepts as sales. A cancelled order
+            // is a parcel that was never sent, and a placed one has not been paid for; neither is
+            // evidence that anybody wanted this part.
+            ProductFeedSource::BestSellers => <<<'SQL'
+                SELECT line.product_id AS product_id, SUM(line.quantity) AS weight
+                FROM commerce_order_item line
+                INNER JOIN commerce_customer_order sold ON sold.id = line.order_id
+                WHERE sold.state IN (:sold_states)
+                GROUP BY line.product_id
+                SQL,
+            // Real favourites, one row per saved product, counted per product.
+            ProductFeedSource::Popular => <<<'SQL'
+                SELECT saved.product_id AS product_id, COUNT(*) AS weight
+                FROM commerce_wishlist_item saved
+                GROUP BY saved.product_id
+                SQL,
+            // Ranked by how much is actually taken off, so the first card is the sharpest discount.
+            ProductFeedSource::OnSale => <<<'SQL'
+                SELECT priced.product_id AS product_id,
+                       (priced.base_minor_amount - priced.sale_minor_amount) AS weight
+                FROM commerce_product_price priced
+                WHERE priced.sale_minor_amount IS NOT NULL
+                  AND (priced.sale_starts_at IS NULL OR priced.sale_starts_at <= :now)
+                  AND (priced.sale_ends_at IS NULL OR :now < priced.sale_ends_at)
+                SQL,
+            ProductFeedSource::Featured => throw new \LogicException('The featured products are chosen by hand, so there is nothing to rank.'),
+        };
+    }
+
+    /**
+     * Every lightweight product view reads published products through the same joins.
+     *
+     * One builder rather than three copies of the same four joins: a card that printed a brand on
+     * one page and not on another, or a draft product that reached a carousel, would be a difference
+     * nobody would notice until it shipped.
+     */
+    private function productViewQuery(): QueryBuilder
+    {
+        return $this->connection->createQueryBuilder()
+            ->from('catalog_product', 'product')
+            ->leftJoin(
+                'product',
+                'catalog_brand',
+                'brand',
+                'brand.id = product.brand_id AND brand.publication_status = :published',
+            )
+            ->leftJoin('product', 'commerce_product_price', 'price', 'price.product_id = product.id')
+            ->leftJoin('product', 'commerce_product_inventory', 'inventory', 'inventory.product_id = product.id')
+            ->where('product.publication_status = :published')
+            ->setParameter('published', PublicationStatus::Published->value);
+    }
+
+    /**
+     * The columns a product card prints, in one list.
+     *
+     * @return list<string>
+     */
+    private function productViewColumns(): array
+    {
+        return [
+            'product.id',
+            'product.sku',
+            'product.name',
+            'product.slug',
+            'brand.name AS brand_name',
+            'brand.slug AS brand_slug',
+            '(SELECT image.path FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_path',
+            '(SELECT image.alt_text FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_alt',
+            'price.base_minor_amount',
+            'price.sale_minor_amount',
+            'price.currency',
+            'price.sale_starts_at',
+            'price.sale_ends_at',
+            'COALESCE(inventory.quantity, 0) AS quantity',
+            'COALESCE(inventory.available_for_sale, 0) AS available_for_sale',
+        ];
     }
 
     /**

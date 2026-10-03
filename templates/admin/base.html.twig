@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noindex, nofollow">
         <title>{% block title %}Yönetim paneli{% endblock %} | Efe Otomotiv Adana</title>
+        <link rel="preload" href="{{ asset('fonts/inter-tight-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
         <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
         {% block javascripts %}
             {{ importmap('app') }}

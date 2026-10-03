@@ -6,6 +6,7 @@ namespace App\Command;
 
 use App\Entity\Cms\BlogPost;
 use App\Entity\Cms\HomeSection;
+use App\Module\Catalog\ProductFeedSource;
 use App\Module\Catalog\Query\CatalogCriteria;
 use App\Module\Catalog\Query\CatalogOption;
 use App\Module\Catalog\Query\CatalogProductView;
@@ -75,6 +76,20 @@ final class SeedHomepageCommand extends Command
 
     /** The four tab names the theme's product block carries. */
     private const array TAB_TITLES = ['Çok Satanlar', 'Popüler', 'İndirimdekiler', 'Öne Çıkanlar'];
+
+    /**
+     * Where each of those four tabs takes its products from, in the same order.
+     *
+     * Declared next to the names rather than inferred from them: the tab a shop calls "Popüler"
+     * must be the tab that counts favourites, whatever it is called, and the seed is no more
+     * entitled to guess from a title than the storefront is.
+     */
+    private const array TAB_SOURCES = [
+        ProductFeedSource::BestSellers,
+        ProductFeedSource::Popular,
+        ProductFeedSource::OnSale,
+        ProductFeedSource::Featured,
+    ];
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
@@ -474,25 +489,30 @@ final class SeedHomepageCommand extends Command
     /**
      * The tab strip: the theme's four tabs, each a full row of the grid.
      *
-     * Each tab is cut from a different part of the pool so the four lists are not the same list
-     * four times; where the store has fewer products than a tab needs, the tab reuses the real
-     * products it has rather than leaving the row short or inventing a product to fill it. A tab
-     * with no products at all is left out entirely — the same rule the renderer applies once
-     * products are later unpublished.
+     * Each of the first three names where its products come from rather than which products those
+     * are, so they are answered by the shop's own orders, wishlists and prices — a demo store that
+     * has none of those yet shows three honest empty panels, which is exactly what a customer
+     * should see. The fourth is the theme's own "Öne Çıkanlar" and is the one an administrator
+     * fills by hand, so it is cut from the published pool and keeps the reference's five-wide row.
      *
      * @param list<string> $pool
      *
-     * @return list<array{title: string, slugs: list<string>}>
+     * @return list<array{title: string, source: string, slugs: list<string>}>
      */
     private function tabs(array $pool): array
     {
-        $total = \count($pool);
+        if (1 >= \count($pool)) {
+            return [];
+        }
+
         $tabs = [];
         foreach (self::TAB_TITLES as $position => $title) {
-            $slugs = $this->window($pool, self::GRID_SIZE, $position * 2);
-            if ([] !== $slugs && 1 < $total) {
-                $tabs[] = ['title' => $title, 'slugs' => $slugs];
-            }
+            $source = self::TAB_SOURCES[$position];
+            $tabs[] = [
+                'title' => $title,
+                'source' => $source->value,
+                'slugs' => $source->isManual() ? $this->window($pool, self::GRID_SIZE, 0) : [],
+            ];
         }
 
         return $tabs;

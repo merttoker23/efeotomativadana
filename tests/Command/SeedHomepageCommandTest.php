@@ -235,16 +235,27 @@ final class SeedHomepageCommandTest extends WebTestCase
         $tabs = $sections[9]->configuration()['tabs'];
         self::assertCount(4, $tabs, 'The theme has four tabs and a small store still gets four.');
         self::assertSame(['Çok Satanlar', 'Popüler', 'İndirimdekiler', 'Öne Çıkanlar'], array_column($tabs, 'title'));
+        // Three of the four name a source the store answers from its own data, so they carry no
+        // slugs at all: a demo catalogue has no orders, no wishlists and no running discount, and
+        // the seed does not dress other products up as any of those. The fourth is the manual one
+        // an administrator fills in, and it is the theme's five-wide row of real products.
+        self::assertSame(
+            ['best_sellers', 'popular', 'on_sale', 'featured'],
+            array_column($tabs, 'source'),
+        );
         foreach ($tabs as $tab) {
-            // The row is the theme's five-wide grid, so it is five entries long even when the
-            // store has three products; every one of them is a product that really exists.
-            self::assertCount(5, $tab['slugs']);
-            self::assertSame([], array_diff($tab['slugs'], ['urun-1', 'urun-2', 'urun-3']));
+            if ('featured' === $tab['source']) {
+                self::assertCount(5, $tab['slugs'], 'The manual tab is the theme\'s five-wide row.');
+                self::assertSame([], array_diff($tab['slugs'], ['urun-1', 'urun-2', 'urun-3']));
+
+                continue;
+            }
+            self::assertSame([], $tab['slugs'], 'An automatic tab never carries products of its own.');
         }
         self::assertEqualsCanonicalizing(
             ['urun-1', 'urun-2', 'urun-3'],
             array_values(array_unique(array_merge(...array_column($tabs, 'slugs')))),
-            'The tabs together show the whole catalogue.',
+            'The manual tab shows the whole catalogue.',
         );
 
         self::assertCount(3, $sections[1]->configuration()['slugs'], 'All three published categories are used.');

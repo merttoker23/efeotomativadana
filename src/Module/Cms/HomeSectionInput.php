@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Cms;
 
+use App\Module\Catalog\ProductFeedSource;
 use Symfony\Component\HttpFoundation\FileBag;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -56,12 +57,16 @@ final readonly class HomeSectionInput
             }
             $entry = [];
             foreach ($type->rowFields() as $field) {
-                $entry[$field] = \in_array($field, ['image', 'mobileImage'], true)
-                    ? $this->image($rows, $index, (string) ($row[$field] ?? ''), $files, $field)
-                    : mb_substr(trim((string) ($row[$field] ?? '')), 0, 500);
+                $entry[$field] = match (true) {
+                    \in_array($field, ['image', 'mobileImage'], true) => $this->image($rows, $index, (string) ($row[$field] ?? ''), $files, $field),
+                    $type->isSourceField($field) => ProductFeedSource::normalize($row[$field] ?? null)->value,
+                    default => mb_substr(trim((string) ($row[$field] ?? '')), 0, 500),
+                };
             }
             if ($type->selectionPerRow()) {
-                $entry['slugs'] = $this->slugs($row['slugs'] ?? []);
+                $entry['slugs'] = ProductFeedSource::normalize($entry['source'] ?? null)->isManual()
+                    ? $this->slugs($row['slugs'] ?? [])
+                    : [];
             }
             $configuration[$rows][] = $entry;
         }
@@ -99,8 +104,10 @@ final readonly class HomeSectionInput
             if (HomeSectionType::HeroSlider === $type) {
                 $uploaded = $uploaded || $this->hasUpload($rows, $index, $files, 'mobileImage');
             }
+            // A source is not content: every blank row carries the section's default one, so counting
+            // it would make "Satır ekle" produce rows that could never be dropped again.
             $text = trim(implode('', array_map(
-                static fn (string $field): string => $field === 'image' ? '' : (string) ($row[$field] ?? ''),
+                static fn (string $field): string => \in_array($field, ['image', 'source'], true) ? '' : (string) ($row[$field] ?? ''),
                 $type->rowFields(),
             )));
             $selected = $type->selectionPerRow() && [] !== $this->slugs($row['slugs'] ?? []);
