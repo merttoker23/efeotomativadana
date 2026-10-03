@@ -1114,6 +1114,7 @@ select:focus-visible {
 }
 
 .catalog-results {
+    scroll-margin-top: 1rem;
     min-width: 0;
     padding: 1.5rem;
 }
@@ -1363,6 +1364,18 @@ select:focus-visible {
 
 .brand-grid a:hover {
     border-color: var(--storefront-navy);
+}
+
+.brands-directory .brand-grid a {
+    text-align: center;
+}
+
+.brand-logo {
+    display: block;
+    width: 100%;
+    height: 96px;
+    margin-bottom: 0.75rem;
+    object-fit: contain;
 }
 
 .brand-grid span {

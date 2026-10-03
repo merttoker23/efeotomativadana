@@ -3,7 +3,7 @@
     {% set icons = ['▯', '▤', '♧', '▣', '▭', '▥', '⌘', '⌁', '◉'] %}
     <aside class="panel category-panel" aria-label="{{ section.title }}">
         {% for category in section.data.categories %}
-            <a class="cat-row" href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">
+            <a class="cat-row" href="{{ path('storefront_catalog_category', {slug: category.slug, _fragment: 'catalog-results'}) }}">
                 <span class="cat-icon" aria-hidden="true">{{ icons[loop.index0 % icons|length] }}</span>
                 <span class="cat-name">{{ category.name }}</span>
                 <span class="cat-arrow" aria-hidden="true">›</span>

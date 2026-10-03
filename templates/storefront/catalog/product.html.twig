@@ -22,7 +22,7 @@
 
         <section class="product-meta">
             <p class="product-code-line">
-                {% if product.brandName %}<a href="{{ path('storefront_catalog_brand', {slug: product.brandSlug}) }}">{{ product.brandName }}</a><span aria-hidden="true"> · </span>{% endif %}
+                {% if product.brandName %}<a href="{{ path('storefront_catalog_brand', {slug: product.brandSlug, _fragment: 'catalog-results'}) }}">{{ product.brandName }}</a><span aria-hidden="true"> · </span>{% endif %}
                 <span>SKU: {{ product.sku }}</span>
             </p>
             <h1>{{ product.name }}</h1>
@@ -37,7 +37,7 @@
                 {% endif %}
             </div>
             <p class="stock-state {{ product.sellable ? 'is-available' : 'is-unavailable' }}">
-                {{ product.sellable ? 'Stokta (' ~ product.quantity ~ ')' : 'Şu anda stokta yok' }}
+                {{ product.sellable ? 'Stokta Var' : 'Şu anda stokta yok' }}
             </p>
 
             {% if product.sellable and product.sellPrice %}
@@ -58,7 +58,7 @@
             </form>
 
             {% if product.categories %}
-                <div class="product-categories"><strong>Kategoriler</strong>{% for category in product.categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}">{{ category.name }}</a>{% endfor %}</div>
+                <div class="product-categories"><strong>Kategoriler</strong>{% for category in product.categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug, _fragment: 'catalog-results'}) }}">{{ category.name }}</a>{% endfor %}</div>
             {% endif %}
 
             {% if product.identifiers %}

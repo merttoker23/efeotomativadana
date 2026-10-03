@@ -18,6 +18,15 @@ enum SettingKey: string
     // its own settings, not be invisible in production until someone remembers a code change.
     case SeoIndexingEnabled = 'seo.indexing_enabled';
     case SeoDefaultDescription = 'seo.default_description';
+    case StorefrontNotice = 'storefront.color.notice';
+    case StorefrontNavy = 'storefront.color.navy';
+    case StorefrontNavyLight = 'storefront.color.navy-light';
+    case StorefrontYellow = 'storefront.color.yellow';
+    case StorefrontBody = 'storefront.color.body';
+    case StorefrontCard = 'storefront.color.card';
+    case StorefrontInk = 'storefront.color.ink';
+    case StorefrontMuted = 'storefront.color.muted';
+    case StorefrontLine = 'storefront.color.line';
 
     public function defaultValue(): bool|int|string|null
     {
@@ -30,6 +39,15 @@ enum SettingKey: string
             self::StoreDefaultLocale => 'tr',
             self::StoreDefaultTaxRate => 20,
             self::LoyaltyEarnPercentage => 1,
+            self::StorefrontNotice => '#071e3c',
+            self::StorefrontNavy => '#092a53',
+            self::StorefrontNavyLight => '#123d70',
+            self::StorefrontYellow => '#fed243',
+            self::StorefrontBody => '#ebebf0',
+            self::StorefrontCard => '#ffffff',
+            self::StorefrontInk => '#171c22',
+            self::StorefrontMuted => '#69717a',
+            self::StorefrontLine => '#e1e3e6',
         };
     }
 }

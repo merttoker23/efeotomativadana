@@ -35,6 +35,33 @@ final class StoreSettingsData
         // not this application's job.
         #[Assert\Length(max: 500)]
         public ?string $seoDefaultDescription = null,
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontNotice = '#071e3c',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontNavy = '#092a53',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontNavyLight = '#123d70',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontYellow = '#fed243',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontBody = '#ebebf0',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontCard = '#ffffff',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontInk = '#171c22',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontMuted = '#69717a',
+        #[Assert\NotBlank]
+        #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
+        public string $storefrontLine = '#e1e3e6',
     ) {
     }
 }

@@ -32,6 +32,11 @@ services:
         arguments:
             $directory: '%kernel.project_dir%/public/uploads/cms'
 
+    App\Module\Catalog\BrandLogoStorage:
+        arguments:
+            # Reuse the existing persistent CMS media mount and static uploads hosting.
+            $directory: '%kernel.project_dir%/public/uploads/cms/img/ureticiler'
+
     # Every log line passes through this before any handler sees it. Tagged explicitly on the
     # logger prototype rather than left to ProcessorInterface autoconfiguration, because
     # autoconfiguration is exactly the kind of thing a later edit to this file can quietly

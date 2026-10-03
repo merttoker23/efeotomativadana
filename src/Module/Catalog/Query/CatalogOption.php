@@ -8,6 +8,7 @@ final readonly class CatalogOption
         public string $name,
         public string $slug,
         public int $productCount,
+        public ?int $id = null,
     ) {
     }
 }

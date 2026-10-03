@@ -15,8 +15,9 @@
     </a>
 
     <div class="product-info">
-        {% if product.brandName %}<a class="product-brand" href="{{ path('storefront_catalog_brand', {slug: product.brandSlug}) }}">Marka: {{ product.brandName }}</a>{% endif %}
+        {% if product.brandName %}<a class="product-brand" href="{{ path('storefront_catalog_brand', {slug: product.brandSlug, _fragment: 'catalog-results'}) }}">Marka: {{ product.brandName }}</a>{% endif %}
         <a class="product-name" href="{{ path('storefront_catalog_product', {slug: product.slug}) }}">{{ product.name }}</a>
+        <p class="stock-state {{ product.sellable ? 'is-available' : 'is-unavailable' }}">{{ product.sellable ? 'Stokta Var' : 'Stokta Yok' }}</p>
         <div class="product-price">
             {% if product.sellPrice %}{{ product.sellPrice|storefront_money }}{% else %}Fiyat için iletişime geçin{% endif %}
             {%- if product.onSale and product.basePrice %} <span class="product-old">{{ product.basePrice|storefront_money }}</span>{% endif -%}

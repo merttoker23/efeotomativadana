@@ -6,7 +6,7 @@
         </div>
         <div class="brand-strip">
             {% for brand in section.data.brands %}
-                <a class="brand" href="{{ path('storefront_catalog_brand', {slug: brand.slug}) }}">{{ brand.name }}</a>
+                <a class="brand" href="{{ path('storefront_catalog_brand', {slug: brand.slug, _fragment: 'catalog-results'}) }}">{{ brand.name }}</a>
             {% endfor %}
         </div>
     </section>

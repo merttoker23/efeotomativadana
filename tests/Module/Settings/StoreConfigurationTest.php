@@ -43,9 +43,11 @@ final class StoreConfigurationTest extends KernelTestCase
     public function testRequiredSettingsArePersistedExactlyOnce(): void
     {
         $persistedKeys = $this->connection->fetchFirstColumn('SELECT setting_key FROM store_setting ORDER BY setting_key');
+        // Colors are optional until the administrator saves them; no migration seeds these keys.
+        $persistedKeys = array_values(array_filter($persistedKeys, static fn (string $key): bool => !str_starts_with($key, 'storefront.color.')));
         $requiredKeys = array_map(
             static fn (SettingKey $key): string => $key->value,
-            SettingKey::cases(),
+            array_values(array_filter(SettingKey::cases(), static fn (SettingKey $key): bool => !str_starts_with($key->value, 'storefront.color.'))),
         );
         sort($requiredKeys);
 
@@ -116,6 +118,28 @@ final class StoreConfigurationTest extends KernelTestCase
         } catch (ValidationFailedException) {
             self::getContainer()->get('doctrine')->getManager()->clear();
             self::assertSame(20, $this->configuration()->defaultTaxRate());
+        }
+    }
+
+    public function testMissingAndInvalidStoredColorsFallBackWithoutAMigration(): void
+    {
+        $this->connection->executeStatement("DELETE FROM store_setting WHERE setting_key LIKE 'storefront.color.%'");
+        $defaults = [
+            'notice' => '#071e3c', 'navy' => '#092a53', 'navy-light' => '#123d70',
+            'yellow' => '#fed243', 'body' => '#ebebf0', 'card' => '#ffffff',
+            'ink' => '#171c22', 'muted' => '#69717a', 'line' => '#e1e3e6',
+        ];
+        self::assertSame($defaults, $this->configuration()->storefrontColors());
+
+        foreach (['#fff', '#1234567', '#123456; color:red', "#123456\n", '', null, 123456, false] as $invalid) {
+            $this->connection->executeStatement("DELETE FROM store_setting WHERE setting_key = 'storefront.color.navy'");
+            $this->connection->insert('store_setting', [
+                'setting_key' => 'storefront.color.navy',
+                'value' => json_encode($invalid, JSON_THROW_ON_ERROR),
+                'updated_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            ]);
+            self::getContainer()->get('doctrine')->getManager()->clear();
+            self::assertSame($defaults, $this->configuration()->storefrontColors());
         }
     }
 

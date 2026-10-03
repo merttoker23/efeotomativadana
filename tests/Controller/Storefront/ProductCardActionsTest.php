@@ -65,6 +65,7 @@ final class ProductCardActionsTest extends WebTestCase
         $this->product('CARD-OK', 'Satılabilir Ürün', 'satilabilir-urun', 10_000, 5);
 
         foreach ($this->cardsFor('satilabilir-urun') as $where => $card) {
+            self::assertSame('Stokta Var', trim($card->filter('.stock-state')->text()), $where.' stock label must not expose quantity.');
             self::assertSame(
                 1,
                 $card->filter('.product-actions .cart-add-form')->count(),

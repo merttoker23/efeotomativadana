@@ -59,7 +59,7 @@
         <a href="{{ path('storefront_collections_index') }}"{% if route == 'storefront_collections_index' %} aria-current="page"{% endif %}>Koleksiyonlar</a>
         <a href="{{ path('storefront_wishlist_index') }}"{% if route starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}>İstek Listem</a>
         <a href="{{ path('storefront_compare_index') }}"{% if route starts with 'storefront_compare_' %} aria-current="page"{% endif %}>Karşılaştır</a>
-        {% for category in catalog_navigation.categories|default([])|slice(0, 5) %}<a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}"{% if route == 'storefront_catalog_category' and route_parameters.slug|default('') == category.slug %} aria-current="page"{% endif %}>{{ category.name }} <small>{{ category.productCount }}</small></a>{% endfor %}
+        {% for category in catalog_navigation.categories|default([])|slice(0, 5) %}<a href="{{ path('storefront_catalog_category', {slug: category.slug, _fragment: 'catalog-results'}) }}"{% if route == 'storefront_catalog_category' and route_parameters.slug|default('') == category.slug %} aria-current="page"{% endif %}>{{ category.name }} <small>{{ category.productCount }}</small></a>{% endfor %}
         <a href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}"{% if route starts with 'customer_account_' %} aria-current="page"{% endif %}>Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
     </div>
 </nav>

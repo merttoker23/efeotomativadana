@@ -7,7 +7,22 @@
     <section class="container brands-directory" aria-labelledby="brands-heading">
         <p class="panel-kicker">Üreticiler</p>
         <h1 id="brands-heading">Markalar</h1>
-        {% if brands is empty %}<p>Henüz yayınlanmış marka bulunmuyor.</p>{% else %}<div class="brand-grid">{% for brand in brands %}<a href="{{ path('storefront_catalog_brand', {slug: brand.slug}) }}"><strong>{{ brand.name }}</strong><span>{{ brand.productCount }} ürün</span></a>{% endfor %}</div>{% endif %}
+        {% if brands is empty %}
+            <p>Henüz yayınlanmış marka bulunmuyor.</p>
+        {% else %}
+            <div class="brand-grid">
+                {% for brand in brands %}
+                    <a href="{{ path('storefront_catalog_brand', {slug: brand.slug, _fragment: 'catalog-results'}) }}">
+                        {# Uploaded logos override the existing document-root manufacturer files.
+                           Resolve a missing legacy file in the browser, where that path is served. #}
+                        <img class="brand-logo" src="{{ brand_logo_url(brand.id) }}" alt="" width="240" height="96" loading="lazy" decoding="async"
+                             data-fallback-src="{{ product_image_url(null) }}" onerror="this.onerror = null; this.src = this.dataset.fallbackSrc;">
+                        <strong>{{ brand.name }}</strong>
+                        <span>{{ brand.productCount }} ürün</span>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% if page.totalPages > 1 %}
             <nav class="pagination" aria-label="Marka sayfaları">
                 {% if page.hasPrevious %}<a href="{{ path('storefront_catalog_brands', {page: page.page - 1}) }}" rel="prev" aria-label="Önceki sayfa">&#8249;</a>{% endif %}

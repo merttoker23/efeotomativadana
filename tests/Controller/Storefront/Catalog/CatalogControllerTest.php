@@ -125,13 +125,15 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorTextContains('.product-card', 'Yağ Filtresi');
         self::assertSelectorTextContains('.product-card .product-price', '1.399,90 TRY');
         self::assertSelectorTextContains('.product-card .product-old', '1.599,90 TRY');
-        self::assertSelectorTextContains('.product-card .stock-state', 'Stokta (7)');
+        self::assertSelectorTextContains('.product-card .stock-state', 'Stokta Var');
+        self::assertSelectorTextNotContains('.product-card .stock-state', '7');
+        self::assertSelectorExists('#catalog-results.catalog-results');
         self::assertSelectorExists('.product-card .cart-add-form[action*="/sepet/ekle/"]');
         self::assertSelectorExists('.product-card .wishlist-add-form[action*="/istek-listem/ekle/"]');
         self::assertSelectorExists('.product-card .compare-add-form[action*="/karsilastir/ekle/"]');
         self::assertSame('/yeni/katalog', $crawler->filter('form.storefront-search')->attr('action'));
         self::assertSame('/yeni/katalog', $crawler->filter('nav.main-navigation a')->eq(1)->attr('href'));
-        self::assertSame('/yeni/kategori/filtreler', $crawler->filter('.catalog-filters a[href*="/kategori/"]')->first()->attr('href'));
+        self::assertSame('/yeni/kategori/filtreler?sort=newest#catalog-results', $crawler->filter('.catalog-filters a[href*="/kategori/"]')->first()->attr('href'));
         self::assertSelectorExists('.quick-navigation a[href="/yeni/istek-listem"]');
         self::assertSelectorExists('.quick-navigation a[href="/yeni/karsilastir"]');
         self::assertSelectorCount(0, 'a[href$=".html"], form[action$=".html"]');
@@ -165,6 +167,43 @@ final class CatalogControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/yeni/marka/mann-filter?sort=name-asc');
         self::assertStringNotContainsString('brand=mann-filter', $crawler->filter('.sort-form')->html());
+    }
+
+    public function testCategorySelectionAndBrandFilterKeepSearchStockAndSortWhileTargetingResults(): void
+    {
+        $brand = new Brand('Focus Brand', 'focus-brand');
+        $brand->publish();
+        $category = new Category('Focus Category', 'focus-category');
+        $category->publish();
+        $this->product('FOCUS-001', 'Focus Product', 'focus-product', true, $brand, $category);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/yeni/marka/focus-brand?q=Focus&availability=in-stock&sort=price-desc');
+        $link = $crawler->filter('.catalog-filters a[href*="/kategori/focus-category"]')->attr('href');
+        self::assertSame('/yeni/kategori/focus-category?q=Focus&brand=focus-brand&availability=in-stock&sort=price-desc#catalog-results', $link);
+
+        $crawler = $this->client->request('GET', '/yeni/kategori/focus-category?q=Focus&availability=in-stock&sort=price-desc');
+        self::assertSame('/yeni/kategori/focus-category#catalog-results', $crawler->filter('.catalog-filter-form')->attr('action'));
+        self::assertSame('price-desc', $crawler->filter('.catalog-filter-form input[name="sort"]')->attr('value'));
+        self::assertSame('/yeni/kategori/focus-category#catalog-results', $crawler->filter('.sort-form')->attr('action'));
+
+        $crawler = $this->client->request('GET', '/yeni/marka/focus-brand?category=focus-category&sort=price-desc');
+        self::assertSame('focus-category', $crawler->filter('.catalog-filter-form input[name="category"]')->attr('value'));
+    }
+
+    public function testBrandCardsUseTheLocalBrandIdAndOfferAPlaceholderForMissingLogos(): void
+    {
+        $brand = new Brand('Logo Brand', 'logo-brand');
+        $brand->publish();
+        $this->entityManager->persist($brand);
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/yeni/markalar');
+        $card = $crawler->filter('.brand-grid a[href="/yeni/marka/logo-brand#catalog-results"]');
+        self::assertSame('/img/ureticiler/'.$brand->id().'.jpg', $card->filter('img')->attr('src'));
+        self::assertStringContainsString('product-placeholder', $card->filter('img')->attr('data-fallback-src'));
+        self::assertSame('Logo Brand', $card->filter('strong')->text());
+        self::assertSame('0 ürün', $card->filter('span')->text());
     }
 
     public function testPaginationAndUnsafeSortInputAreHandledWithoutChangingTheQueryShape(): void
@@ -262,6 +301,9 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorTextContains('main h1', 'Ön Fren Balatası');
         self::assertSelectorTextContains('.product-detail', '2.499,00');
         self::assertSelectorTextContains('.product-description', 'Sessiz ve güvenilir');
+        self::assertSelectorTextContains('.product-detail .stock-state', 'Stokta Var');
+        self::assertSelectorTextNotContains('.product-detail .stock-state', '3');
+        self::assertSelectorExists('#product-quantity[max="3"]');
         self::assertSelectorTextContains('.product-identifiers', 'OEM-4411');
         self::assertSelectorTextContains('.product-attributes', '280 mm');
         self::assertSelectorExists('.product-gallery img[alt="Ön fren balatası"]');

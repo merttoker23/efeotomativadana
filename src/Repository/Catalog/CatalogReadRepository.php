@@ -301,6 +301,7 @@ final readonly class CatalogReadRepository
                 (string) $row['name'],
                 (string) $row['slug'],
                 (int) $row['product_count'],
+                (int) $row['id'],
             );
         }
 
@@ -436,6 +437,7 @@ final readonly class CatalogReadRepository
                 (string) $row['name'],
                 (string) $row['slug'],
                 (int) $row['product_count'],
+                (int) $row['id'],
             ),
             $rows,
         );
@@ -464,6 +466,7 @@ final readonly class CatalogReadRepository
                     (string) $row['name'],
                     (string) $row['slug'],
                     (int) $row['product_count'],
+                    (int) $row['id'],
                 ),
                 $rows,
             ),
@@ -672,6 +675,7 @@ final readonly class CatalogReadRepository
                 (string) $row['name'],
                 (string) $row['slug'],
                 (int) $row['product_count'],
+                (int) $row['id'],
             ),
             $query->executeQuery()->fetchAllAssociative(),
         );
@@ -694,6 +698,7 @@ final readonly class CatalogReadRepository
             (string) $row['name'],
             (string) $row['slug'],
             (int) $row['product_count'],
+            (int) $row['id'],
         );
     }
 
@@ -707,6 +712,7 @@ final readonly class CatalogReadRepository
         return $this->connection->createQueryBuilder()
             ->select(
                 'option_record.name',
+                'option_record.id',
                 'option_record.slug',
                 sprintf(
                     '(SELECT COUNT(DISTINCT product.id) FROM catalog_product product %s WHERE %s AND product.publication_status = :published) AS product_count',

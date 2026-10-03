@@ -67,6 +67,15 @@ final class StoreConfiguration implements ResetInterface
             shippingProvider: $this->nullableStringValue(SettingKey::ShippingProvider),
             seoIndexingEnabled: $this->boolValue(SettingKey::SeoIndexingEnabled),
             seoDefaultDescription: $this->nullableStringValue(SettingKey::SeoDefaultDescription),
+            storefrontNotice: $this->colorValue(SettingKey::StorefrontNotice),
+            storefrontNavy: $this->colorValue(SettingKey::StorefrontNavy),
+            storefrontNavyLight: $this->colorValue(SettingKey::StorefrontNavyLight),
+            storefrontYellow: $this->colorValue(SettingKey::StorefrontYellow),
+            storefrontBody: $this->colorValue(SettingKey::StorefrontBody),
+            storefrontCard: $this->colorValue(SettingKey::StorefrontCard),
+            storefrontInk: $this->colorValue(SettingKey::StorefrontInk),
+            storefrontMuted: $this->colorValue(SettingKey::StorefrontMuted),
+            storefrontLine: $this->colorValue(SettingKey::StorefrontLine),
         );
     }
 
@@ -109,6 +118,15 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::ShippingProvider->value => $configuration->shippingProvider,
             SettingKey::SeoIndexingEnabled->value => $configuration->seoIndexingEnabled,
             SettingKey::SeoDefaultDescription->value => $configuration->seoDefaultDescription,
+            SettingKey::StorefrontNotice->value => $configuration->storefrontNotice,
+            SettingKey::StorefrontNavy->value => $configuration->storefrontNavy,
+            SettingKey::StorefrontNavyLight->value => $configuration->storefrontNavyLight,
+            SettingKey::StorefrontYellow->value => $configuration->storefrontYellow,
+            SettingKey::StorefrontBody->value => $configuration->storefrontBody,
+            SettingKey::StorefrontCard->value => $configuration->storefrontCard,
+            SettingKey::StorefrontInk->value => $configuration->storefrontInk,
+            SettingKey::StorefrontMuted->value => $configuration->storefrontMuted,
+            SettingKey::StorefrontLine->value => $configuration->storefrontLine,
         ];
 
         // The diff is taken from the store's own current values, before anything is written,
@@ -199,6 +217,32 @@ final class StoreConfiguration implements ResetInterface
     public function seoDefaultDescription(): ?string
     {
         return $this->nullableStringValue(SettingKey::SeoDefaultDescription);
+    }
+
+    /** @return array<string, string> */
+    public function storefrontColors(): array
+    {
+        return [
+            'notice' => $this->colorValue(SettingKey::StorefrontNotice),
+            'navy' => $this->colorValue(SettingKey::StorefrontNavy),
+            'navy-light' => $this->colorValue(SettingKey::StorefrontNavyLight),
+            'yellow' => $this->colorValue(SettingKey::StorefrontYellow),
+            'body' => $this->colorValue(SettingKey::StorefrontBody),
+            'card' => $this->colorValue(SettingKey::StorefrontCard),
+            'ink' => $this->colorValue(SettingKey::StorefrontInk),
+            'muted' => $this->colorValue(SettingKey::StorefrontMuted),
+            'line' => $this->colorValue(SettingKey::StorefrontLine),
+        ];
+    }
+
+    private function colorValue(SettingKey $key): string
+    {
+        $value = $this->value($key);
+        if (is_string($value) && 1 === preg_match('/\A#[0-9a-fA-F]{6}\z/', $value)) {
+            return $value;
+        }
+
+        return (string) $key->defaultValue();
     }
 
     private function value(SettingKey $key): mixed

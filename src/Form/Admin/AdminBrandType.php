@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Form\Admin;
 
 use App\Module\Catalog\AdminCatalogData;
+use App\Module\Catalog\BrandLogoStorage;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -16,7 +18,19 @@ final class AdminBrandType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder->add('name', TextType::class, ['label' => 'Ad'])->add('slug', TextType::class, ['label' => 'URL kısa adı (slug)', 'help' => 'Yayındaki URL kısa adı değişirse eski adres kalıcı olarak yeni adrese yönlendirilir.'])->add('published', CheckboxType::class, ['required' => false, 'label' => 'Yayında'])->add('save', SubmitType::class, ['label' => 'Markayı kaydet']);
+        $builder
+            ->add('name', TextType::class, ['label' => 'Ad'])
+            ->add('slug', TextType::class, ['label' => 'URL kısa adı (slug)', 'help' => 'Yayındaki URL kısa adı değişirse eski adres kalıcı olarak yeni adrese yönlendirilir.'])
+            ->add('published', CheckboxType::class, ['required' => false, 'label' => 'Yayında'])
+            ->add('logo', FileType::class, [
+                'label' => 'Marka logosu',
+                'mapped' => false,
+                'required' => false,
+                'constraints' => [BrandLogoStorage::uploadConstraint()],
+                'attr' => ['accept' => 'image/jpeg,image/png,image/webp'],
+                'help' => 'JPEG, PNG veya WebP; en fazla 5 MB ve 2048 × 2048 piksel. Yeni dosya mevcut logoyu değiştirir. Boş bırakırsanız mevcut logo korunur.',
+            ])
+            ->add('save', SubmitType::class, ['label' => 'Markayı kaydet']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

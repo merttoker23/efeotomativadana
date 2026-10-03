@@ -142,7 +142,7 @@ final class CollectionsControllerTest extends WebTestCase
         self::assertStringContainsString('page=2', $next);
 
         // The filter form posts back to this page, so choosing a brand stays inside the collection.
-        self::assertSame(self::COLLECTIONS, $crawler->filter('form.catalog-filter-form')->attr('action'));
+        self::assertSame(self::COLLECTIONS.'#catalog-results', $crawler->filter('form.catalog-filter-form')->attr('action'));
 
         $this->client->request('GET', self::COLLECTIONS.'?brand=bosch');
 

@@ -33,6 +33,13 @@
             {% for graph in seo.jsonLd %}<script type="application/ld+json">{{ graph|raw }}</script>{% endfor %}
         {% endif %}
         <link rel="stylesheet" href="{{ asset('styles/storefront.css') }}" data-storefront-stylesheet>
+        <style data-storefront-colors>
+            :root {
+                {% for name, color in storefront_colors() %}
+                --storefront-{{ name }}: {{ color }};
+                {% endfor %}
+            }
+        </style>
         {% block javascripts %}{{ importmap('app') }}{% endblock %}
     </head>
 <body class="storefront-page" data-controller="storefront-shell">

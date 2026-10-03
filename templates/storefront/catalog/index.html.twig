@@ -10,18 +10,19 @@
     <div class="container catalog-layout">
         <aside class="catalog-filters" aria-labelledby="catalog-filter-title">
             <p class="catalog-filter-heading" id="catalog-filter-title">Kategoriler</p>
-            <a href="{{ path('storefront_catalog_index') }}"{% if criteria.categorySlug is null %} aria-current="page"{% endif %}>Tüm Ürünler</a>
+            <a href="{{ path('storefront_catalog_index', criteria.queryParameters(null, 'category')|merge({_fragment: 'catalog-results'})) }}"{% if criteria.categorySlug is null %} aria-current="page"{% endif %}>Tüm Ürünler</a>
             {% for category in categories %}
-                <a href="{{ path('storefront_catalog_category', {slug: category.slug}) }}"{% if criteria.categorySlug == category.slug %} aria-current="page"{% endif %}>
+                <a href="{{ path('storefront_catalog_category', criteria.queryParameters(null, 'category')|merge({slug: category.slug, _fragment: 'catalog-results'})) }}"{% if criteria.categorySlug == category.slug %} aria-current="page"{% endif %}>
                     <span>{{ category.name }}</span><small>{{ category.productCount }}</small>
                 </a>
             {% endfor %}
             <a class="catalog-filter-more" href="{{ path('storefront_catalog_categories') }}">Tüm kategoriler</a>
 
             <p class="catalog-filter-heading">Filtrele</p>
-            <form method="get" action="{{ app.request.pathInfo }}" class="catalog-filter-form">
+            <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="catalog-filter-form">
+                <input type="hidden" name="sort" value="{{ criteria.sort.value }}">
                 {% if criteria.query %}<input type="hidden" name="q" value="{{ criteria.query }}">{% endif %}
-                {% if criteria.categorySlug and app.request.attributes.get('_route') == 'storefront_catalog_index' %}<input type="hidden" name="category" value="{{ criteria.categorySlug }}">{% endif %}
+                {% if criteria.categorySlug and app.request.attributes.get('_route') != 'storefront_catalog_category' %}<input type="hidden" name="category" value="{{ criteria.categorySlug }}">{% endif %}
                 {% if app.request.attributes.get('_route') != 'storefront_catalog_brand' %}
                     <label for="catalog-brand">Marka</label>
                     <select id="catalog-brand" name="brand">
@@ -37,7 +38,7 @@
             <a class="catalog-filter-more" href="{{ path('storefront_catalog_brands') }}">Tüm markalar</a>
         </aside>
 
-        <section class="catalog-results" aria-labelledby="catalog-heading">
+        <section id="catalog-results" class="catalog-results" aria-labelledby="catalog-heading" tabindex="-1">
             {# The address of the next page of this very query — same route, same filters, same sort,
                one page further on. Empty on the last page, and the controller then stops. #}
             {% set next_page_url = next_page ? path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(criteria.queryParameters(next_page, route_filter))) : '' %}
@@ -48,7 +49,7 @@
                     <h1 id="catalog-heading">{{ heading }}</h1>
                     {% if criteria.query %}<p class="search-context">“{{ criteria.query }}” için sonuçlar</p>{% endif %}
                 </div>
-                <form method="get" action="{{ app.request.pathInfo }}" class="sort-form" data-controller="catalog-sort">
+                <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="sort-form" data-controller="catalog-sort">
                     {% for key, value in criteria.filterParameters(route_filter) %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
                     <label for="catalog-sort">Sırala</label>
                     <select id="catalog-sort" name="sort" data-action="catalog-sort#submit">

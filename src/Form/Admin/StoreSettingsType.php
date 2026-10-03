@@ -5,6 +5,7 @@ namespace App\Form\Admin;
 use App\Module\Settings\StoreSettingsData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -57,6 +58,15 @@ final class StoreSettingsType extends AbstractType
                 'empty_data' => '',
                 'help' => 'Kendi açıklaması olmayan sayfalarda kullanılır. İsteğe bağlıdır.',
             ])
+            ->add('storefrontNotice', ColorType::class, ['label' => 'Duyuru', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontNavy', ColorType::class, ['label' => 'Lacivert', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontNavyLight', ColorType::class, ['label' => 'Açık lacivert', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontYellow', ColorType::class, ['label' => 'Sarı', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontBody', ColorType::class, ['label' => 'Sayfa arka planı', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontCard', ColorType::class, ['label' => 'Kart arka planı', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontInk', ColorType::class, ['label' => 'Metin', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontMuted', ColorType::class, ['label' => 'İkincil metin', 'trim' => false, 'empty_data' => ''])
+            ->add('storefrontLine', ColorType::class, ['label' => 'Çizgi', 'trim' => false, 'empty_data' => ''])
             ->add('save', SubmitType::class, ['label' => 'Ayarları kaydet']);
     }
 

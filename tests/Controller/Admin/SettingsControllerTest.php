@@ -83,6 +83,52 @@ final class SettingsControllerTest extends WebTestCase
         self::assertFalse(self::getContainer()->get(StoreConfiguration::class)->isB2bEnabled());
     }
 
+    public function testStorefrontColorsCanBeSavedAndAppearOnEveryStorefrontLayout(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        self::assertSelectorCount(9, 'fieldset input[type="color"]');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $colors = [
+            'Notice' => '#010203', 'Navy' => '#102030', 'NavyLight' => '#203040',
+            'Yellow' => '#abcdef', 'Body' => '#f0e0d0', 'Card' => '#fafafa',
+            'Ink' => '#112233', 'Muted' => '#445566', 'Line' => '#778899',
+        ];
+        foreach ($colors as $name => $value) {
+            $form['store_settings[storefront'.$name.']'] = $value;
+        }
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings');
+
+        foreach (['/yeni/', '/yeni/katalog', '/yeni/markalar'] as $url) {
+            $crawler = $this->client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            $css = $crawler->filter('style[data-storefront-colors]')->text();
+            foreach (['notice' => '#010203', 'navy' => '#102030', 'navy-light' => '#203040', 'yellow' => '#abcdef', 'body' => '#f0e0d0', 'card' => '#fafafa', 'ink' => '#112233', 'muted' => '#445566', 'line' => '#778899'] as $name => $value) {
+                self::assertStringContainsString('--storefront-'.$name.': '.$value.';', $css);
+            }
+        }
+    }
+
+    public function testInvalidStorefrontColorsAreRejectedWithoutPersistence(): void
+    {
+        foreach (['#fff', '#1234567', '#zzzzzz', 'red', '#123456; color:red', "#123456\n", ''] as $invalid) {
+            $crawler = $this->client->request('GET', '/yeni/admin/settings');
+            $form = $crawler->selectButton('Ayarları kaydet')->form();
+            $form['store_settings[storefrontNavy]'] = $invalid;
+            $this->client->submit($form);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('#092a53', self::getContainer()->get(StoreConfiguration::class)->current()->storefrontNavy);
+        }
+    }
+
+    public function testAnonymousRequestsCannotChangeStorefrontColors(): void
+    {
+        $this->client->getCookieJar()->clear();
+        $this->client->request('POST', '/yeni/admin/settings', ['store_settings' => ['storefrontNavy' => '#123456']]);
+        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertSame('#092a53', self::getContainer()->get(StoreConfiguration::class)->current()->storefrontNavy);
+    }
+
     private function createAdministrator(): AdminUser
     {
         $administrator = new AdminUser('settings-admin@example.com');

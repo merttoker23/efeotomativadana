@@ -10,12 +10,15 @@ use App\Module\Audit\AuditAction;
 use App\Module\Audit\AuditLogger;
 use App\Module\Catalog\AdminCatalogData;
 use App\Module\Catalog\AdminCatalogManager;
+use App\Module\Catalog\BrandLogoStorage;
 use App\Module\Catalog\PublicationStatus;
 use App\Repository\Catalog\BrandRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -23,6 +26,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 final class BrandController extends AbstractController
 {
+    public function __construct(private readonly BrandLogoStorage $logos, private readonly EntityManagerInterface $entityManager)
+    {
+    }
+
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request, BrandRepository $brands): Response { return $this->render('admin/catalog/brands/index.html.twig', ['page' => $brands->adminPage($request->query->getString('q'), $request->query->getInt('page', 1)), 'query' => $request->query->getString('q')]); }
 
@@ -51,8 +58,33 @@ final class BrandController extends AbstractController
     {
         $form = $this->createForm(AdminBrandType::class, $data); $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            try { $saved = $manager->saveBrand($brand, $data); $this->addFlash('success', 'Marka kaydedildi.'); return $this->redirectToRoute('admin_catalog_brand_edit', ['id' => $saved->id()]); }
-            catch (\DomainException|\InvalidArgumentException $exception) { $form->addError(new FormError($exception->getMessage())); }
+            $logoBrandId = null;
+            $previousLogo = null;
+            try {
+                $logo = $form->get('logo')->getData();
+                $saved = $this->entityManager->wrapInTransaction(function () use ($manager, $brand, $data, $logo, &$logoBrandId, &$previousLogo): Brand {
+                    $saved = $manager->saveBrand($brand, $data);
+                    if ($logo instanceof UploadedFile) {
+                        $id = (int) $saved->id();
+                        $previousLogo = $this->logos->snapshot($id);
+                        $logoBrandId = $id;
+                        $this->logos->store($id, $logo);
+                    }
+
+                    return $saved;
+                });
+                $this->addFlash('success', 'Marka kaydedildi.');
+
+                return $this->redirectToRoute('admin_catalog_brand_edit', ['id' => $saved->id()]);
+            } catch (\Throwable $exception) {
+                if (null !== $logoBrandId) {
+                    $this->logos->restore($logoBrandId, $previousLogo);
+                }
+                if (!$exception instanceof \DomainException && !$exception instanceof \InvalidArgumentException && !$exception instanceof \RuntimeException) {
+                    throw $exception;
+                }
+                $form->addError(new FormError($exception->getMessage()));
+            }
         }
         return $this->render('admin/catalog/brands/form.html.twig', ['form' => $form, 'brand' => $brand], new Response(status: $form->isSubmitted() ? 422 : 200));
     }
