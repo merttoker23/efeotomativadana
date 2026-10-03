@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Cms;
 
 use App\Module\Cms\CmsMediaStorage;
+use App\Module\Cms\HomeSectionDraft;
 use App\Module\Cms\HomeSectionInput;
 use App\Module\Cms\HomeSectionType;
 use PHPUnit\Framework\TestCase;
@@ -23,6 +24,7 @@ final class HomeSectionInputTest extends TestCase
 {
     private string $directory;
     private HomeSectionInput $input;
+    private HomeSectionDraft $drafts;
     private FileBag $files;
 
     protected function setUp(): void
@@ -30,6 +32,7 @@ final class HomeSectionInputTest extends TestCase
         $this->directory = sys_get_temp_dir().'/home-section-input-'.bin2hex(random_bytes(6));
         mkdir($this->directory, 0o777, true);
         $this->input = new HomeSectionInput(new CmsMediaStorage($this->directory));
+        $this->drafts = new HomeSectionDraft();
         $this->files = new FileBag();
     }
 
@@ -131,7 +134,7 @@ final class HomeSectionInputTest extends TestCase
 
     public function testAUploadedSlideImageIsStoredAndThePathItReturnsIsTheOneThatIsKept(): void
     {
-        $this->files->set('slides_0_file', $this->upload('hero.png'));
+        $this->files->set('slides_0_image_file', $this->upload('hero.png'));
 
         $configuration = $this->input->configuration(HomeSectionType::HeroSlider, ['slides' => [
             $this->slide(['image' => '']),
@@ -151,6 +154,55 @@ final class HomeSectionInputTest extends TestCase
         ]], $this->files);
 
         self::assertSame($stored, $configuration['banners'][0]['image']);
+    }
+
+    /**
+     * A hero slide may be nothing but an image: label, title, price and calls to action are all
+     * optional, and only the image is required. Three such slides must all be saved, kept in order,
+     * and survive a re-edit round trip through the draft.
+     */
+    public function testThreeImageOnlySlidesAreSavedAndPreservedOnReEdit(): void
+    {
+        $imageOnly = fn (): array => [
+            'label' => '',
+            'title' => '',
+            'priceLabel' => '',
+            'priceValue' => '',
+            'primaryText' => '',
+            'primaryLink' => '',
+            'secondaryText' => '',
+            'secondaryLink' => '',
+            'image' => $this->storedImage(),
+        ];
+
+        $configuration = $this->input->configuration(HomeSectionType::HeroSlider, [
+            'slides' => [$imageOnly(), $imageOnly(), $imageOnly()],
+        ], $this->files);
+
+        self::assertCount(3, $configuration['slides']);
+
+        $reDraft = $this->drafts->fromConfiguration(HomeSectionType::HeroSlider, $configuration);
+        self::assertCount(3, $reDraft['slides']);
+        foreach ($reDraft['slides'] as $slide) {
+            self::assertSame($this->storedImage(), $slide['image']);
+        }
+    }
+
+    /**
+     * A slide that carries only a library-selected image (no new upload, no text) is not a blank
+     * row: the stored image counts as content, so it is kept instead of being dropped.
+     */
+    public function testLibrarySelectedImageOnlySlideIsNotDroppedAsAnEmptyRow(): void
+    {
+        $configuration = $this->input->configuration(HomeSectionType::HeroSlider, [
+            'slides' => [
+                $this->slide(['label' => '', 'title' => '', 'priceLabel' => '', 'priceValue' => '']),
+                $this->slide(['label' => '', 'title' => '', 'priceLabel' => '', 'priceValue' => '', 'image' => '']),
+            ],
+        ], $this->files);
+
+        self::assertCount(1, $configuration['slides']);
+        self::assertSame($this->storedImage(), $configuration['slides'][0]['image']);
     }
 
     public function testBlankMarqueeWordsAreRemovedAndTheRestKeepTheirOrder(): void

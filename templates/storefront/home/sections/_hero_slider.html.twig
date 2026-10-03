@@ -25,10 +25,12 @@
                 <img class="hero-photo" src="{{ media_url(slide.image) }}" alt=""{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %}{% if loop.first %} fetchpriority="high" decoding="async"{% else %} loading="lazy" decoding="async"{% endif %}>
                 <div class="hero-content">
                     {% if slide.label %}<div class="hero-label">{{ slide.label }}</div>{% endif %}
-                    {% if loop.first %}
-                        <h1 class="hero-title">{{ slide.title }}</h1>
-                    {% else %}
-                        <h2 class="hero-title">{{ slide.title }}</h2>
+                    {% if slide.title %}
+                        {% if loop.first %}
+                            <h1 class="hero-title">{{ slide.title }}</h1>
+                        {% else %}
+                            <h2 class="hero-title">{{ slide.title }}</h2>
+                        {% endif %}
                     {% endif %}
                     {% if slide.priceLabel or slide.priceValue %}
                         <div class="price-pill">

@@ -103,8 +103,9 @@ final readonly class HomeSectionInput
                 $type->rowFields(),
             )));
             $selected = $type->selectionPerRow() && [] !== $this->slugs($row['slugs'] ?? []);
+            $hasImage = \in_array('image', $type->rowFields(), true) && '' !== trim((string) ($row['image'] ?? ''));
 
-            if ('' === $text && !$uploaded && !$selected) {
+            if ('' === $text && !$uploaded && !$selected && !$hasImage) {
                 ++$index;
 
                 continue;
@@ -126,7 +127,7 @@ final readonly class HomeSectionInput
      */
     private function image(string $rows, int $index, string $current, FileBag $files): string
     {
-        $upload = $files->get($rows.'_'.$index.'_file');
+        $upload = $files->get($rows.'_'.$index.'_image_file');
         if ($upload instanceof UploadedFile) {
             $error = $upload->getError();
             if (\UPLOAD_ERR_OK === $error && $upload->isValid() && $upload->getSize() > 0) {
@@ -144,7 +145,7 @@ final readonly class HomeSectionInput
 
     private function hasUpload(string $rows, int $index, FileBag $files): bool
     {
-        $upload = $files->get($rows.'_'.$index.'_file');
+        $upload = $files->get($rows.'_'.$index.'_image_file');
 
         return $upload instanceof UploadedFile
             && \UPLOAD_ERR_OK === $upload->getError()

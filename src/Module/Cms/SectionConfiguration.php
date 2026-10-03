@@ -13,6 +13,7 @@ final class SectionConfiguration
      * reverse) would render a control that cannot be used, so the pair is checked together.
      */
     private const array OPTIONAL_SLIDE_FIELDS = [
+        'label', 'title',
         'priceLabel', 'priceValue', 'primaryText', 'primaryLink', 'secondaryText', 'secondaryLink',
     ];
 
