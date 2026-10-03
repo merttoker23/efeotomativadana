@@ -12,7 +12,7 @@
     --storefront-container: 1456px;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--storefront-ink);
-    background: var(--storefront-body);
+    background: var(--storefront-notice);
 }
 
 *,
@@ -41,6 +41,18 @@ body {
     background: var(--storefront-body);
     font-size: 16px;
     line-height: 1.5;
+}
+
+/* The page paints its own background; the canvas below the footer stays navy during overscroll. */
+.storefront-page {
+    min-width: 0;
+    background: var(--storefront-notice);
+}
+
+.storefront-content {
+    display: flow-root;
+    padding-bottom: 2.2rem;
+    background: var(--storefront-body);
 }
 
 button,
@@ -691,6 +703,8 @@ select:focus-visible {
 
 .product-card {
     position: relative;
+    display: flex;
+    flex-direction: column;
     min-width: 0;
     overflow: hidden;
     border: 1px solid var(--storefront-line);
@@ -700,6 +714,7 @@ select:focus-visible {
 
 .product-thumb {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
     height: 176px;
@@ -714,6 +729,10 @@ select:focus-visible {
 }
 
 .product-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
     padding: 0.9rem;
 }
 
@@ -1520,7 +1539,8 @@ select:focus-visible {
    between the columns and a bottom bar carrying the copyright on the left and the card marks on
    the right. Those are the numbers below; the content is this store's. */
 .site-footer {
-    margin-top: 2.2rem;
+    margin-top: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     color: #d4dce5;
     background: var(--storefront-notice);
     font-size: 0.8rem;
@@ -1906,7 +1926,8 @@ select:focus-visible {
 }
 
 .product-actions {
-    margin-top: 0.8rem;
+    margin-top: auto;
+    padding-top: 0.8rem;
 }
 
 .product-actions form {
@@ -2498,6 +2519,10 @@ select:focus-visible {
     opacity: 1;
 }
 
+.hero-picture {
+    display: contents;
+}
+
 /* The photograph is inset from both sides rather than filling the frame: the theme leaves a dark
    margin on the left and a narrower one on the right, which is what gives the hero its asymmetry. */
 .hero-photo {
@@ -2627,7 +2652,8 @@ select:focus-visible {
 .slider-controls {
     position: absolute;
     z-index: 5;
-    top: 208px;
+    top: 50%;
+    transform: translateY(-50%);
     right: 29.6px;
     display: flex;
     flex-direction: column;
@@ -3119,7 +3145,8 @@ select:focus-visible {
     display: flex;
     flex-wrap: nowrap;
     gap: 5.6px;
-    margin-top: 11.2px;
+    margin-top: auto;
+    padding-top: 11.2px;
 }
 
 .home-product-card .product-actions form {
@@ -3335,57 +3362,138 @@ select:focus-visible {
 
 @media (max-width: 680px) {
     .notice {
-        height: 2rem;
+        height: auto;
+        min-height: 2rem;
+        padding: 0.5rem 2.75rem 0.5rem 1rem;
+        text-align: center;
     }
 
     .notice-text {
         font-size: 0.7rem;
+        overflow-wrap: anywhere;
+    }
+
+    .notice-close {
+        top: 50%;
+        transform: translateY(-50%);
     }
 
     .hero {
-        height: 336px;
+        display: grid;
+        height: auto;
+    }
+
+    .hero-slide {
+        position: relative;
+        display: none;
+        grid-area: 1 / 1;
+        min-width: 0;
+        flex-direction: column;
+        justify-content: flex-start;
+        pointer-events: none;
+    }
+
+    .hero-slide.active {
+        display: flex;
+        pointer-events: auto;
+    }
+
+    .hero-picture {
+        display: block;
+        width: 100%;
+        min-height: 136px;
+        aspect-ratio: var(--mobile-hero-ratio, 1);
+        flex-shrink: 0;
+    }
+
+    .hero-content {
+        padding: 1rem 3.5rem 1.25rem 1rem;
+        overflow-wrap: anywhere;
+    }
+
+    .hero-slide.image-only .hero-content {
+        display: none;
     }
 
     .hero-title {
-        padding: 0 12.8px;
+        padding: 0;
         margin-bottom: 20px;
         font-size: 25.6px;
     }
 
-    .hero-photo {
-        right: 0;
-        bottom: 0;
-        left: 0;
+    .hero .hero-slide .hero-photo {
+        position: static;
+        display: block;
         width: 100%;
-        height: 62%;
+        height: 100%;
+        object-fit: contain;
+        object-position: center;
     }
 
     .hero-slide.alt .hero-photo {
         filter: none;
     }
 
-    .hero-slide.mobile-feature .hero-photo {
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
+    .hero-actions,
+    .price-pill {
+        flex-wrap: wrap;
+        max-width: 100%;
+        gap: 0.75rem;
     }
 
+    .hero-actions .shop-now,
     .hero-slide.mobile-feature .hero-actions .shop-now {
-        padding: 13px 29.6px;
+        max-width: 100%;
+        padding: 0.75rem 1rem;
     }
 
     .slider-controls {
-        top: 196px;
-        right: 12px;
+        right: 8px;
+    }
+
+    .slide-count {
+        padding: 0.125rem 0.35rem;
+        border-radius: 4px;
+        background: rgb(0 0 0 / 65%);
+    }
+
+    .section-card {
+        min-width: 0;
+        padding: 1rem 0.75rem;
+    }
+
+    .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .section-head > * {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .section-head .see-all {
+        flex-shrink: 0;
+        white-space: nowrap;
     }
 
     .home-section .product-grid,
-    .testimonial-blog .product-grid,
-    .promo-grid,
-    .blog-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .testimonial-blog .product-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-rows: 1fr;
+        gap: 0.75rem 0.625rem;
+    }
+
+    .home-section .product-grid > .product-card,
+    .testimonial-blog .product-grid > .product-card {
+        grid-column: span 2;
+    }
+
+    .home-section .product-grid > .product-card:last-child:nth-child(odd):not(:first-child),
+    .testimonial-blog .product-grid > .product-card:last-child:nth-child(odd):not(:first-child) {
+        display: none;
     }
 
     .promo-grid,
@@ -3394,11 +3502,32 @@ select:focus-visible {
     }
 
     .features {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .feature {
+        min-width: 0;
+        padding: 1rem;
+        border-right: 0;
         border-bottom: 1px solid #e2e3e5;
+    }
+
+    .feature:last-child {
+        border-bottom: 0;
+    }
+
+    .feature-ico {
+        flex-shrink: 0;
+    }
+
+    .feature-copy {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .feature-copy span {
+        margin-top: 0.25rem;
+        font-size: 0.8rem;
     }
 
     .brand-strip {
@@ -3417,8 +3546,75 @@ select:focus-visible {
         height: 136px;
     }
 
+    .home-product-card .product-info {
+        padding: 0.5rem;
+    }
+
+    .home-product-card .product-brand,
+    .home-product-card .product-name,
+    .home-product-card .product-price,
+    .product-card .product-sku {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .home-product-card .product-old {
+        display: block;
+        margin-left: 0;
+    }
+
+    .home-product-card .product-actions {
+        align-items: stretch;
+    }
+
+    .home-product-card .product-actions .cart-add-form,
+    .home-product-card .product-actions > .is-disabled {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .home-product-card .product-actions button {
+        min-height: 36px;
+        max-width: 100%;
+        padding-inline: 0.375rem;
+        overflow-wrap: anywhere;
+    }
+
+    .home-section,
+    .testimonial-blog > *,
+    .blog-card,
+    .quote,
+    .footer-main > section {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .blog-grid,
+    .top-products-tabs {
+        min-width: 0;
+    }
+
+    .tab-btn {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
     .marquee {
-        font-size: 19.2px;
+        height: auto;
+        min-height: 68.8px;
+        flex-wrap: wrap;
+        gap: 0.625rem 1.25rem;
+        padding: 1rem;
+        font-size: 1rem;
+    }
+
+    .marquee-item {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .marquee .dot {
+        display: none;
     }
 }
 

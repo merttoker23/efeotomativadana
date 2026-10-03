@@ -47,6 +47,19 @@ final class HomeSectionConfigurationTest extends TestCase
         self::assertSame($slide, $config['slides'][0]);
     }
 
+    public function testMobileBannerIsOptionalForExistingSlidesAndValidatedWhenPresent(): void
+    {
+        $slide = array_fill_keys(HomeSectionType::HeroSlider->rowFields(), '');
+        $slide['image'] = '/uploads/cms/'.str_repeat('a', 32).'.jpg';
+        unset($slide['mobileImage']);
+        self::assertSame($slide, SectionConfiguration::validate(HomeSectionType::HeroSlider, ['slides' => [$slide]])['slides'][0]);
+        $slide['mobileImage'] = '/uploads/cms/'.str_repeat('b', 32).'.webp';
+        self::assertSame($slide, SectionConfiguration::validate(HomeSectionType::HeroSlider, ['slides' => [$slide]])['slides'][0]);
+        $slide['mobileImage'] = 'https://example.com/banner.jpg';
+        $this->expectException(\InvalidArgumentException::class);
+        SectionConfiguration::validate(HomeSectionType::HeroSlider, ['slides' => [$slide]]);
+    }
+
     public function testRejectsAHeroSlideWithoutAnImage(): void
     {
         $this->expectException(\InvalidArgumentException::class);

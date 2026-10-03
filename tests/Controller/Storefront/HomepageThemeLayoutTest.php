@@ -117,6 +117,22 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame('auto', $declarations['.category-panel']['overflow-y'] ?? null, 'The category panel clips the rows it cannot fit.');
     }
 
+    public function testHeroPictureUsesAMobileBannerOrPlaceholderWithoutChangingDesktopImage(): void
+    {
+        $mobile = '/uploads/cms/'.str_repeat('b', 32).'.webp';
+        $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
+            $this->slide(['mobileImage' => $mobile]),
+            $this->slide(),
+        ]], 10);
+        $slides = $this->home()->filter('.hero-slide');
+        $media = self::getContainer()->get(\App\Twig\StorefrontMediaExtension::class);
+        self::assertSame($media->mediaUrl($mobile), $slides->eq(0)->filter('picture source[media="(max-width: 680px)"]')->attr('srcset'));
+        self::assertSame($media->productImageUrl(null), $slides->eq(1)->filter('picture source[media="(max-width: 680px)"]')->attr('srcset'));
+        foreach ($slides as $slide) {
+            self::assertSame($media->mediaUrl($this->slide()['image']), (new Crawler($slide))->filter('picture img.hero-photo')->attr('src'));
+        }
+    }
+
     public function testTheHeroIsAWorkingSliderRatherThanAStackOfPictures(): void
     {
         $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [

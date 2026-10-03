@@ -146,6 +146,10 @@ final class SectionConfiguration
             if (!is_array($item)) {
                 throw new \InvalidArgumentException('Invalid '.$kind.' entry.');
             }
+            // Older CMS JSON remains valid without a mobile banner; no data migration is needed.
+            if ('slides' === $kind && !array_key_exists('mobileImage', $item)) {
+                $item['mobileImage'] = '';
+            }
             $actualFields = array_keys($item);
             sort($actualFields);
             $expectedFields = $fields;
@@ -161,6 +165,7 @@ final class SectionConfiguration
                 }
                 match ($field) {
                     'image' => self::image($item[$field]),
+                    'mobileImage' => '' === $item[$field] ? null : self::image($item[$field]),
                     'link' => self::link($item[$field]),
                     'slugs' => self::list('slugs', $item[$field]),
                     default => self::text($item[$field]),

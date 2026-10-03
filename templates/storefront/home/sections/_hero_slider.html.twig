@@ -10,6 +10,8 @@
     <section class="hero" aria-roledescription="carousel" aria-label="{{ section.title }}" data-controller="home-slider">
         {% for slide in section.data.slides %}
             {% set dimensions = image_dimensions(slide.image) %}
+            {% set mobileImage = slide.mobileImage|default('') %}
+            {% set mobileDimensions = image_dimensions(mobileImage) %}
             {% set feature = slide.secondaryText is not empty or slide.secondaryLink is not empty %}
             {# A slide may be nothing but a picture. The dark margin the theme leaves around the
                photograph is there to give words somewhere to sit; with no words there is nothing to
@@ -39,7 +41,10 @@
                    carries no alt text of its own. Only the first slide is fetched eagerly: five
                    equally-weighted candidates for the largest contentful paint would make the
                    browser download images the visitor may never reach. #}
-                <img class="hero-photo" src="{{ media_url(slide.image) }}" alt=""{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %}{% if loop.first %} fetchpriority="high" decoding="async"{% else %} loading="lazy" decoding="async"{% endif %}>
+                <picture class="hero-picture"{% if mobileDimensions %} style="--mobile-hero-ratio: {{ mobileDimensions.width }} / {{ mobileDimensions.height }}"{% endif %}>
+                    <source media="(max-width: 680px)" srcset="{{ product_image_url(mobileImage) }}"{% if mobileDimensions %} width="{{ mobileDimensions.width }}" height="{{ mobileDimensions.height }}"{% endif %}>
+                    <img class="hero-photo" src="{{ media_url(slide.image) }}" alt=""{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %}{% if loop.first %} fetchpriority="high" decoding="async"{% else %} loading="lazy" decoding="async"{% endif %}>
+                </picture>
                 <div class="hero-content">
                     {% if slide.label %}<div class="hero-label">{{ slide.label }}</div>{% endif %}
                     {% if slide.title %}

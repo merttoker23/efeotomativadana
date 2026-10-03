@@ -17,8 +17,10 @@
             {% for field in type.rowFields %}
                 {% set name = rows ~ '_' ~ loop.parent.loop.index0 ~ '_' ~ field %}
                 {% set value = item[field]|default('') %}
-                {% if 'image' == field %}
-                    {% include 'admin/cms/home/_image.html.twig' with {name: name, current: value, library: library} only %}
+                {% if field in ['image', 'mobileImage'] %}
+                    {% if 'hero_slider' == type.value %}<p><strong>{{ type.fieldLabels()[field] }}</strong></p>{% endif %}
+                    {% include 'admin/cms/home/_image.html.twig' with {name: name, current: value, library: library, mobile: 'mobileImage' == field} only %}
+                    {% if 'mobileImage' == field %}<p class="help-text">680px ve altında kullanılır. Görsel seçilmezse mağazanın placeholder görseli gösterilir.</p>{% endif %}
                 {% elseif type.isLinkField(field) %}
                     {% include 'admin/cms/home/_link.html.twig' with {name: name, value: value} only %}
                 {% else %}
@@ -53,8 +55,10 @@
         <fieldset class="cms-row" data-index="0" data-home-section-form-target="row">
             {% for field in type.rowFields %}
                 {% set name = rows ~ '_0_' ~ field %}
-                {% if 'image' == field %}
-                    {% include 'admin/cms/home/_image.html.twig' with {name: name, current: '', library: library} only %}
+                {% if field in ['image', 'mobileImage'] %}
+                    {% if 'hero_slider' == type.value %}<p><strong>{{ type.fieldLabels()[field] }}</strong></p>{% endif %}
+                    {% include 'admin/cms/home/_image.html.twig' with {name: name, current: '', library: library, mobile: 'mobileImage' == field} only %}
+                    {% if 'mobileImage' == field %}<p class="help-text">680px ve altında kullanılır. Görsel seçilmezse mağazanın placeholder görseli gösterilir.</p>{% endif %}
                 {% elseif type.isLinkField(field) %}
                     {% include 'admin/cms/home/_link.html.twig' with {name: name, value: ''} only %}
                 {% else %}

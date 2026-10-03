@@ -127,12 +127,12 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
                         }
                         $control = $rowCrawler->filter(sprintf('[name="%s_%d_%s"]', $rows, $index, $field));
                         self::assertSame(1, $control->count(), $type->value.' row '.$index.' has no control for "'.$field.'".');
-                        if ('image' === $field) {
+                        if (\in_array($field, ['image', 'mobileImage'], true)) {
                             // An image is chosen from the media library, so the form offers it as
                             // the selected option rather than as a text value.
                             self::assertSame(
                                 1,
-                                $control->filter(sprintf('option[value="%s"][selected]', $values[$field]))->count(),
+                                $control->filter(sprintf('option[value="%s"]%s', $values[$field] ?? '', empty($values[$field]) ? '' : '[selected]'))->count(),
                                 $type->value.' row '.$index.' does not offer its own image back.',
                             );
 
@@ -221,6 +221,34 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         self::assertStringContainsString('mobile-feature', (string) $slides->eq(1)->attr('class'));
         self::assertSame(1, $slides->eq(1)->filter('.hero-actions .shop-now[href="/yeni/katalog"]')->count());
         self::assertSame(1, $slides->eq(1)->filter('.hero-actions .learn-more[href="/yeni/kategoriler"]')->count());
+    }
+
+    public function testMobileBannerCanBeSelectedAndClearedWithoutChangingDesktop(): void
+    {
+        $this->catalogue();
+        self::assertSame(0, $this->seed());
+        $this->signIn();
+        $hero = $this->sectionOf(HomeSectionType::HeroSlider);
+        $url = sprintf('/yeni/admin/cms/home/%d/edit', $hero->id());
+        $desktop = $hero->configuration()['slides'][0]['image'];
+        $crawler = $this->client->request('GET', $url);
+        self::assertSame(1, $crawler->filter('.cms-rows > .cms-row [name="slides_0_mobileImage_file"]')->count());
+        self::assertSame(1, $crawler->filter('.cms-rows > .cms-row[data-index="0"] .cms-image img[alt="Mobil banner seçilmedi; mağazada placeholder gösterilir"]:not([hidden])')->count());
+
+        $this->client->submit($crawler->selectButton('Bölümü kaydet')->form(['slides_0_mobileImage' => $desktop]));
+        self::assertResponseRedirects('/yeni/admin/cms/home');
+        self::assertSame($desktop, $this->sectionOf(HomeSectionType::HeroSlider)->configuration()['slides'][0]['mobileImage']);
+        $crawler = $this->client->request('GET', $url);
+        self::assertSame(1, $crawler->filter('[name="slides_0_mobileImage"] option[selected][value="'.$desktop.'"]')->count());
+
+        $this->client->submit($crawler->selectButton('Bölümü kaydet')->form(['slides_0_mobileImage' => '']));
+        self::assertResponseRedirects('/yeni/admin/cms/home');
+        $saved = $this->sectionOf(HomeSectionType::HeroSlider)->configuration()['slides'][0];
+        self::assertSame('', $saved['mobileImage']);
+        self::assertSame($desktop, $saved['image']);
+        $crawler = $this->client->request('GET', '/yeni/');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('product-placeholder-', (string) $crawler->filter('.hero-slide')->eq(0)->filter('source')->attr('srcset'));
     }
 
     public function testTheSplitBuilderPanelIsSavedAndItsProductSelectionSurvives(): void

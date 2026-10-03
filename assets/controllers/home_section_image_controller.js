@@ -11,6 +11,7 @@ import { Controller } from '@hotwired/stimulus';
  */
 export default class extends Controller {
     static targets = ['file', 'select', 'preview'];
+    static values = { placeholder: String };
 
     preview() {
         const file = this.fileTarget.files?.[0];
@@ -27,6 +28,7 @@ export default class extends Controller {
         const reader = new FileReader();
         reader.addEventListener('load', () => {
             this.previewTarget.src = reader.result;
+            this.previewTarget.alt = 'Seçili görsel önizlemesi';
             this.previewTarget.removeAttribute('width');
             this.previewTarget.removeAttribute('height');
             this.previewTarget.hidden = false;
@@ -38,12 +40,17 @@ export default class extends Controller {
         const path = this.selectTarget.value;
 
         if (!path) {
-            this.previewTarget.hidden = true;
+            this.previewTarget.hidden = !this.hasPlaceholderValue;
+            if (this.hasPlaceholderValue) {
+                this.previewTarget.src = this.placeholderValue;
+                this.previewTarget.alt = 'Mobil banner seçilmedi; mağazada placeholder gösterilir';
+            }
 
             return;
         }
 
-        this.previewTarget.src = path;
+        this.previewTarget.src = this.selectTarget.selectedOptions[0]?.dataset.previewUrl || path;
+        this.previewTarget.alt = 'Seçili görsel önizlemesi';
         this.previewTarget.hidden = false;
     }
 }

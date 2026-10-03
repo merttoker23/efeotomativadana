@@ -56,7 +56,7 @@ enum HomeSectionType: string
         'priceLabel', 'priceValue',
         'primaryText', 'primaryLink',
         'secondaryText', 'secondaryLink',
-        'image',
+        'image', 'mobileImage',
     ];
 
     /** @return list<string> */
@@ -166,7 +166,8 @@ enum HomeSectionType: string
             'headline' => 'Kampanya başlığı',
             'label' => 'Üst etiket',
             'description' => 'Açıklama',
-            'image' => 'Görsel',
+            'image' => self::HeroSlider === $this ? 'Desktop Banner' : 'Görsel',
+            'mobileImage' => 'Mobil Banner',
             'link' => 'Bağlantı',
             'cta' => 'Buton metni',
             'text' => 'Metin',

@@ -48,8 +48,7 @@ final readonly class HomeSectionInput
         }
 
         $configuration = [];
-        $index = 0;
-        foreach ($this->rows($type, $rows, $draft, $files) as $row) {
+        foreach ($this->rows($type, $rows, $draft, $files) as $index => $row) {
             if (HomeSectionType::Marquee === $type) {
                 $configuration['items'][] = trim((string) ($row['text'] ?? ''));
 
@@ -57,15 +56,14 @@ final readonly class HomeSectionInput
             }
             $entry = [];
             foreach ($type->rowFields() as $field) {
-                $entry[$field] = 'image' === $field
-                    ? $this->image($rows, $index, (string) ($row[$field] ?? ''), $files)
+                $entry[$field] = \in_array($field, ['image', 'mobileImage'], true)
+                    ? $this->image($rows, $index, (string) ($row[$field] ?? ''), $files, $field)
                     : mb_substr(trim((string) ($row[$field] ?? '')), 0, 500);
             }
             if ($type->selectionPerRow()) {
                 $entry['slugs'] = $this->slugs($row['slugs'] ?? []);
             }
             $configuration[$rows][] = $entry;
-            ++$index;
         }
 
         if (HomeSectionType::Marquee === $type) {
@@ -87,7 +85,7 @@ final readonly class HomeSectionInput
      *
      * @param array<string, mixed> $draft
      *
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private function rows(HomeSectionType $type, string $rows, array $draft, FileBag $files): array
     {
@@ -98,6 +96,9 @@ final readonly class HomeSectionInput
                 continue;
             }
             $uploaded = \in_array('image', $type->rowFields(), true) && $this->hasUpload($rows, $index, $files);
+            if (HomeSectionType::HeroSlider === $type) {
+                $uploaded = $uploaded || $this->hasUpload($rows, $index, $files, 'mobileImage');
+            }
             $text = trim(implode('', array_map(
                 static fn (string $field): string => $field === 'image' ? '' : (string) ($row[$field] ?? ''),
                 $type->rowFields(),
@@ -110,7 +111,8 @@ final readonly class HomeSectionInput
 
                 continue;
             }
-            $filled[] = $row;
+            // Keep the submitted row index so uploads still match after an empty row is dropped.
+            $filled[$index] = $row;
             ++$index;
         }
 
@@ -125,9 +127,9 @@ final readonly class HomeSectionInput
      * trusted because it came from a `<select>`: the option list is a convenience, and the
      * stored configuration is the only thing that decides what a section may point at.
      */
-    private function image(string $rows, int $index, string $current, FileBag $files): string
+    private function image(string $rows, int $index, string $current, FileBag $files, string $field): string
     {
-        $upload = $files->get($rows.'_'.$index.'_image_file');
+        $upload = $files->get($rows.'_'.$index.'_'.$field.'_file');
         if ($upload instanceof UploadedFile) {
             $error = $upload->getError();
             if (\UPLOAD_ERR_OK === $error && $upload->isValid() && $upload->getSize() > 0) {
@@ -143,9 +145,9 @@ final readonly class HomeSectionInput
         return $this->media->holds($chosen) ? $chosen : '';
     }
 
-    private function hasUpload(string $rows, int $index, FileBag $files): bool
+    private function hasUpload(string $rows, int $index, FileBag $files, string $field = 'image'): bool
     {
-        $upload = $files->get($rows.'_'.$index.'_image_file');
+        $upload = $files->get($rows.'_'.$index.'_'.$field.'_file');
 
         return $upload instanceof UploadedFile
             && \UPLOAD_ERR_OK === $upload->getError()

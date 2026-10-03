@@ -240,6 +240,53 @@ final class HomeSectionInputTest extends TestCase
         ]], $this->files);
     }
 
+    public function testMobileBannerUsesItsOwnUploadAndSurvivesReEditing(): void
+    {
+        $this->files->set('slides_0_mobileImage_file', $this->upload('mobile.png'));
+        $configuration = $this->input->configuration(HomeSectionType::HeroSlider, [
+            'slides' => [$this->slide()],
+        ], $this->files);
+
+        self::assertSame($this->storedImage(), $configuration['slides'][0]['image']);
+        $mobile = $configuration['slides'][0]['mobileImage'];
+        self::assertMatchesRegularExpression('~^/uploads/cms/[a-f0-9]{32}\.png$~', $mobile);
+        self::assertFileExists($this->directory.'/'.basename($mobile));
+        $draft = $this->drafts->fromConfiguration(HomeSectionType::HeroSlider, $configuration);
+        self::assertSame($configuration, $this->input->configuration(HomeSectionType::HeroSlider, $draft, new FileBag()));
+    }
+
+    public function testMobileBannerCanBeSelectedAndClearedIndependentlyOfDesktop(): void
+    {
+        $mobile = '/uploads/cms/'.str_repeat('c', 32).'.webp';
+        $configuration = $this->input->configuration(HomeSectionType::HeroSlider, [
+            'slides' => [$this->slide(['mobileImage' => $mobile])],
+        ], $this->files);
+        self::assertSame($mobile, $configuration['slides'][0]['mobileImage']);
+        $draft = $this->drafts->fromConfiguration(HomeSectionType::HeroSlider, $configuration);
+        $draft['slides'][0]['mobileImage'] = '';
+        $cleared = $this->input->configuration(HomeSectionType::HeroSlider, $draft, $this->files);
+        self::assertSame('', $cleared['slides'][0]['mobileImage']);
+        self::assertSame($this->storedImage(), $cleared['slides'][0]['image']);
+    }
+
+    public function testMobileOnlyUploadOnAnEmptyRowStillRequiresADesktopBanner(): void
+    {
+        $this->files->set('slides_0_mobileImage_file', $this->upload('mobile.png'));
+        $this->expectException(\InvalidArgumentException::class);
+        $this->input->configuration(HomeSectionType::HeroSlider, HomeSectionType::HeroSlider->emptyDraft(), $this->files);
+    }
+
+    public function testMobileUploadStillMatchesItsSlideAfterAnEmptyRowIsDropped(): void
+    {
+        $this->files->set('slides_1_mobileImage_file', $this->upload('mobile.png'));
+        $configuration = $this->input->configuration(HomeSectionType::HeroSlider, [
+            'slides' => [HomeSectionType::HeroSlider->emptyDraft()['slides'][0], $this->slide()],
+        ], $this->files);
+        self::assertCount(1, $configuration['slides']);
+        self::assertSame($this->storedImage(), $configuration['slides'][0]['image']);
+        self::assertMatchesRegularExpression('~^/uploads/cms/[a-f0-9]{32}\.png$~', $configuration['slides'][0]['mobileImage']);
+    }
+
     private function storedImage(): string
     {
         return '/uploads/cms/'.str_repeat('b', 32).'.jpg';

@@ -4,28 +4,29 @@
    storage minted, and the preview is that value resolved through the same media URL the
    storefront uses, so what the administrator sees is what a visitor will see. #}
 {% set dimensions = image_dimensions(current) %}
-<div class="cms-image" data-controller="home-section-image">
+{% set mobile = mobile|default(false) %}
+<div class="cms-image" data-controller="home-section-image"{% if mobile %} data-home-section-image-placeholder-value="{{ product_image_url(null) }}"{% endif %}>
     <label for="{{ name }}_file">Yeni görsel yükle</label>
     <input id="{{ name }}_file" type="file" name="{{ name }}_file" accept="image/jpeg,image/png,image/webp"
            data-home-section-image-target="file" data-action="change->home-section-image#preview">
 
     <label for="{{ name }}">Ya da medya kütüphanesinden seç</label>
     <select id="{{ name }}" name="{{ name }}" data-home-section-image-target="select" data-action="change->home-section-image#preview">
-        <option value="">Görsel seçilmedi</option>
+        <option value=""{{ mobile and not current ? ' selected' : '' }}>Görsel seçilmedi</option>
         {% for image in library %}
-            <option value="{{ image.path }}"{{ current == image.path ? ' selected' : '' }}>{{ image.filename }} — {{ (image.bytes / 1024)|round(1) }} KB</option>
+            <option value="{{ image.path }}"{% if mobile %} data-preview-url="{{ media_url(image.path) }}"{% endif %}{{ current == image.path ? ' selected' : '' }}>{{ image.filename }} — {{ (image.bytes / 1024)|round(1) }} KB</option>
         {% endfor %}
         {% set known = library|map(item => item.path) %}
     {% if current and current not in known %}
             {# An image chosen before the library page filled up is still this section's image. #}
-            <option value="{{ current }}" selected>{{ current }}</option>
+            <option value="{{ current }}"{% if mobile %} data-preview-url="{{ media_url(current) }}"{% endif %} selected>{{ current }}</option>
         {% endif %}
     </select>
 
     <p class="help-text">JPEG, PNG veya WebP · en fazla 5 MB.</p>
 
     <img class="cms-image-preview" data-home-section-image-target="preview"
-         src="{{ current ? media_url(current) : '' }}" alt="Seçili görsel önizlemesi"
+         src="{{ current ? media_url(current) : (mobile ? product_image_url(null) : '') }}" alt="{{ mobile and not current ? 'Mobil banner seçilmedi; mağazada placeholder gösterilir' : 'Seçili görsel önizlemesi' }}"
          {% if dimensions %}width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %}
-         {% if not current %}hidden{% endif %}>
+         {% if not current and not mobile %}hidden{% endif %}>
 </div>
