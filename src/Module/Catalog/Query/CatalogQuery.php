@@ -20,6 +20,12 @@ final readonly class CatalogQuery
         return $this->repository->findPublishedProduct($slug);
     }
 
+    /** @return list<CatalogProductView> */
+    public function similarProducts(int $productId): array
+    {
+        return $this->repository->similarProducts($productId);
+    }
+
     /**
      * @param list<string> $slugs
      *

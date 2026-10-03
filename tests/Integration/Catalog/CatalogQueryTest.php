@@ -88,6 +88,54 @@ final class CatalogQueryTest extends KernelTestCase
         self::assertSame($first->slug(), $page->items[0]->slug);
     }
 
+    public function testSimilarProductsPreferCategoriesThenFillWithBrandWithoutDuplicatesOrDrafts(): void
+    {
+        $brand = new Brand('Related Brand', 'related-brand');
+        $brand->publish();
+        $category = new Category('Related Category', 'related-category');
+        $category->publish();
+        $secondCategory = new Category('Second Related Category', 'second-related-category');
+        $secondCategory->publish();
+        $this->entityManager->persist($secondCategory);
+        $current = $this->product('RELATED-CURRENT', 'Current', 'related-current', true, $brand, $category);
+        $current->addCategory($secondCategory);
+        $categoryOnly = $this->product('RELATED-CATEGORY', 'Category', 'related-category-product', true, null, $category, 12_345, 4);
+        $both = $this->product('RELATED-BOTH', 'Both', 'related-both', true, $brand, $category);
+        $both->addCategory($secondCategory);
+        $categoryOnly->addImage('storefront/images/hero-automotive.svg', 'Related image');
+        $this->product('RELATED-DRAFT', 'Draft', 'related-draft', false, $brand, $category);
+        $this->product('RELATED-OTHER', 'Unrelated', 'related-other', true);
+        for ($i = 0; $i < 10; ++$i) {
+            $this->product('RELATED-BRAND-'.$i, 'Brand '.$i, 'related-brand-'.$i, true, $brand);
+        }
+        $this->entityManager->flush();
+
+        $debugData = self::getContainer()->get('doctrine.debug_data_holder');
+        $debugData->reset();
+        $items = $this->catalog->similarProducts($current->id());
+        $queries = $debugData->getData();
+        self::assertSame(1, array_sum(array_map(count(...), $queries)), 'Related cards must resolve in one read query.');
+        self::assertCount(8, $items);
+        $ids = array_column($items, 'id');
+        self::assertCount(8, array_unique($ids));
+        self::assertNotContains($current->id(), $ids);
+        self::assertSame([$both->id(), $categoryOnly->id()], array_slice($ids, 0, 2));
+        self::assertSame(12_345, $items[1]->sellPrice?->minorAmount());
+        self::assertSame(4, $items[1]->quantity);
+        self::assertSame('Related image', $items[1]->imageAlt);
+        self::assertNotContains('RELATED-DRAFT', array_column($items, 'sku'));
+        self::assertNotContains('RELATED-OTHER', array_column($items, 'sku'));
+
+        $unrelated = $this->catalog->product('related-other');
+        self::assertSame([], $this->catalog->similarProducts($unrelated->id));
+        self::assertSame([], $this->catalog->similarProducts(0));
+        $category->unpublish();
+        $secondCategory->unpublish();
+        $brand->unpublish();
+        $this->entityManager->flush();
+        self::assertSame([], $this->catalog->similarProducts($current->id()));
+    }
+
     private function product(
         string $sku,
         string $name,

@@ -86,6 +86,54 @@ final readonly class CatalogReadRepository
         return new CatalogPage($items, $totalItems, $page, $criteria->perPage);
     }
 
+    /** @return list<CatalogProductView> */
+    public function similarProducts(int $productId): array
+    {
+        // EXISTS keeps products shared by several categories unique without hydrating entities.
+        $sameCategory = <<<'SQL'
+            EXISTS (
+                SELECT 1 FROM catalog_product_category candidate_category
+                INNER JOIN catalog_product_category current_category
+                    ON current_category.category_id = candidate_category.category_id
+                    AND current_category.product_id = current_product.id
+                INNER JOIN catalog_category category ON category.id = candidate_category.category_id
+                    AND category.publication_status = :published
+                WHERE candidate_category.product_id = product.id
+            )
+            SQL;
+
+        $rows = $this->connection->createQueryBuilder()
+            ->select(
+                'product.id', 'product.sku', 'product.name', 'product.slug',
+                'brand.name AS brand_name', 'brand.slug AS brand_slug',
+                '(SELECT image.path FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_path',
+                '(SELECT image.alt_text FROM catalog_product_image image WHERE image.product_id = product.id ORDER BY image.sort_order ASC, image.id ASC LIMIT 1) AS image_alt',
+                'price.base_minor_amount', 'price.sale_minor_amount', 'price.currency',
+                'price.sale_starts_at', 'price.sale_ends_at',
+                'COALESCE(inventory.quantity, 0) AS quantity',
+                'COALESCE(inventory.available_for_sale, 0) AS available_for_sale',
+                'CASE WHEN '.$sameCategory.' THEN 0 ELSE 1 END AS similarity_rank',
+            )
+            ->from('catalog_product', 'product')
+            ->innerJoin('product', 'catalog_product', 'current_product', 'current_product.id = :currentId AND current_product.publication_status = :published')
+            ->leftJoin('product', 'catalog_brand', 'brand', 'brand.id = product.brand_id AND brand.publication_status = :published')
+            ->leftJoin('product', 'commerce_product_price', 'price', 'price.product_id = product.id')
+            ->leftJoin('product', 'commerce_product_inventory', 'inventory', 'inventory.product_id = product.id')
+            ->where('product.id <> :currentId')
+            ->andWhere('product.publication_status = :published')
+            ->andWhere('('.$sameCategory.' OR (product.brand_id = current_product.brand_id AND brand.id IS NOT NULL))')
+            ->setParameter('currentId', $productId)
+            ->setParameter('published', PublicationStatus::Published->value)
+            ->orderBy('similarity_rank', 'ASC')
+            ->addOrderBy('product.created_at', 'DESC')
+            ->addOrderBy('product.id', 'DESC')
+            ->setMaxResults(8)
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return array_map(fn (array $row): CatalogProductView => $this->productView($row), $rows);
+    }
+
     public function findPublishedProduct(string $slug): ?CatalogProductDetail
     {
         $row = $this->connection->createQueryBuilder()

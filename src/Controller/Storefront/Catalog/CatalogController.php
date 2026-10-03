@@ -106,6 +106,7 @@ final class CatalogController extends AbstractController
 
         return $this->render('storefront/catalog/product.html.twig', $this->context([
             'product' => $product,
+            'similarProducts' => $this->catalog->similarProducts($product->id),
             'seo' => $this->seo->product($product),
         ]));
     }

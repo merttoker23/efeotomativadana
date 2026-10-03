@@ -7,6 +7,7 @@ use App\Entity\Catalog\Category;
 use App\Entity\Catalog\Product;
 use App\Entity\Commerce\ProductInventory;
 use App\Entity\Commerce\ProductPrice;
+use App\Entity\Customer\CustomerUser;
 use App\Module\Catalog\ProductIdentifierType;
 use App\Module\Pricing\TaxCategory;
 use App\Module\Pricing\TaxRate;
@@ -360,15 +361,76 @@ final class CatalogControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $images = $crawler->filter('.product-gallery img');
-        self::assertCount(2, $images);
+        self::assertCount(3, $images);
         self::assertSame('640', $images->eq(0)->attr('width'));
         self::assertSame('640', $images->eq(0)->attr('height'));
         self::assertSame('high', $images->eq(0)->attr('fetchpriority'));
         self::assertNull($images->eq(0)->attr('loading'));
-        self::assertSame('400', $images->eq(1)->attr('width'));
-        self::assertSame('320', $images->eq(1)->attr('height'));
-        self::assertSame('lazy', $images->eq(1)->attr('loading'));
-        self::assertSame('async', $images->eq(1)->attr('decoding'));
+        self::assertSame('400', $images->eq(2)->attr('width'));
+        self::assertSame('320', $images->eq(2)->attr('height'));
+        self::assertSame('lazy', $images->eq(2)->attr('loading'));
+        self::assertSame('async', $images->eq(2)->attr('decoding'));
+        self::assertSelectorCount(2, '.product-gallery-thumbnail');
+        self::assertSelectorExists('.product-gallery-thumbnail[aria-pressed="true"]');
+    }
+
+    public function testDetailTabsOnlyRenderAvailableDataAndRelatedCardsExcludeTheCurrentProduct(): void
+    {
+        $category = new Category('Detail Category', 'detail-category');
+        $category->publish();
+        $product = $this->product('DETAIL-TABS', 'Detail Tabs', 'detail-tabs', true, null, $category);
+        $product->describe('Detail description');
+        $product->setAttribute('diameter', '280 mm');
+        $product->addIdentifier(ProductIdentifierType::Oem, 'DETAIL-OEM');
+        $this->product('DETAIL-RELATED', 'Related Detail', 'detail-related', true, null, $category);
+        $this->product('DETAIL-DRAFT', 'Draft Detail', 'detail-draft', false, null, $category);
+        $this->product('DETAIL-EMPTY', 'Empty Detail', 'detail-empty', true, quantity: 0);
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/yeni/urun/detail-tabs');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(3, '.product-information [role="tab"]');
+        self::assertSelectorCount(1, '.product-information [aria-selected="true"]');
+        self::assertSelectorCount(2, '.product-information [role="tabpanel"][hidden]');
+        self::assertSelectorCount(1, '.similar-products .product-card');
+        self::assertSelectorExists('.similar-products .product-card[data-product="detail-related"]');
+        self::assertSelectorNotExists('.similar-products .product-card[data-product="detail-tabs"]');
+        self::assertSelectorCount(1, '.product-gallery img');
+        self::assertSelectorNotExists('.product-gallery-thumbnails');
+
+        $this->client->request('GET', '/yeni/urun/detail-empty');
+        self::assertSelectorNotExists('.product-information');
+        self::assertSelectorNotExists('.similar-products');
+        self::assertSelectorNotExists('.product-detail .cart-add-form');
+        self::assertSelectorTextContains('.product-detail .stock-state', 'Stokta Yok');
+        self::assertSelectorExists('.product-detail .wishlist-add-form');
+        self::assertSelectorExists('.product-detail .compare-add-form');
+    }
+
+    public function testDetailActionFormsKeepTheirRealRoutesTokensAndQuantity(): void
+    {
+        $customer = new CustomerUser('detail-actions@example.com', 'Detail', 'Customer');
+        $customer->setPassword('test-password-hash');
+        $this->entityManager->persist($customer);
+        $product = $this->product('DETAIL-ACTIONS', 'Detail Actions', 'detail-actions', true, quantity: 5);
+        $this->entityManager->flush();
+        $this->client->loginUser($customer, 'main');
+        foreach ([
+            ['cart', '/yeni/sepet/ekle/', '/yeni/sepet'],
+            ['wishlist', '/yeni/istek-listem/ekle/', '/yeni/istek-listem'],
+            ['compare', '/yeni/karsilastir/ekle/', '/yeni/karsilastir'],
+        ] as [$kind, $action, $redirect]) {
+            $crawler = $this->client->request('GET', '/yeni/urun/detail-actions');
+            $form = $crawler->filter('.product-detail-actions .'.$kind.'-add-form');
+            self::assertSame($action.$product->id(), $form->attr('action'));
+            $token = $form->filter('input[name="_token"]')->attr('value');
+            self::assertNotEmpty($token);
+            $this->client->request('POST', $action.$product->id(), ['_token' => $token, 'quantity' => 2]);
+            self::assertResponseRedirects($redirect);
+            $this->client->followRedirect();
+            self::assertSelectorTextContains('main', 'Detail Actions');
+        }
+        self::assertSame(2, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_cart_item WHERE product_id = ?', [$product->id()]));
     }
 
     private function product(

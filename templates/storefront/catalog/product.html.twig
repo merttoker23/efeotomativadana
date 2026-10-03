@@ -9,14 +9,25 @@
     </nav>
 
     <article class="container product-detail">
-        <section class="product-gallery" aria-label="Ürün görselleri">
+        <section class="product-gallery" aria-label="Ürün görselleri" data-controller="product-gallery">
+            <div class="product-gallery-main">
             {% if product.images is empty %}
-                <img src="{{ product_image_url(null) }}" alt="{{ product.name }} için temsili görsel" width="400" height="320" fetchpriority="high" decoding="async">
+                <img src="{{ product_image_url(null) }}" alt="{{ product.name }} için temsili görsel" width="400" height="320" fetchpriority="high" decoding="async" data-product-gallery-target="main">
             {% else %}
+                {% set image = product.images|first %}
+                {% set dimensions = image_dimensions(image.path) %}
+                <img src="{{ media_url(image.path) }}" alt="{{ image.alt }}"{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} fetchpriority="high" decoding="async" data-product-gallery-target="main">
+            {% endif %}
+            </div>
+            {% if product.images|length > 1 %}
+                <div class="product-gallery-thumbnails" aria-label="Görsel seçimi">
                 {% for image in product.images %}
                     {% set dimensions = image_dimensions(image.path) %}
-                    <img src="{{ media_url(image.path) }}" alt="{{ image.alt }}"{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} decoding="async"{% if loop.first %} fetchpriority="high"{% else %} loading="lazy"{% endif %}>
+                    <button class="product-gallery-thumbnail" type="button" aria-label="{{ loop.index }}. görseli göster" aria-pressed="{{ loop.first ? 'true' : 'false' }}" data-product-gallery-target="thumbnail" data-action="product-gallery#select">
+                        <img src="{{ media_url(image.path) }}" alt="{{ image.alt }}"{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} decoding="async" loading="lazy">
+                    </button>
                 {% endfor %}
+                </div>
             {% endif %}
         </section>
 
@@ -37,44 +48,69 @@
                 {% endif %}
             </div>
             <p class="stock-state {{ product.sellable ? 'is-available' : 'is-unavailable' }}">
-                {{ product.sellable ? 'Stokta Var' : 'Şu anda stokta yok' }}
+                {{ product.sellable ? 'Stokta Var' : 'Stokta Yok' }}
             </p>
 
+            <div class="product-detail-actions">
             {% if product.sellable and product.sellPrice %}
                 <form class="cart-add-form" method="post" action="{{ path('storefront_cart_add', {id: product.id}) }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('cart_add_' ~ product.id) }}">
-                    <label for="product-quantity">Miktar</label>
+                    <label class="visually-hidden" for="product-quantity">Miktar</label>
                     <input id="product-quantity" name="quantity" type="number" min="1" max="{{ product.quantity > 99 ? 99 : product.quantity }}" value="1" inputmode="numeric">
-                    <button type="submit">Sepete ekle</button>
+                    <button type="submit">Sepete Ekle</button>
                 </form>
             {% endif %}
             <form class="wishlist-add-form" method="post" action="{{ path('storefront_wishlist_add', {id: product.id}) }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('wishlist_add_' ~ product.id) }}">
-                <button type="submit">İstek listesine ekle</button>
+                <button type="submit" aria-label="İstek listesine ekle" title="İstek listesine ekle"><span aria-hidden="true">♡</span><span class="product-action-label">İstek Listesi</span></button>
             </form>
             <form class="compare-add-form" method="post" action="{{ path('storefront_compare_add', {id: product.id}) }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('compare_add_' ~ product.id) }}">
-                <button type="submit">Karşılaştırmaya ekle</button>
+                <button type="submit" aria-label="Karşılaştırmaya ekle" title="Karşılaştırmaya ekle"><span aria-hidden="true">↬</span><span class="product-action-label">Karşılaştır</span></button>
             </form>
+            </div>
 
             {% if product.categories %}
                 <div class="product-categories"><strong>Kategoriler</strong>{% for category in product.categories %}<a href="{{ path('storefront_catalog_category', {slug: category.slug, _fragment: 'catalog-results'}) }}">{{ category.name }}</a>{% endfor %}</div>
             {% endif %}
 
-            {% if product.identifiers %}
-                <section class="product-identifiers" aria-labelledby="identifier-title">
-                    <h2 id="identifier-title">Parça Kodları</h2>
-                    <dl>{% for identifier in product.identifiers %}<div><dt>{{ identifier.label }}</dt><dd>{{ identifier.code }}</dd></div>{% endfor %}</dl>
-                </section>
-            {% endif %}
-
-            {% if product.attributes %}
-                <section class="product-attributes" aria-labelledby="attribute-title">
-                    <h2 id="attribute-title">Teknik Özellikler</h2>
-                    <dl>{% for attribute in product.attributes %}<div><dt>{{ attribute.label }}</dt><dd>{{ attribute.value }}</dd></div>{% endfor %}</dl>
-                </section>
-            {% endif %}
         </section>
     </article>
+
+    {% set tabs = [] %}
+    {% if product.description %}{% set tabs = tabs|merge([{key: 'description', title: 'Açıklama'}]) %}{% endif %}
+    {% if product.attributes %}{% set tabs = tabs|merge([{key: 'attributes', title: 'Teknik Özellikler'}]) %}{% endif %}
+    {% if product.identifiers %}{% set tabs = tabs|merge([{key: 'identifiers', title: 'Parça Kodları'}]) %}{% endif %}
+    {% if tabs %}
+        <section class="container product-information" aria-label="Ürün bilgileri" data-controller="product-tabs">
+            <div class="product-information-tabs" role="tablist" aria-label="Ürün bilgileri">
+                {% for tab in tabs %}
+                    <button type="button" role="tab" id="product-tab-{{ tab.key }}" aria-controls="product-panel-{{ tab.key }}" aria-selected="{{ loop.first ? 'true' : 'false' }}" tabindex="{{ loop.first ? '0' : '-1' }}" class="{{ loop.first ? 'active' : '' }}" data-product-tabs-target="tab" data-action="product-tabs#select">{{ tab.title }}</button>
+                {% endfor %}
+            </div>
+            {% for tab in tabs %}
+                <div class="product-information-panel product-{{ tab.key }}" role="tabpanel" id="product-panel-{{ tab.key }}" aria-labelledby="product-tab-{{ tab.key }}" tabindex="0" data-product-tabs-target="panel"{% if not loop.first %} hidden{% endif %}>
+                    {% if tab.key == 'description' %}
+                        <p>{{ product.description }}</p>
+                    {% elseif tab.key == 'attributes' %}
+                        <dl>{% for attribute in product.attributes %}<div><dt>{{ attribute.label }}</dt><dd>{{ attribute.value }}</dd></div>{% endfor %}</dl>
+                    {% else %}
+                        <dl>{% for identifier in product.identifiers %}<div><dt>{{ identifier.label }}</dt><dd>{{ identifier.code }}</dd></div>{% endfor %}</dl>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    {% if similarProducts %}
+        <section class="container similar-products" aria-labelledby="similar-products-title">
+            <div class="section-head"><h2 id="similar-products-title">Benzer Ürünler</h2></div>
+            <div class="product-grid">
+                {% for similarProduct in similarProducts %}
+                    {% include 'components/product_card.html.twig' with {product: similarProduct} only %}
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
 </main>
 {% endblock %}
