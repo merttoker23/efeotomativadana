@@ -21,22 +21,22 @@ final class AdminSeoType extends AbstractType
         $builder
             ->add('metaTitle', TextType::class, [
                 'required' => false,
-                'label' => 'Search title',
-                'help' => sprintf('Optional. Up to %d characters. Leave empty to use the page’s own title.', SeoOverride::TITLE_LIMIT),
+                'label' => 'Arama başlığı',
+                'help' => sprintf('İsteğe bağlı. En fazla %d karakter. Sayfanın başlığını kullanmak için boş bırakın.', SeoOverride::TITLE_LIMIT),
                 'empty_data' => '',
             ])
             ->add('metaDescription', TextareaType::class, [
                 'required' => false,
-                'label' => 'Search description',
-                'help' => sprintf('Optional. Up to %d characters. Leave empty to use the page’s own text.', SeoOverride::DESCRIPTION_LIMIT),
+                'label' => 'Arama açıklaması',
+                'help' => sprintf('İsteğe bağlı. En fazla %d karakter. Sayfanın açıklamasını kullanmak için boş bırakın.', SeoOverride::DESCRIPTION_LIMIT),
                 'empty_data' => '',
             ])
             ->add('noIndex', CheckboxType::class, [
                 'required' => false,
-                'label' => 'Keep this page out of search engines',
-                'help' => 'The page stays reachable by its address. It is only kept out of results.',
+                'label' => 'Bu sayfayı arama sonuçlarından gizle',
+                'help' => 'Sayfa adresinden erişilebilir olmaya devam eder; arama sonuçlarında görünmez.',
             ])
-            ->add('save', SubmitType::class, ['label' => 'Save SEO overrides']);
+            ->add('save', SubmitType::class, ['label' => 'SEO ayarlarını kaydet']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

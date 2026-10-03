@@ -1,19 +1,20 @@
 {% extends 'admin/base.html.twig' %}
+{% form_theme form 'admin/_form_theme.html.twig' %}
 
-{% block title %}Store settings{% endblock %}
+{% block title %}Mağaza ayarları{% endblock %}
 
 {% block body %}
     <section class="panel">
-        <p class="eyebrow">Configuration</p>
-        <h1>Store settings</h1>
-        <p>Provider keys select integrations only. Credentials remain in environment secrets.</p>
+        <p class="eyebrow">Yapılandırma</p>
+        <h1>Mağaza ayarları</h1>
+        <p>Mağazanın genel bilgilerini ve kullanacağı entegrasyonları düzenleyin.</p>
 
         <div class="form-errors">
             {{ form_start(form) }}
                 {{ form_errors(form) }}
 
                 <fieldset>
-                    <legend>Store</legend>
+                    <legend>Mağaza</legend>
                     {{ form_row(form.storeName) }}
                     {{ form_row(form.currency) }}
                     {{ form_row(form.defaultLocale) }}
@@ -21,7 +22,7 @@
                 </fieldset>
 
                 <fieldset>
-                    <legend>Feature switches</legend>
+                    <legend>Özellikler</legend>
                     {{ form_row(form.b2bEnabled) }}
                     {{ form_row(form.b2bProvider) }}
                     {{ form_row(form.loyaltyEnabled) }}
@@ -29,7 +30,7 @@
                 </fieldset>
 
                 <fieldset>
-                    <legend>Providers</legend>
+                    <legend>Sağlayıcılar</legend>
                     {{ form_row(form.paymentProvider) }}
                     {{ form_row(form.shippingProvider) }}
                 </fieldset>

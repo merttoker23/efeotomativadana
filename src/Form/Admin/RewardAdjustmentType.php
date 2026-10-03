@@ -16,8 +16,8 @@ final class RewardAdjustmentType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder->add('points', IntegerType::class, ['label' => 'Points adjustment', 'help' => 'Positive to credit; negative to debit.'])
-            ->add('reason', TextareaType::class, ['label' => 'Reason', 'empty_data' => ''])
+        $builder->add('points', IntegerType::class, ['label' => 'Puan değişikliği', 'help' => 'Puan eklemek için pozitif, düşmek için negatif sayı girin.'])
+            ->add('reason', TextareaType::class, ['label' => 'Gerekçe', 'empty_data' => ''])
             ->add('requestKey', HiddenType::class);
     }
 

@@ -1,30 +1,36 @@
 {% extends 'admin/base.html.twig' %}
+{% import 'admin/_labels.html.twig' as ui %}
+{% if approveForm is defined and approveForm %}{% form_theme approveForm 'admin/_form_theme.html.twig' %}{% endif %}
+{% if receivedForm is defined and receivedForm %}{% form_theme receivedForm 'admin/_form_theme.html.twig' %}{% endif %}
+{% if refundForm is defined and refundForm %}{% form_theme refundForm 'admin/_form_theme.html.twig' %}{% endif %}
+{% if rejectForm is defined and rejectForm %}{% form_theme rejectForm 'admin/_form_theme.html.twig' %}{% endif %}
 
 {% block title %}{{ return.returnNumber }}{% endblock %}
 
 {% block body %}
+<section class="panel">
 <h1>{{ return.returnNumber }}</h1>
-<p class="eyebrow">Return request · <a href="{{ path('admin_order_show', {orderNumber: return.orderNumber}) }}">{{ return.orderNumber }}</a></p>
+<p class="eyebrow">İade talebi · <a href="{{ path('admin_order_show', {orderNumber: return.orderNumber}) }}">{{ return.orderNumber }}</a></p>
 
 <div class="panel">
     <dl class="detail-grid">
-        <dt>Status</dt><dd><span class="status-badge">{{ state_label }}</span></dd>
-        <dt>Customer</dt><dd>{{ return.customerName }} &lt;{{ return.customerEmail }}&gt;</dd>
-        <dt>Requested</dt><dd>{{ return.createdAt|date('Y-m-d H:i') }}</dd>
-        <dt>Customer reason</dt><dd>{{ return.customerReason }}</dd>
-        {% if return.staffNote %}<dt>Our note</dt><dd>{{ return.staffNote }}</dd>{% endif %}
-        {% if return.decidedAt %}<dt>Decided</dt><dd>{{ return.decidedAt|date('Y-m-d H:i') }}</dd>{% endif %}
-        {% if return.receivedAt %}<dt>Received</dt><dd>{{ return.receivedAt|date('Y-m-d H:i') }}</dd>{% endif %}
-        {% if return.refundMinorAmount %}<dt>Refund</dt><dd>{{ return.refundMinorAmount|storefront_money }} ({{ return.refundReference }})</dd>{% endif %}
+        <dt>Durum</dt><dd><span class="status-badge">{{ state_label }}</span></dd>
+        <dt>Müşteri</dt><dd>{{ return.customerName }} &lt;{{ return.customerEmail }}&gt;</dd>
+        <dt>Talep tarihi</dt><dd>{{ return.createdAt|date('d.m.Y H:i') }}</dd>
+        <dt>Müşteri gerekçesi</dt><dd>{{ return.customerReason }}</dd>
+        {% if return.staffNote %}<dt>Mağaza notu</dt><dd>{{ return.staffNote }}</dd>{% endif %}
+        {% if return.decidedAt %}<dt>Karar tarihi</dt><dd>{{ return.decidedAt|date('d.m.Y H:i') }}</dd>{% endif %}
+        {% if return.receivedAt %}<dt>Teslim alınma</dt><dd>{{ return.receivedAt|date('d.m.Y H:i') }}</dd>{% endif %}
+        {% if return.refundMinorAmount %}<dt>Para iadesi</dt><dd>{{ return.refundMinorAmount|storefront_money }} ({{ return.refundReference }})</dd>{% endif %}
     </dl>
     {% if next_step %}<p>{{ next_step }}</p>{% endif %}
 </div>
 
-<div class="table-wrap">
+<div class="table-wrap" tabindex="0" role="region" aria-label="Kayıt tablosu">
     <table>
-        <caption class="visually-hidden">Items the customer is returning</caption>
+        <caption class="visually-hidden">İade edilen ürünler</caption>
         <thead>
-        <tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col">Quantity</th><th scope="col">Unit</th><th scope="col">Line</th><th scope="col">Reason</th></tr>
+        <tr><th scope="col">Ürün</th><th scope="col">SKU</th><th scope="col">Adet</th><th scope="col">Birim tutar</th><th scope="col">Satır toplamı</th><th scope="col">Gerekçe</th></tr>
         </thead>
         <tbody>
         {% for item in return.items %}
@@ -41,31 +47,32 @@
     </table>
 </div>
 
-<h2>Actions</h2>
+<h2>İşlemler</h2>
 {# A refused action is explained on the page rather than crashing: an operator pressing the wrong
    button needs to be told, not to see a stack trace. #}
-{% if approveForm %}<p>Agree to take these goods back. The customer is told the outcome by email.</p>{{ form_start(approveForm) }}{{ form_widget(approveForm) }}{{ form_end(approveForm) }}{% endif %}
-{% if rejectForm %}<p>Decline the request. The reason below is shown to the customer, so it has to say something useful.</p>{{ form_start(rejectForm) }}{{ form_widget(rejectForm) }}{{ form_end(rejectForm) }}{% endif %}
-{% if receivedForm %}<p>The goods are physically back with the store.</p>{{ form_start(receivedForm) }}{{ form_widget(receivedForm) }}{{ form_end(receivedForm) }}{% endif %}
-{% if refundForm %}<p>Record a refund the <strong>payment module</strong> already issued. This screen does not move money; it files the reference so the return does not sit looking unfinished.</p>{{ form_start(refundForm) }}{{ form_widget(refundForm) }}{{ form_end(refundForm) }}{% endif %}
-{% if not approveForm and not rejectForm and not receivedForm and not refundForm %}<p>Nothing is left to do on this request.</p>{% endif %}
+{% if approveForm %}<p>Ürünlerin iadesini onaylayın. Müşteriye e-posta ile bilgi verilir.</p>{{ form_start(approveForm) }}{{ form_widget(approveForm) }}{{ form_end(approveForm) }}{% endif %}
+{% if rejectForm %}<p>İade talebini reddedin. Gerekçe müşteriye gösterileceği için açıklayıcı bir not yazın.</p>{{ form_start(rejectForm) }}{{ form_widget(rejectForm) }}{{ form_end(rejectForm) }}{% endif %}
+{% if receivedForm %}<p>Ürünlerin mağazaya ulaştığını kaydedin.</p>{{ form_start(receivedForm) }}{{ form_widget(receivedForm) }}{{ form_end(receivedForm) }}{% endif %}
+{% if refundForm %}<p>Önceden <strong>ödeme modülünden</strong> yapılan para iadesinin referansını kaydedin. Bu işlem yalnızca iade kaydını tamamlar.</p>{{ form_start(refundForm) }}{{ form_widget(refundForm) }}{{ form_end(refundForm) }}{% endif %}
+{% if not approveForm and not rejectForm and not receivedForm and not refundForm %}<p>Bu talep için kullanılabilir işlem yok.</p>{% endif %}
 
-<h2>Return history</h2>
+<h2>İade geçmişi</h2>
 <div class="table-wrap" data-testid="return-events">
     <table>
-        <caption class="visually-hidden">Return audit trail</caption>
-        <thead><tr><th scope="col">State</th><th scope="col">Source</th><th scope="col">Detail</th><th scope="col">Actor</th><th scope="col">When</th></tr></thead>
+        <caption class="visually-hidden">İade işlem geçmişi</caption>
+        <thead><tr><th scope="col">Durum</th><th scope="col">Kaynak</th><th scope="col">Açıklama</th><th scope="col">İşlemi yapan</th><th scope="col">Tarih</th></tr></thead>
         <tbody>
         {% for event in events %}
             <tr>
-                <td>{{ event.toState.value }}</td>
-                <td>{{ event.source }}</td>
-                <td>{{ event.detail ?? '—' }}</td>
+                <td>{{ ui.badge(event.toState.value) }}</td>
+                <td>{{ ui.text(event.source) }}</td>
+                <td>{{ ui.text(event.detail ?? '—') }}</td>
                 <td>{{ event.actorEmail ?? '—' }}</td>
-                <td>{{ event.occurredAt|date('Y-m-d H:i') }}</td>
+                <td>{{ event.occurredAt|date('d.m.Y H:i') }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
 </div>
+</section>
 {% endblock %}

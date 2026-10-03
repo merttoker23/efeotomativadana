@@ -122,7 +122,7 @@ final class CmsWorkflowTest extends WebTestCase
         $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
         $form = $client->getCrawler()->selectButton('Bölümü kaydet')->form(['title' => 'Invalid', 'items_count' => 1]);
         $client->submit($form); self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('[role="alert"]', 'items must not be empty');
+        self::assertSelectorTextContains('[role="alert"]', 'Bölüm kayıtları boş bırakılamaz');
     }
 
     /**

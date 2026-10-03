@@ -73,7 +73,7 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id());
-        $this->client->submit($crawler->selectButton('Deactivate customer')->form());
+        $this->client->submit($crawler->selectButton('Müşteriyi pasifleştir')->form());
 
         self::assertResponseRedirects();
         $row = $this->connection->fetchAssociative('SELECT active, password FROM customer_user WHERE id = ?', [$customer->id()]);
@@ -87,8 +87,8 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $customer = $this->customer('stale-status@example.com', 'unchanged-password-hash');
         $this->entityManager->flush();
 
-        $firstForm = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id())->selectButton('Deactivate customer')->form();
-        $secondForm = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id())->selectButton('Deactivate customer')->form();
+        $firstForm = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id())->selectButton('Müşteriyi pasifleştir')->form();
+        $secondForm = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id())->selectButton('Müşteriyi pasifleştir')->form();
         $this->client->submit($firstForm);
         self::assertResponseRedirects();
         $this->client->submit($secondForm);
@@ -119,7 +119,7 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $orderId = $order->id();
 
         $crawler = $this->client->request('GET', '/yeni/admin/orders/'.$order->orderNumber());
-        $form = $crawler->selectButton('Update order status')->form([
+        $form = $crawler->selectButton('Sipariş durumunu güncelle')->form([
             'order_transition[nextState]' => OrderState::Confirmed->value,
             'order_transition[reason]' => 'Payment checked manually.',
         ]);
@@ -179,10 +179,10 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $this->client->request('GET', '/yeni/admin/orders/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', 'Shipping address');
+        self::assertSelectorTextContains('main', 'Teslimat adresi');
         self::assertSelectorTextContains('main', 'Customer User');
         self::assertSelectorTextContains('main', 'Street 1');
-        self::assertSelectorTextContains('main', 'Billing address');
+        self::assertSelectorTextContains('main', 'Fatura adresi');
         self::assertSelectorTextContains('main', 'Billing Contact');
         self::assertSelectorTextContains('main', 'Invoice Street 2');
     }

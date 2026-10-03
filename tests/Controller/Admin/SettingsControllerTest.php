@@ -39,7 +39,7 @@ final class SettingsControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('input[type="checkbox"][name="store_settings[b2bEnabled]"]'));
 
-        $form = $crawler->selectButton('Save settings')->form();
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
         $b2bEnabled = $form['store_settings[b2bEnabled]'];
         self::assertInstanceOf(ChoiceFormField::class, $b2bEnabled);
         $b2bEnabled->tick();
@@ -58,7 +58,7 @@ final class SettingsControllerTest extends WebTestCase
     public function testInvalidTaxRateIsRejectedWithoutChangingStoredSettings(): void
     {
         $crawler = $this->client->request('GET', '/yeni/admin/settings');
-        $form = $crawler->selectButton('Save settings')->form();
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['store_settings[defaultTaxRate]'] = '101';
 
         $this->client->submit($form);
@@ -71,7 +71,7 @@ final class SettingsControllerTest extends WebTestCase
     public function testInvalidCsrfTokenIsRejectedWithoutEnablingB2b(): void
     {
         $crawler = $this->client->request('GET', '/yeni/admin/settings');
-        $form = $crawler->selectButton('Save settings')->form();
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
         $b2bEnabled = $form['store_settings[b2bEnabled]'];
         self::assertInstanceOf(ChoiceFormField::class, $b2bEnabled);
         $b2bEnabled->tick();

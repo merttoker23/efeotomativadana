@@ -1,22 +1,23 @@
 {% extends 'admin/base.html.twig' %}
 
-{% block title %}Homepage sections{% endblock %}
+{% block title %}Ana sayfa bölümleri{% endblock %}
 
 {% block body %}
-<h1>Homepage sections</h1>
-<p class="help-text">The storefront follows the theme's own composition: the category menu, hero slider and top sellers share the upper row, and the testimonials and blog feed share the closing row. A module's type decides where it sits, so there is nothing to reorder — a second product carousel becomes the next full-width block, and new sections are added below the ones already published.</p>
+<section class="panel">
+<h1>Ana sayfa bölümleri</h1>
+<p class="help-text">Ana sayfa bölümlerini düzenleyin ve yayın durumlarını yönetin. Bölümün türü sayfadaki konumunu belirler; yeni bölümler mevcut yayın sırasına eklenir.</p>
 
 {% if sections is empty %}
     <section class="panel">
-        <p>The homepage has no sections yet, so visitors see the default welcome panel. Add the theme's first block below.</p>
-        <a class="button-link" href="{{ path('admin_cms_home_new', {type: 'hero_slider'}) }}">Add a hero slider</a>
+        <p>Henüz ana sayfa bölümü yok. İlk görsel alanını ekleyerek başlayın.</p>
+        <a class="button-link" href="{{ path('admin_cms_home_new', {type: 'hero_slider'}) }}">Ana görsel alanı ekle</a>
     </section>
 {% else %}
-    <div class="admin-table-wrap">
+    <div class="admin-table-wrap" tabindex="0" role="region" aria-label="Kayıt tablosu">
         <table class="admin-table">
-            <caption>Homepage sections</caption>
+            <caption>Ana sayfa bölümleri</caption>
             <thead>
-                <tr><th scope="col">Title</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Actions</th></tr>
+                <tr><th scope="col">Başlık</th><th scope="col">Tür</th><th scope="col">Durum</th><th scope="col">İşlemler</th></tr>
             </thead>
             <tbody>
                 {% for section in sections %}
@@ -26,11 +27,11 @@
                         <td>
                             <form method="post" action="{{ path('admin_cms_home_toggle', {id: section.id}) }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token('cms_section_' ~ section.id) }}">
-                                <button type="submit">{{ section.enabled ? 'Disable' : 'Enable' }}</button>
+                                <button type="submit">{{ section.enabled ? 'Pasifleştir' : 'Aktifleştir' }}</button>
                             </form>
                         </td>
                         <td>
-                            <a href="{{ path('admin_cms_home_edit', {id: section.id}) }}">Edit with forms</a>
+                            <a href="{{ path('admin_cms_home_edit', {id: section.id}) }}">Bölümü düzenle</a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -40,14 +41,13 @@
 {% endif %}
 
 <section class="subpanel">
-    <h3>Images</h3>
+    <h3>Görseller</h3>
     <p>
-        Hero and banner images are uploaded and previewed on the section form itself. If you need a
-        banner image loaded before its section exists,
-        <a href="{{ path('admin_cms_media_index') }}">upload it to the media library</a> and it will be
-        waiting in the form's picker.
+        Bölüm görsellerini ilgili formda yükleyip önizleyebilirsiniz. Bir görseli önceden hazırlamak için
+        <a href="{{ path('admin_cms_media_index') }}">medya kütüphanesine yükleyin</a> ; görsel daha sonra bölüm formunda seçilebilir.
     </p>
 </section>
 
-<p><a class="button-link" href="{{ path('admin_cms_home_new', {type: 'hero_slider'}) }}">Add a section</a></p>
+<p><a class="button-link" href="{{ path('admin_cms_home_new', {type: 'hero_slider'}) }}">Bölüm ekle</a></p>
+</section>
 {% endblock %}

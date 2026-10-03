@@ -284,7 +284,7 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         ]));
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('[role="alert"]', 'call to action');
+        self::assertSelectorTextContains('[role="alert"]', 'hem buton metni hem bağlantı');
     }
 
     /** @return int the command's exit code */

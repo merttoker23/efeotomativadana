@@ -48,7 +48,7 @@ final class AdminSecurityTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/yeni/admin/login');
         self::assertSelectorNotExists('#username[autofocus]');
-        $form = $crawler->selectButton('Sign in')->form([
+        $form = $crawler->selectButton('Giriş yap')->form([
             '_username' => 'ADMIN@example.com',
             '_password' => 'VeryStrong!123',
         ]);
@@ -58,7 +58,11 @@ final class AdminSecurityTest extends WebTestCase
 
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Administration');
+        self::assertSelectorTextContains('h1', 'Genel bakış');
+        self::assertSelectorExists('html[lang="tr"]');
+        self::assertSelectorExists('.admin-sidebar a[aria-current="page"][href="/yeni/admin"]');
+        self::assertSelectorExists('[data-testid="dashboard-products"]');
+        self::assertSelectorExists('[data-admin-shell-target="toggle"][aria-expanded="false"]');
     }
 
     public function testNonAdminIdentityCannotAccessAdministratorRoutes(): void
@@ -83,7 +87,7 @@ final class AdminSecurityTest extends WebTestCase
         self::assertResponseStatusCodeSame(405);
 
         $crawler = $this->client->request('GET', '/yeni/admin');
-        $form = $crawler->selectButton('Sign out')->form();
+        $form = $crawler->selectButton('Çıkış yap')->form();
         $this->client->submit($form);
 
         self::assertResponseRedirects('/yeni/admin/login');

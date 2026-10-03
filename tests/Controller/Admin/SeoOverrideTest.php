@@ -69,7 +69,7 @@ final class SeoOverrideTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
         self::assertResponseIsSuccessful();
-        $form = $crawler->selectButton('Save SEO overrides')->form();
+        $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = 'MANN HWK 11/2 Yag Filtresi';
         $this->client->submit($form);
         self::assertResponseRedirects();
@@ -87,7 +87,7 @@ final class SeoOverrideTest extends WebTestCase
         $product = $this->product('SEO-A-2', 'Yag Filtresi', 'yag-filtresi-b');
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
-        $form = $crawler->selectButton('Save SEO overrides')->form();
+        $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = 'MANN HWK 11/2';
         $form['admin_seo[metaDescription]'] = 'Adana deposundan ayni gun kargoya verilir.';
         $form['admin_seo[noIndex]'] = '1';
@@ -116,7 +116,7 @@ final class SeoOverrideTest extends WebTestCase
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
 
         self::assertResponseIsSuccessful();
-        $form = $crawler->selectButton('Save SEO overrides')->form();
+        $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         self::assertSame('', $form['admin_seo[metaTitle]']->getValue());
         self::assertFalse((bool) $form['admin_seo[noIndex]']->getValue());
     }
@@ -127,7 +127,7 @@ final class SeoOverrideTest extends WebTestCase
         $product = $this->product('SEO-A-4', 'Balata', 'balata-a');
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
-        $form = $crawler->selectButton('Save SEO overrides')->form();
+        $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = '   ';
         $form['admin_seo[metaDescription]'] = '';
         $this->client->submit($form);
@@ -147,7 +147,7 @@ final class SeoOverrideTest extends WebTestCase
         $product = $this->product('SEO-A-5', 'Rakam', 'rakam-a');
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
-        $form = $crawler->selectButton('Save SEO overrides')->form();
+        $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = str_repeat('a', 256);
         $this->client->submit($form);
 
@@ -196,7 +196,7 @@ final class SeoOverrideTest extends WebTestCase
     {
         $this->loginAdmin();
         $crawler = $this->client->request('GET', '/yeni/admin/settings');
-        $form = $crawler->selectButton('Save settings')->form();
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
         $indexing = $form['store_settings[seoIndexingEnabled]'];
         // A checkbox has to be unticked rather than assigned a value: assigning a non-string
         // is how a form silently keeps the field it was supposed to clear.
@@ -241,7 +241,7 @@ final class SeoOverrideTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertNull($crawler->filter('#slug')->attr('readonly'), 'A published slug must still be editable.');
 
-        $form = $crawler->selectButton('Save')->form();
+        $form = $crawler->selectButton('Kaydet')->form();
         $form['slug'] = 'yeni-yazi-redirect';
         $this->client->submit($form);
         self::assertResponseRedirects();

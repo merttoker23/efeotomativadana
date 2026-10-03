@@ -108,7 +108,7 @@ final class SeoOverrideController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->store($type, $resourceId, $data);
-            $this->addFlash('success', 'SEO overrides saved.');
+            $this->addFlash('success', 'SEO ayarları kaydedildi.');
 
             return $this->redirectToRoute($backRoute, $backParameters);
         }

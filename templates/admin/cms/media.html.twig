@@ -1,29 +1,29 @@
 {% extends 'admin/base.html.twig' %}
 
-{% block title %}Media library{% endblock %}
+{% block title %}Medya kütüphanesi{% endblock %}
 
 {% block body %}
 <section class="panel">
-    <h1>Media library</h1>
+    <h1>Medya kütüphanesi</h1>
 
-    <h2>Upload an image</h2>
+    <h2>Görsel yükle</h2>
     <form method="post" action="{{ path('admin_cms_media_index') }}" enctype="multipart/form-data">
         <input type="hidden" name="_token" value="{{ csrf_token('cms_media_upload') }}">
-        <label for="image">JPEG, PNG or WebP — up to 5 MB</label>
+        <label for="image">JPEG, PNG veya WebP — en fazla 5 MB</label>
         <input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
-        <button type="submit">Upload</button>
+        <button type="submit">Yükle</button>
     </form>
 
-    <h2>Uploaded images</h2>
-    <p class="help-text">Every image on the homepage is uploaded from its own section form, with a preview, so there is nothing here to copy anywhere. This library is what those forms read from: an image uploaded here is available to every hero and banner field.</p>
-    <ul class="admin-summary">
+    <h2>Yüklenen görseller</h2>
+    <p class="help-text">Buraya yüklediğiniz görseller ana sayfa bölüm formlarında seçilebilir. Görselleri bölüm formunda da yükleyebilir ve önizleyebilirsiniz.</p>
+    <ul class="media-list">
         {% for file in files %}
             <li>
                 <strong>{{ file.filename }}</strong>
                 <span>{{ (file.bytes / 1024)|round(1) }} KB</span>
             </li>
         {% else %}
-            <li>No images uploaded yet.</li>
+            <li>Henüz görsel yüklenmedi.</li>
         {% endfor %}
     </ul>
 </section>

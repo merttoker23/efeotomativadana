@@ -1,50 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="robots" content="noindex, nofollow">
-        <title>{% block title %}Administration{% endblock %} | Efe Otomotiv Adana</title>
+        <title>{% block title %}Yönetim paneli{% endblock %} | Efe Otomotiv Adana</title>
         <link rel="stylesheet" href="{{ asset('styles/admin.css') }}">
         {% block javascripts %}
             {{ importmap('app') }}
         {% endblock %}
     </head>
-    <body class="admin-page">
-        <header class="admin-header">
-            <a class="brand" href="{{ path('admin_dashboard') }}">Efe Otomotiv Administration</a>
-            <nav aria-label="Administrator navigation">
-                <a href="{{ path('admin_dashboard') }}">Dashboard</a>
-                <a href="{{ path('admin_catalog_product_index') }}">Products</a>
-                <a href="{{ path('admin_catalog_category_index') }}">Categories</a>
-                <a href="{{ path('admin_catalog_brand_index') }}">Brands</a>
-                <a href="{{ path('admin_customer_index') }}">Customers</a>
-                <a href="{{ path('admin_order_index') }}">Orders</a>
-                <a href="{{ path('admin_payment_index') }}">Payments</a>
-                <a href="{{ path('admin_reward_index') }}">Rewards</a>
-                <a href="{{ path('admin_shipment_index') }}">Shipments</a>
-                <a href="{{ path('admin_cms_home_index') }}">Homepage</a>
-                <a href="{{ path('admin_cms_content_index', {kind: 'blog'}) }}">Blog</a>
-                <a href="{{ path('admin_cms_content_index', {kind: 'pages'}) }}">Pages</a>
-                <a href="{{ path('admin_integration_b2b') }}">B2B sync</a>
-                <a href="{{ path('admin_settings') }}">Store settings</a>
-                <form method="post" action="{{ path('admin_logout') }}">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                    <button type="submit">Sign out</button>
-                </form>
+    <body class="admin-page" data-controller="admin-shell" data-action="keydown.esc->admin-shell#close">
+        {% import 'admin/_labels.html.twig' as ui %}
+        {% set currentRoute = app.request.attributes.get('_route') %}
+        {% set currentKind = app.request.attributes.get('kind') %}
+        {% set groups = [
+            {label: 'Çalışma alanı', items: [{route: 'admin_dashboard', prefix: 'admin_dashboard', label: 'Genel bakış', icon: 'overview'}]},
+            {label: 'Katalog', items: [
+                {route: 'admin_catalog_product_index', prefix: 'admin_catalog_product_', label: 'Ürünler', icon: 'catalog'},
+                {route: 'admin_catalog_category_index', prefix: 'admin_catalog_category_', label: 'Kategoriler', icon: 'grid'},
+                {route: 'admin_catalog_brand_index', prefix: 'admin_catalog_brand_', label: 'Markalar', icon: 'tag'}
+            ]},
+            {label: 'Satış yönetimi', items: [
+                {route: 'admin_customer_index', prefix: 'admin_customer_', label: 'Müşteriler', icon: 'users'},
+                {route: 'admin_order_index', prefix: 'admin_order_', label: 'Siparişler', icon: 'orders'},
+                {route: 'admin_payment_index', prefix: 'admin_payment_', label: 'Ödemeler', icon: 'wallet'},
+                {route: 'admin_reward_index', prefix: 'admin_reward_', label: 'Ödüller', icon: 'gift'},
+                {route: 'admin_shipment_index', prefix: 'admin_shipment_', label: 'Kargolar', icon: 'truck'},
+                {route: 'admin_return_index', prefix: 'admin_return_', label: 'İadeler', icon: 'return'}
+            ]},
+            {label: 'İçerik yönetimi', items: [
+                {route: 'admin_cms_home_index', prefix: 'admin_cms_home_', label: 'Ana sayfa', icon: 'home'},
+                {route: 'admin_cms_content_index', prefix: 'admin_cms_content_', params: {kind: 'blog'}, label: 'Blog', icon: 'edit'},
+                {route: 'admin_cms_content_index', prefix: 'admin_cms_content_', params: {kind: 'pages'}, label: 'Sayfalar', icon: 'pages'},
+                {route: 'admin_cms_media_index', prefix: 'admin_cms_media_', label: 'Medya kütüphanesi', icon: 'image'}
+            ]},
+            {label: 'Sistem', items: [
+                {route: 'admin_integration_b2b', prefix: 'admin_integration_b2b', label: 'B2B senkronizasyon', icon: 'sync'},
+                {route: 'admin_settings', prefix: 'admin_settings', label: 'Mağaza ayarları', icon: 'settings'}
+            ]}
+        ] %}
+        <a class="skip-link" href="#admin-main">İçeriğe geç</a>
+        <aside class="admin-sidebar" id="admin-navigation" aria-label="Yönetim menüsü" data-admin-shell-target="sidebar">
+            <a class="admin-brand" href="{{ path('admin_dashboard') }}"><span class="brand-mark">EO</span><span>Efe Otomotiv<small>ADANA · YÖNETİM</small></span></a>
+            <button class="sidebar-close" type="button" data-action="admin-shell#close" aria-label="Menüyü kapat">{{ ui.icon('close') }}</button>
+            <nav aria-label="Yönetici navigasyonu">
+                {% for group in groups %}
+                    <p class="nav-group-label">{{ group.label }}</p>
+                    {% for item in group.items %}
+                        {% set params = item.params|default({}) %}
+                        {% set active = (currentRoute starts with item.prefix and (params.kind is not defined or params.kind == currentKind))
+                            or (currentRoute == 'admin_seo_product' and item.route == 'admin_catalog_product_index')
+                            or (currentRoute == 'admin_seo_category' and item.route == 'admin_catalog_category_index')
+                            or (currentRoute == 'admin_seo_brand' and item.route == 'admin_catalog_brand_index')
+                            or (currentRoute == 'admin_seo_content' and params.kind is defined and params.kind == currentKind) %}
+                        <a class="nav-link{{ active ? ' is-active' : '' }}" href="{{ path(item.route, params) }}"{{ active ? ' aria-current="page"' : '' }}>{{ ui.icon(item.icon) }}<span>{{ item.label }}</span></a>
+                    {% endfor %}
+                {% endfor %}
             </nav>
-        </header>
-
-        <main class="admin-content">
-            {% for message in app.flashes('success') %}
-                <div class="alert alert-success" role="status">{{ message }}</div>
-            {% endfor %}
-
-            {% for message in app.flashes('error') %}
-                <div class="alert alert-error" role="alert">{{ message }}</div>
-            {% endfor %}
-
-            {% block body %}{% endblock %}
-        </main>
+            <div class="sidebar-footer"><span class="online-dot"></span> Güvenli yönetim alanı</div>
+        </aside>
+        <button class="admin-backdrop" type="button" aria-label="Menüyü kapat" data-admin-shell-target="backdrop" data-action="admin-shell#close" hidden></button>
+        <div class="admin-workspace">
+            <header class="admin-toolbar">
+                <div class="toolbar-start">
+                    <button class="menu-toggle" type="button" aria-controls="admin-navigation" aria-expanded="false" aria-label="Yönetim menüsünü aç" data-admin-shell-target="toggle" data-action="admin-shell#toggle">{{ ui.icon('menu') }}</button>
+                    <div><span class="toolbar-label">Yönetim paneli</span><p class="toolbar-title">{{ block('title') }}</p></div>
+                </div>
+                <div class="toolbar-end"><span class="admin-identity">{{ app.user.userIdentifier }}</span><form method="post" action="{{ path('admin_logout') }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}"><button class="toolbar-logout" type="submit">{{ ui.icon('logout') }}<span>Çıkış yap</span></button></form></div>
+            </header>
+            <main class="admin-content" id="admin-main" tabindex="-1">
+                {% for message in app.flashes('success') %}<div class="alert alert-success" role="status">{{ ui.text(message) }}</div>{% endfor %}
+                {% for message in app.flashes('error') %}<div class="alert alert-error" role="alert">{{ ui.text(message) }}</div>{% endfor %}
+                {% block body %}{% endblock %}
+            </main>
+            <footer class="admin-footer">Efe Otomotiv Adana <span>Yönetim paneli</span></footer>
+        </div>
     </body>
 </html>

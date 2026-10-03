@@ -1,0 +1,83 @@
+{% macro text(value) -%}
+    {% set labels = {
+        published: 'Yayında', draft: 'Taslak', active: 'Aktif', inactive: 'Pasif',
+        placed: 'Alındı', confirmed: 'Onaylandı', cancelled: 'İptal edildi', completed: 'Tamamlandı',
+        pending: 'Bekliyor', requires_action: 'İşlem gerekli', succeeded: 'Başarılı', failed: 'Başarısız',
+        captured_amount_mismatch: 'Tahsilat tutarı uyuşmuyor', partially_refunded: 'Kısmen iade edildi', refunded: 'İade edildi',
+        ready: 'Teslimata hazır', in_transit: 'Yolda', delivered: 'Teslim edildi',
+        requested: 'Talep edildi', approved: 'Onaylandı', received: 'Teslim alındı', rejected: 'Reddedildi', withdrawn: 'Geri çekildi',
+        queued: 'Kuyrukta', running: 'Devam ediyor', full: 'Tam', daily: 'Günlük',
+        EARN: 'Kazanım', REVERSAL: 'Geri alma', MANUAL_ADJUSTMENT: 'Puan düzenleme', SPEND: 'Harcama', EXPIRE: 'Süresi doldu',
+        Product: 'Ürün', Category: 'Kategori', Brand: 'Marka', 'Blog post': 'Blog yazısı', 'Information page': 'Bilgi sayfası',
+        admin: 'Yönetici', provider: 'Sağlayıcı', webhook: 'Sağlayıcı bildirimi', customer: 'Müşteri', system: 'Sistem',
+        payment: 'Ödeme', gateway: 'Ödeme sağlayıcısı', shipping: 'Kargo', carrier: 'Kargo firması', store: 'Mağaza',
+        cancel_refused: 'İptal kabul edilmedi'
+    } %}
+    {{- labels[value]|default(value|replace({
+        'Slug is already in use.': 'Bu URL kısa adı (slug) zaten kullanılıyor.',
+        'The slug must use lowercase letters, numbers and hyphens.': 'URL kısa adı (slug) için küçük harf, rakam ve tire kullanın.',
+        'Use lowercase letters, numbers, dots, underscores, or dashes.': 'Küçük harf, rakam, nokta, alt çizgi veya tire kullanın.',
+        'Stock changed while this form was open. Reload and try again.': 'Form açıkken stok değişti. Sayfayı yenileyip tekrar deneyin.',
+        'A category with slug "': 'Bu URL kısa adı (slug) ile bir kategori zaten var: "',
+        'A brand with slug "': 'Bu URL kısa adı (slug) ile bir marka zaten var: "',
+        'A product with SKU "': 'Bu SKU ile bir ürün zaten var: "',
+        'A product with slug "': 'Bu URL kısa adı (slug) ile bir ürün zaten var: "',
+        '" already exists.': '".',
+        'Identifier "': 'Kod "', '" was submitted more than once for this product.': '" bu ürün için birden fazla kez girildi.',
+        'Image upload must be smaller than 5 MB.': 'Yüklenen görsel 5 MB değerinden küçük olmalıdır.',
+        'Image must be smaller than 5 MB.': 'Görsel 5 MB değerinden küçük olmalıdır.',
+        'Only valid JPEG, PNG or WebP images are allowed.': 'Yalnızca geçerli JPEG, PNG veya WebP görselleri yüklenebilir.',
+        'The stored file did not match its uploaded type.': 'Dosya içeriği yüklenen dosya türüyle uyuşmuyor.',
+        'Blog limit must be between 1 and 12.': 'Blog yazısı sayısı 1 ile 12 arasında olmalıdır.',
+        'Text must contain between 1 and 500 characters.': 'Metin 1 ile 500 karakter arasında olmalıdır.',
+        'Optional text must be a string of at most 500 characters.': 'İsteğe bağlı metin en fazla 500 karakter olabilir.',
+        'Invalid catalog slug.': 'Katalog URL kısa adı geçersiz.',
+        'Image must be an uploaded CMS image.': 'Medya kütüphanesine yüklenmiş bir görsel seçin.',
+        'Links must be local paths.': 'Bağlantılar mağaza içindeki adreslere yönlendirmelidir.',
+        'Configuration list must have at most 20 entries.': 'Bir bölüme en fazla 20 kayıt eklenebilir.',
+        'items must not be empty.': 'Bölüm kayıtları boş bırakılamaz.',
+        'slugs must not be empty.': 'En az bir kayıt seçin.',
+        'A hero call to action needs both its text and its link.': 'Ana görsel butonu için hem buton metni hem bağlantı girin.',
+        'Payment aggregate created.': 'Ödeme kaydı oluşturuldu.',
+        'Cardholder action required.': 'Kart sahibinin işlemi tamamlaması gerekiyor.',
+        'Provider confirmed the capture.': 'Sağlayıcı tahsilatı onayladı.',
+        'Provider captured a different amount than this order expects.': 'Sağlayıcının tahsil ettiği tutar sipariş tutarından farklı.',
+        'Payment cancelled by the store.': 'Ödeme mağaza tarafından iptal edildi.',
+        'Refund refused: ': 'Para iadesi reddedildi: ', 'Refunded ': 'İade edilen tutar: ', ' minor units.': ' alt birim.',
+        'Payment confirmed by the payment provider.': 'Ödeme sağlayıcısı ödemeyi onayladı.',
+        'Payment cancelled at the payment provider.': 'Ödeme sağlayıcısı ödemeyi iptal etti.',
+        'Shipment record created.': 'Kargo kaydı oluşturuldu.',
+        'Retry requested by an operator.': 'Yönetici yeniden deneme başlattı.',
+        'Parcel handed over.': 'Kargo teslimata hazır.', 'Parcel is on the road.': 'Kargo yola çıktı.', 'Parcel delivered.': 'Kargo teslim edildi.',
+        'Tracking number assigned.': 'Takip numarası atandı.',
+        'Carrier reference recorded for a parcel already tracked.': 'Takip edilen kargoya firma referansı eklendi.',
+        'Return approved by the store.': 'İade mağaza tarafından onaylandı.', 'Return withdrawn.': 'İade talebi geri çekildi.',
+        'Goods received by the store.': 'Ürünler mağazaya ulaştı.', 'Refund issued (': 'Para iadesi yapıldı (',
+        'This value should not be blank.': 'Bu alan boş bırakılamaz.',
+        'This value is not valid.': 'Bu değer geçerli değil.',
+        'The CSRF token is invalid. Please try to resubmit the form.': 'Oturum doğrulanamadı. Sayfayı yenileyip tekrar deneyin.'
+    })) -}}
+{%- endmacro %}
+
+{% macro badge(value) -%}
+    <span class="status-badge" data-status="{{ value }}">{{ _self.text(value) }}</span>
+{%- endmacro %}
+
+{% macro icon(name) -%}
+    {% set paths = {
+        overview: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+        catalog: 'm12 3 9 5-9 5-9-5 9-5z M3 8v9l9 5 9-5V8 M12 13v9',
+        grid: 'M4 4h16v16H4z M4 10h16 M10 4v16', tag: 'M3 3h8l10 10-8 8L3 11V3z M7 7h.01',
+        users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-4 M16 3a4 4 0 0 1 0 8',
+        orders: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3z M9 7h6 M9 11h6', wallet: 'M3 5h18v16H3V5z M3 5V3h15 M16 11h5v5h-5z',
+        gift: 'M3 8h18v4H3z M5 12v9h14v-9 M12 8v13 M12 8H8a3 3 0 1 1 3-3l1 3z M12 8h4a3 3 0 1 0-3-3l-1 3z',
+        truck: 'M1 4h14v13H1z M15 9h4l4 4v4h-8 M8 19a2 2 0 1 0-4 0 2 2 0 0 0 4 0 M21 19a2 2 0 1 0-4 0 2 2 0 0 0 4 0',
+        return: 'M9 4 4 9l5 5 M4 9h10a6 6 0 0 1 0 12h-3', home: 'm3 10 9-7 9 7 M5 9v12h14V9 M9 21v-8h6v8',
+        edit: 'm16 3 5 5-12 12H4v-5L16 3z M13 6l5 5', pages: 'M6 3h9l4 4v14H6V3z M14 3v5h5 M9 12h7 M9 16h7',
+        image: 'M3 3h18v18H3z m3 14 5-5 4 4 3-3 3 3 M7 7h.01',
+        sync: 'M20 7a9 9 0 0 0-15-2L2 8 M2 3v5h5 M4 17a9 9 0 0 0 15 2l3-3 M22 21v-5h-5',
+        settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1 1-3z',
+        menu: 'M3 6h18 M3 12h18 M3 18h18', close: 'm6 6 12 12 M6 18 18 6', logout: 'M9 3H3v18h6 M9 12h12 m-5-5 5 5-5 5'
+    } %}
+    <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ paths[name] }}"/></svg>
+{%- endmacro %}

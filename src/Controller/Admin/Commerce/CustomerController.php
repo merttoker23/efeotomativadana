@@ -54,7 +54,7 @@ final class CustomerController extends AbstractController
             'customer_id' => $customer->id(),
             'active' => $active,
         ]);
-        $this->addFlash('success', 'Customer status updated.');
+        $this->addFlash('success', 'Müşteri durumu güncellendi.');
         return $this->redirectToRoute('admin_customer_show', ['id' => $customer->id()]);
     }
 }

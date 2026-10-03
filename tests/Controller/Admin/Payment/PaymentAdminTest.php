@@ -141,14 +141,14 @@ final class PaymentAdminTest extends WebTestCase
         $crawler = $this->client->getCrawler();
         // The provider reference lives in the payment section, the order link in the header.
         self::assertStringContainsString('FAKE-DETAIL', (string) $crawler->filter('table')->text());
-        self::assertStringContainsString('succeeded', (string) $crawler->filter('body')->text());
+        self::assertStringContainsString('Başarılı', (string) $crawler->filter('body')->text());
         self::assertGreaterThan(0, $crawler->filter('table')->count(), 'The payment history tables must render.');
         // The screen whose whole job is auditing money must show money, not only raw minor
         // units an operator has to divide by hand. The exact figure is kept alongside it
         // because that is what the provider's own dashboard shows.
         $summary = (string) $crawler->filter('dl')->text();
         self::assertStringContainsString('300,00', $summary);
-        self::assertStringContainsString('30000 minor units', $summary);
+        self::assertStringContainsString('30000 alt birim', $summary);
         self::assertGreaterThan(0, $crawler->filter(sprintf('a[href$="/yeni/admin/orders/%s"]', $order->orderNumber()))->count(), 'The payment page must link back to the order it belongs to.');
     }
 

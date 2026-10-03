@@ -81,7 +81,8 @@ final class CatalogOperationsTest extends WebTestCase
         $this->loginAdmin();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/new');
-        $form = $crawler->selectButton('Save product')->form([
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Ürünü kaydet')->form([
             'admin_product[sku]' => 'LOCAL-001',
             'admin_product[name]' => 'Local Brake Disc',
             'admin_product[slug]' => 'local-brake-disc',
@@ -129,7 +130,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->loginAdmin();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/new');
-        $this->client->submit($crawler->selectButton('Save brand')->form([
+        $this->client->submit($crawler->selectButton('Markayı kaydet')->form([
             'admin_brand[name]' => 'Local Brand',
             'admin_brand[slug]' => 'local-brand',
             'admin_brand[published]' => '1',
@@ -138,7 +139,7 @@ final class CatalogOperationsTest extends WebTestCase
         self::assertInstanceOf(Brand::class, $this->entityManager->getRepository(Brand::class)->findOneBy(['slug' => 'local-brand']));
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/categories/new');
-        $this->client->submit($crawler->selectButton('Save category')->form([
+        $this->client->submit($crawler->selectButton('Kategoriyi kaydet')->form([
             'admin_category[name]' => 'Brake Systems',
             'admin_category[slug]' => 'brake-systems',
             'admin_category[published]' => '1',
@@ -157,7 +158,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
-        $form = $crawler->selectButton('Save product')->form();
+        $form = $crawler->selectButton('Ürünü kaydet')->form();
         $this->connection->executeStatement('UPDATE commerce_product_inventory SET quantity = 9, version = version + 1 WHERE product_id = ?', [$product->id()]);
         $form['admin_product[quantity]'] = '3';
         $this->client->submit($form);
@@ -174,7 +175,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/new');
-        $form = $crawler->selectButton('Save product')->form([
+        $form = $crawler->selectButton('Ürünü kaydet')->form([
             'admin_product[sku]' => 'NEW-002',
             'admin_product[name]' => 'New Product',
             'admin_product[slug]' => 'shared-safe-slug',
@@ -209,7 +210,7 @@ final class CatalogOperationsTest extends WebTestCase
         $identifierIds = array_map(static fn ($identifier): ?int => $identifier->id(), $product->identifiers());
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
-        $form = $crawler->selectButton('Save product')->form();
+        $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[name]'] = 'Edited Product';
         $this->client->submit($form);
 
@@ -241,19 +242,19 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
-        $form = $crawler->selectButton('Save product')->form();
+        $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[slug]'] = 'changed-product';
         $this->client->submit($form);
         self::assertResponseRedirects();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/'.$brand->id().'/edit');
-        $form = $crawler->selectButton('Save brand')->form();
+        $form = $crawler->selectButton('Markayı kaydet')->form();
         $form['admin_brand[slug]'] = 'changed-brand';
         $this->client->submit($form);
         self::assertResponseRedirects();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/categories/'.$category->id().'/edit');
-        $form = $crawler->selectButton('Save category')->form();
+        $form = $crawler->selectButton('Kategoriyi kaydet')->form();
         $form['admin_category[slug]'] = 'changed-category';
         $this->client->submit($form);
         self::assertResponseRedirects();
@@ -287,7 +288,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
-        $form = $crawler->selectButton('Save product')->form();
+        $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[slug]'] = 'renamed-draft-product';
         $this->client->submit($form);
         self::assertResponseRedirects();
@@ -309,7 +310,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
-        $form = $crawler->selectButton('Save product')->form();
+        $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[slug]'] = 'withdrawn-product-2';
         $published = $form['admin_product[published]'];
         self::assertInstanceOf(ChoiceFormField::class, $published);
@@ -335,7 +336,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
-        $form = $crawler->selectButton('Save product')->form();
+        $form = $crawler->selectButton('Ürünü kaydet')->form();
         $this->connection->executeStatement('UPDATE commerce_product_inventory SET quantity = 9, version = version + 1 WHERE product_id = ?', [$product->id()]);
         $form['admin_product[quantity]'] = '3';
         $form['admin_product[inventoryVersion]'] = '';

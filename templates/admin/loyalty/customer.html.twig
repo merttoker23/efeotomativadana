@@ -1,3 +1,6 @@
 {% extends 'admin/base.html.twig' %}
-{% block title %}Customer rewards{% endblock %}
-{% block body %}<h1 class="admin-reward-heading">Rewards: {{ customer.userIdentifier }}</h1><p>Balance: <strong>{{ balance }}</strong></p><h2>Manual adjustment</h2>{{ form_start(form) }}{{ form_errors(form) }}{{ form_row(form.points) }}{{ form_row(form.reason) }}{{ form_widget(form.requestKey) }}<button type="submit">Record adjustment</button>{{ form_end(form) }}<h2>History</h2>{% include 'admin/loyalty/_ledger.html.twig' %}{% include 'admin/_pagination.html.twig' with {route: 'admin_reward_customer', query: {customerId: customer.id}} %}{% endblock %}
+{% form_theme form 'admin/_form_theme.html.twig' %}
+{% block title %}Müşteri ödülleri{% endblock %}
+{% block body %}
+<section class="panel"><h1 class="admin-reward-heading">Ödüller: {{ customer.userIdentifier }}</h1><p>Bakiye: <strong>{{ balance }}</strong></p><h2>Puan düzenleme</h2>{{ form_start(form) }}{{ form_errors(form) }}{{ form_row(form.points) }}{{ form_row(form.reason) }}{{ form_widget(form.requestKey) }}<button type="submit">Düzenlemeyi kaydet</button>{{ form_end(form) }}<h2>Geçmiş</h2>{% include 'admin/loyalty/_ledger.html.twig' %}{% include 'admin/_pagination.html.twig' with {route: 'admin_reward_customer', query: {customerId: customer.id}} %}</section>
+{% endblock %}

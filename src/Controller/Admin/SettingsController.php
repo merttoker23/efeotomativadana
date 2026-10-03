@@ -21,7 +21,7 @@ final class SettingsController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $configuration->save($form->getData());
-            $this->addFlash('success', 'Store settings saved.');
+            $this->addFlash('success', 'Mağaza ayarları kaydedildi.');
 
             return $this->redirectToRoute('admin_settings');
         }

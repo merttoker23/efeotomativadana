@@ -1,18 +1,19 @@
 {% extends 'admin/base.html.twig' %}
+{% import 'admin/_labels.html.twig' as ui %}
+{% form_theme form 'admin/_form_theme.html.twig' %}
 
-{% block title %}SEO overrides — {{ subject }}{% endblock %}
+{% block title %}SEO ayarları — {{ ui.text(subject) }}{% endblock %}
 
 {% block body %}
 <section class="panel">
-    <p class="eyebrow">Search engines</p>
-    <h1>SEO overrides for this {{ subject|lower }}</h1>
+    <p class="eyebrow">Arama motorları</p>
+    <h1>SEO ayarları: {{ ui.text(subject) }}</h1>
     <p>
-        Every field is optional. Leave a field empty and the page keeps using its own title,
-        its own text and its own address — an override only replaces what it actually names.
+        Tüm alanlar isteğe bağlıdır. Boş bırakılan alanlarda sayfanın mevcut başlığı, açıklaması ve adresi kullanılır.
     </p>
 
     <div class="form-errors">{{ form(form) }}</div>
 
-    <p><a class="button-link" href="{{ back_url }}">Back to the {{ subject|lower }}</a></p>
+    <p><a class="button-link" href="{{ back_url }}">Geri dön: {{ ui.text(subject) }}</a></p>
 </section>
 {% endblock %}

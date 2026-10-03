@@ -16,7 +16,7 @@ final class AdminBrandType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder->add('name', TextType::class)->add('slug', TextType::class, ['help' => 'Changing a published slug keeps the old address working: it redirects permanently to this one.'])->add('published', CheckboxType::class, ['required' => false])->add('save', SubmitType::class, ['label' => 'Save brand']);
+        $builder->add('name', TextType::class, ['label' => 'Ad'])->add('slug', TextType::class, ['label' => 'URL kısa adı (slug)', 'help' => 'Yayındaki URL kısa adı değişirse eski adres kalıcı olarak yeni adrese yönlendirilir.'])->add('published', CheckboxType::class, ['required' => false, 'label' => 'Yayında'])->add('save', SubmitType::class, ['label' => 'Markayı kaydet']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

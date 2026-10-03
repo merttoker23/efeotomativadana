@@ -90,10 +90,10 @@ final class B2bController extends AbstractController
     private function flashMessage(B2bDispatchResult $result): array
     {
         return match ($result->status()) {
-            B2bDispatchStatus::Disabled => ['success', 'B2B integration is disabled; no synchronization was queued.'],
-            B2bDispatchStatus::Queued => ['success', sprintf('B2B %s run %d was queued.', $result->mode()->value, $result->runId() ?? 0)],
-            B2bDispatchStatus::Coalesced => ['success', sprintf('B2B run %d is already active; no duplicate job was queued.', $result->runId() ?? 0)],
-            B2bDispatchStatus::Rejected => ['error', $result->reason() ?? 'B2B synchronization was rejected.'],
+            B2bDispatchStatus::Disabled => ['success', 'B2B entegrasyonu kapalı; senkronizasyon başlatılmadı.'],
+            B2bDispatchStatus::Queued => ['success', sprintf('B2B %s işlemi #%d kuyruğa alındı.', B2bSyncMode::Full === $result->mode() ? 'tam senkronizasyon' : 'günlük senkronizasyon', $result->runId() ?? 0)],
+            B2bDispatchStatus::Coalesced => ['success', sprintf('B2B işlemi #%d zaten devam ediyor; yeni işlem başlatılmadı.', $result->runId() ?? 0)],
+            B2bDispatchStatus::Rejected => ['error', $result->reason() ?? 'B2B senkronizasyonu başlatılamadı.'],
         };
     }
 

@@ -67,7 +67,7 @@ final class ProductController extends AbstractController
             'name' => $product->name(),
         ]);
         $manager->delete($product);
-        $this->addFlash('success', 'Product deleted.');
+        $this->addFlash('success', 'Ürün silindi.');
         return $this->redirectToRoute('admin_catalog_product_index');
     }
 
@@ -79,7 +79,7 @@ final class ProductController extends AbstractController
             try {
                 $expectedVersion = $form->get('inventoryVersion')->getData();
                 $saved = $manager->saveProduct($product, $data, is_numeric($expectedVersion) ? (int) $expectedVersion : null);
-                $this->addFlash('success', 'Product saved.');
+                $this->addFlash('success', 'Ürün kaydedildi.');
                 return $this->redirectToRoute('admin_catalog_product_edit', ['id' => $saved->id()]);
             } catch (ConcurrentAdminEdit $exception) {
                 $form->addError(new FormError($exception->getMessage()));

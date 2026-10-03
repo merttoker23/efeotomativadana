@@ -54,7 +54,7 @@ final class OrderController extends AbstractController
             if (!$admin instanceof AdminUser) { throw $this->createAccessDeniedException(); }
             try {
                 $manager->transition($orderNumber, $data->nextState, $data->reason, (int) $data->version, $admin->getUserIdentifier());
-                $this->addFlash('success', 'Order status updated.');
+                $this->addFlash('success', 'Sipariş durumu güncellendi.');
                 return $this->redirectToRoute('admin_order_show', ['orderNumber' => $orderNumber]);
             } catch (ConcurrentAdminEdit $exception) {
                 $form->addError(new FormError($exception->getMessage()));

@@ -44,14 +44,14 @@ final class BrandController extends AbstractController
             'brand_id' => $brand->id(),
             'name' => $brand->name(),
         ]);
-        $manager->delete($brand); $this->addFlash('success', 'Brand deleted.'); return $this->redirectToRoute('admin_catalog_brand_index');
+        $manager->delete($brand); $this->addFlash('success', 'Marka silindi.'); return $this->redirectToRoute('admin_catalog_brand_index');
     }
 
     private function form(Request $request, ?Brand $brand, AdminCatalogData $data, AdminCatalogManager $manager): Response
     {
         $form = $this->createForm(AdminBrandType::class, $data); $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            try { $saved = $manager->saveBrand($brand, $data); $this->addFlash('success', 'Brand saved.'); return $this->redirectToRoute('admin_catalog_brand_edit', ['id' => $saved->id()]); }
+            try { $saved = $manager->saveBrand($brand, $data); $this->addFlash('success', 'Marka kaydedildi.'); return $this->redirectToRoute('admin_catalog_brand_edit', ['id' => $saved->id()]); }
             catch (\DomainException|\InvalidArgumentException $exception) { $form->addError(new FormError($exception->getMessage())); }
         }
         return $this->render('admin/catalog/brands/form.html.twig', ['form' => $form, 'brand' => $brand], new Response(status: $form->isSubmitted() ? 422 : 200));

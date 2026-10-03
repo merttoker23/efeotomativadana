@@ -16,48 +16,48 @@ final class StoreSettingsType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('storeName', TextType::class, ['label' => 'Store name'])
-            ->add('currency', TextType::class, ['label' => 'Currency (ISO 4217)'])
-            ->add('defaultLocale', TextType::class, ['label' => 'Default locale'])
-            ->add('defaultTaxRate', IntegerType::class, ['label' => 'Default tax rate (%)'])
+            ->add('storeName', TextType::class, ['label' => 'Mağaza adı'])
+            ->add('currency', TextType::class, ['label' => 'Para birimi (ISO 4217)'])
+            ->add('defaultLocale', TextType::class, ['label' => 'Mağazanın varsayılan dili'])
+            ->add('defaultTaxRate', IntegerType::class, ['label' => 'Varsayılan vergi oranı (%)'])
             ->add('b2bEnabled', CheckboxType::class, [
-                'label' => 'Enable B2B integration',
+                'label' => 'B2B entegrasyonunu etkinleştir',
                 'required' => false,
             ])
             ->add('b2bProvider', TextType::class, [
-                'label' => 'B2B provider key',
+                'label' => 'B2B sağlayıcısı',
                 'required' => false,
                 'empty_data' => '',
             ])
             ->add('loyaltyEnabled', CheckboxType::class, [
-                'label' => 'Enable loyalty rewards',
+                'label' => 'Ödül sistemini etkinleştir',
                 'required' => false,
             ])
-            ->add('loyaltyEarnPercentage', IntegerType::class, ['label' => 'Loyalty earn percentage'])
+            ->add('loyaltyEarnPercentage', IntegerType::class, ['label' => 'Puan kazanım yüzdesi'])
             ->add('paymentProvider', TextType::class, [
-                'label' => 'Payment provider key',
+                'label' => 'Ödeme sağlayıcısı',
                 'required' => false,
                 'empty_data' => '',
             ])
             ->add('shippingProvider', TextType::class, [
-                'label' => 'Shipping provider key',
+                'label' => 'Kargo sağlayıcısı',
                 'required' => false,
                 'empty_data' => '',
             ])
             ->add('seoIndexingEnabled', CheckboxType::class, [
-                'label' => 'Allow search engines to index this store',
+                'label' => 'Mağazanın arama motorlarında görünmesine izin ver',
                 'required' => false,
                 // Turning this off is how a store that is not launched yet stays out of results
                 // without a code change. It also closes the sitemap in robots.txt.
-                'help' => 'When off, robots.txt forbids every address and no page is advertised as indexable.',
+                'help' => 'Kapalı olduğunda arama motorlarının mağaza sayfalarını indekslemesi engellenir.',
             ])
             ->add('seoDefaultDescription', TextType::class, [
-                'label' => 'Default search description',
+                'label' => 'Varsayılan arama açıklaması',
                 'required' => false,
                 'empty_data' => '',
-                'help' => 'Optional. Used for pages that have no description of their own.',
+                'help' => 'Kendi açıklaması olmayan sayfalarda kullanılır. İsteğe bağlıdır.',
             ])
-            ->add('save', SubmitType::class, ['label' => 'Save settings']);
+            ->add('save', SubmitType::class, ['label' => 'Ayarları kaydet']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

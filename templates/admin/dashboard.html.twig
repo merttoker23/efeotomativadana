@@ -1,16 +1,47 @@
 {% extends 'admin/base.html.twig' %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Genel bakış{% endblock %}
 
 {% block body %}
-    <section class="panel">
-        <p class="eyebrow">Secure area</p>
-        <h1>Administration</h1>
-        <p>Operate the local catalog, customers, orders and store configuration.</p>
-        <div class="button-row">
-            <a class="button-link" href="{{ path('admin_catalog_product_index') }}">Manage products</a>
-            <a class="button-link" href="{{ path('admin_order_index') }}">Manage orders</a>
-            <a class="button-link" href="{{ path('admin_settings') }}">Open store settings</a>
+    {% import 'admin/_labels.html.twig' as ui %}
+    <div class="dashboard-intro">
+        <div><p class="eyebrow">Mağaza yönetimi</p><h1>Genel bakış</h1><p>Mağazanızın güncel durumu ve günlük işlemleriniz tek ekranda.</p></div>
+        <a class="button-link" href="{{ path('admin_catalog_product_new') }}">{{ ui.icon('catalog') }} Yeni ürün ekle</a>
+    </div>
+    <div class="metric-grid" aria-label="Mağaza özeti">
+        {% for metric in [
+            {key: 'waitingOrders', label: 'Onay bekleyen siparişler', note: 'Yeni alınan siparişler', route: 'admin_order_index', params: {state: 'placed'}, icon: 'orders'},
+            {key: 'pendingPayments', label: 'Bekleyen ödemeler', note: 'Bekliyor durumundaki kayıtlar', route: 'admin_payment_index', params: {state: 'pending'}, icon: 'wallet'},
+            {key: 'products', label: 'Ürünler', note: 'Katalogdaki toplam ürün', route: 'admin_catalog_product_index', icon: 'catalog'},
+            {key: 'customers', label: 'Müşteriler', note: 'Toplam müşteri hesabı', route: 'admin_customer_index', icon: 'users'},
+            {key: 'categories', label: 'Kategoriler', note: 'Katalog kategorileri', route: 'admin_catalog_category_index', icon: 'grid'},
+            {key: 'brands', label: 'Markalar', note: 'Katalog markaları', route: 'admin_catalog_brand_index', icon: 'tag'}
+        ] %}
+            <a class="metric-card" href="{{ path(metric.route, metric.params|default({})) }}"><span class="metric-heading">{{ metric.label }}{{ ui.icon(metric.icon) }}</span><strong class="metric-value" data-testid="dashboard-{{ metric.key }}">{{ summary[metric.key]|number_format(0, ',', '.') }}</strong><small>{{ metric.note }}</small></a>
+        {% endfor %}
+    </div>
+    <div class="dashboard-columns">
+        <section class="panel">
+            <div class="page-heading"><h2>Son siparişler</h2><a href="{{ path('admin_order_index') }}">Tüm siparişler →</a></div>
+            <div class="table-wrap"><table><caption class="visually-hidden">Son beş sipariş</caption><thead><tr><th scope="col">Sipariş</th><th scope="col">Müşteri</th><th scope="col">Durum</th><th scope="col">Toplam</th><th scope="col">Tarih</th></tr></thead><tbody>
+                {% for order in recentOrders %}<tr><td><a href="{{ path('admin_order_show', {orderNumber: order.orderNumber}) }}">{{ order.orderNumber }}</a></td><td>{{ order.customerName }}</td><td>{{ ui.badge(order.state.value) }}</td><td>{{ order.grandTotal|storefront_money }}</td><td>{{ order.createdAt|date('d.m.Y H:i') }}</td></tr>{% else %}<tr><td colspan="5">Henüz sipariş yok. Yeni siparişler burada görünecek.</td></tr>{% endfor %}
+            </tbody></table></div>
+            <p class="help-text">Özetler mevcut mağaza kayıtlarından alınır. Son siparişler oluşturulma tarihine göre sıralanır.</p>
+        </section>
+        <div>
+            <section class="panel">
+                <div class="page-heading"><h2>Hızlı erişim</h2></div>
+                {% for link in [
+                    {route: 'admin_order_index', icon: 'orders', label: 'Siparişleri yönet', note: 'Siparişler ve durum geçmişi'},
+                    {route: 'admin_cms_home_index', icon: 'home', label: 'Ana sayfayı düzenle', note: 'Bölümler, görseller ve yayın durumu'},
+                    {route: 'admin_shipment_index', icon: 'truck', label: 'Kargoları takip et', note: 'Teslimat ve takip bilgileri'},
+                    {route: 'admin_settings', icon: 'settings', label: 'Mağaza ayarları', note: 'Genel bilgiler ve entegrasyonlar'}
+                ] %}<a class="quick-link" href="{{ path(link.route) }}">{{ ui.icon(link.icon) }}<span>{{ link.label }}<small>{{ link.note }}</small></span><span aria-hidden="true">→</span></a>{% endfor %}
+            </section>
+            <section class="panel"><div class="page-heading"><h2>B2B senkronizasyon</h2>{{ ui.icon('sync') }}</div>
+                {% if latestRun %}<p>Son işlem <strong>#{{ latestRun.id }}</strong> · {{ ui.text(latestRun.mode.value) }}</p><p>{{ ui.badge(latestRun.state.value) }}</p><p class="help-text">{{ latestRun.createdAt|date('d.m.Y H:i') }} · {{ latestRun.checkpoint|number_format(0, ',', '.') }} kayıt işlendi</p>{% else %}<p class="empty-state">Henüz senkronizasyon kaydı yok.</p>{% endif %}
+                <a href="{{ path('admin_integration_b2b') }}">Senkronizasyon ekranını aç →</a>
+            </section>
         </div>
-    </section>
+    </div>
 {% endblock %}

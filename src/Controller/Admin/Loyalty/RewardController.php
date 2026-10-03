@@ -40,7 +40,7 @@ final class RewardController extends AbstractController
             }
             try {
                 $rewards->adjust($customer, $data->points, $data->reason, $actor, $data->requestKey);
-                $this->addFlash('success', 'Reward adjustment recorded.');
+                $this->addFlash('success', 'Puan düzenlemesi kaydedildi.');
                 return $this->redirectToRoute('admin_reward_customer', ['customerId' => $customerId]);
             } catch (\DomainException|\InvalidArgumentException $error) {
                 $form->addError(new FormError($error->getMessage()));

@@ -20,12 +20,17 @@ final class OrderTransitionType extends AbstractType
     {
         $choices = [];
         foreach ($options['allowed_states'] as $state) {
-            $choices[ucfirst($state->value)] = $state;
+            $choices[match ($state) {
+                OrderState::Placed => 'Alındı',
+                OrderState::Confirmed => 'Onaylandı',
+                OrderState::Cancelled => 'İptal edildi',
+                OrderState::Completed => 'Tamamlandı',
+            }] = $state;
         }
-        $builder->add('nextState', ChoiceType::class, ['choices' => $choices, 'choice_value' => 'value', 'placeholder' => 'Choose status'])
-            ->add('reason', TextareaType::class, ['label' => 'Audit reason'])
+        $builder->add('nextState', ChoiceType::class, ['label' => 'Yeni durum', 'choices' => $choices, 'choice_value' => 'value', 'placeholder' => 'Durum seçin'])
+            ->add('reason', TextareaType::class, ['label' => 'İşlem gerekçesi'])
             ->add('version', HiddenType::class)
-            ->add('save', SubmitType::class, ['label' => 'Update order status']);
+            ->add('save', SubmitType::class, ['label' => 'Sipariş durumunu güncelle']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

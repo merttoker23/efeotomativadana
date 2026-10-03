@@ -88,7 +88,7 @@ final class B2bControllerTest extends WebTestCase
         self::assertSame(1, $this->rowCount('integration_b2b_sync_run'));
         self::assertSame(1, $this->rowCount('messenger_messages'));
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.alert-success', 'was queued');
+        self::assertSelectorTextContains('.alert-success', 'kuyruğa alındı');
         self::assertCount(2, $this->client->getCrawler()->filter('.integration-actions button[disabled]'));
 
         $this->client->request('POST', '/yeni/admin/integration/b2b/daily', ['_token' => $token]);
@@ -96,7 +96,7 @@ final class B2bControllerTest extends WebTestCase
         self::assertSame(1, $this->rowCount('integration_b2b_sync_run'));
         self::assertSame(1, $this->rowCount('messenger_messages'));
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.alert-success', 'already active');
+        self::assertSelectorTextContains('.alert-success', 'zaten devam ediyor');
     }
 
     public function testPageRendersBoundedRunProgressAndCountersWithoutRecordedErrorTables(): void

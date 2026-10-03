@@ -1,71 +1,80 @@
 {% extends 'admin/base.html.twig' %}
+{% import 'admin/_labels.html.twig' as ui %}
 
-{% block title %}B2B synchronization{% endblock %}
+{% block title %}B2B senkronizasyon{% endblock %}
 
 {% block body %}
     <section class="panel b2b-panel" data-controller="b2b-dashboard" data-b2b-dashboard-interval-value="{{ activeRun ? 5 : 0 }}">
         <header class="page-heading">
             <div>
-                <p class="eyebrow">Integration</p>
-                <h1>B2B synchronization</h1>
+                <p class="eyebrow">Entegrasyon</p>
+                <h1>B2B senkronizasyon</h1>
             </div>
-            <div class="integration-actions" aria-label="Synchronization actions">
+            <div class="integration-actions" aria-label="Senkronizasyon işlemleri">
                 <form method="post" action="{{ path('admin_integration_b2b_full') }}" data-testid="b2b-full-form">
                     <input type="hidden" name="_token" value="{{ csrf_token('b2b_sync') }}">
-                    <button type="submit" {{ not actionsEnabled ? 'disabled' }}>Queue FULL sync</button>
+                    <button type="submit" {{ not actionsEnabled ? 'disabled' }}>Tam senkronizasyon başlat</button>
                 </form>
                 <form method="post" action="{{ path('admin_integration_b2b_daily') }}" data-testid="b2b-daily-form">
                     <input type="hidden" name="_token" value="{{ csrf_token('b2b_sync') }}">
-                    <button type="submit" {{ not actionsEnabled ? 'disabled' }}>Queue DAILY sync</button>
+                    <button type="submit" {{ not actionsEnabled ? 'disabled' }}>Günlük senkronizasyon başlat</button>
                 </form>
             </div>
         </header>
 
+        <p class="help-text">Tam senkronizasyon tüm kataloğu aktarır. Günlük senkronizasyon güncel stok ve fiyatları işler.</p>
+        {% if not actionsEnabled %}<p class="alert" role="status">{% if activeRun %}Yeni işlem başlatmak için devam eden senkronizasyonun tamamlanmasını bekleyin.{% else %}Senkronizasyonu başlatmak için <a href="{{ path('admin_settings') }}">entegrasyon ve sağlayıcı ayarlarını</a> kontrol edin.{% endif %}</p>{% endif %}
         <dl class="integration-status-grid">
             <div>
-                <dt>Integration</dt>
-                <dd><span class="status-badge {{ enabled ? 'status-success' : 'status-muted' }}">{{ enabled ? 'Enabled' : 'Disabled' }}</span></dd>
+                <dt>Entegrasyon</dt>
+                <dd><span class="status-badge {{ enabled ? 'status-success' : 'status-muted' }}">{{ enabled ? 'Aktif' : 'Pasif' }}</span></dd>
             </div>
             <div>
-                <dt>Provider</dt>
-                <dd>{{ providerKey ?? 'Not configured' }}</dd>
+                <dt>Sağlayıcı</dt>
+                <dd>{{ providerKey ?? 'Yapılandırılmadı' }}</dd>
             </div>
             <div>
-                <dt>Endpoint host</dt>
-                <dd data-testid="provider-host">{{ providerStatus ? providerStatus.endpointHost : 'Unavailable' }}</dd>
+                <dt>Bağlantı sunucusu</dt>
+                <dd data-testid="provider-host">{{ providerStatus ? providerStatus.endpointHost : 'Kullanılamıyor' }}</dd>
             </div>
             <div>
-                <dt>Endpoint status</dt>
-                <dd>{{ providerStatus and providerStatus.configured ? 'Configured' : 'Not configured safely' }}</dd>
+                <dt>Bağlantı durumu</dt>
+                <dd>{{ providerStatus and providerStatus.configured ? 'Yapılandırıldı' : 'Güvenli yapılandırma eksik' }}</dd>
             </div>
         </dl>
 
         {% if activeRun %}
             <section class="integration-section" data-testid="active-run" aria-labelledby="active-run-heading">
-                <h2 id="active-run-heading">Active run</h2>
+                <h2 id="active-run-heading">Devam eden işlem</h2>
                 <dl class="detail-grid">
-                    <div><dt>Run</dt><dd>#{{ activeRun.id }}</dd></div>
-                    <div><dt>Mode</dt><dd>{{ activeRun.mode.value|upper }}</dd></div>
-                    <div><dt>State</dt><dd>{{ activeRun.state.value|capitalize }}</dd></div>
-                    <div><dt>Checkpoint</dt><dd>{{ activeRun.checkpoint }}{% if activeRun.declaredCount is not null %} / {{ activeRun.declaredCount }}{% endif %}</dd></div>
+                    <div><dt>İşlem</dt><dd>#{{ activeRun.id }}</dd></div>
+                    <div><dt>Tür</dt><dd>{{ ui.text(activeRun.mode.value) }}</dd></div>
+                    <div><dt>Durum</dt><dd>{{ ui.text(activeRun.state.value) }}</dd></div>
+                    <div><dt>İlerleme</dt><dd>{{ activeRun.checkpoint }}{% if activeRun.declaredCount is not null %} / {{ activeRun.declaredCount }}{% endif %}</dd></div>
                 </dl>
                 {% if activeRun.declaredCount %}
-                    <progress max="{{ activeRun.declaredCount }}" value="{{ activeRun.checkpoint }}">{{ activeRun.checkpoint }} of {{ activeRun.declaredCount }}</progress>
+                    <p class="progress-caption"><span>{{ activeRun.checkpoint|number_format(0, ',', '.') }} / {{ activeRun.declaredCount|number_format(0, ',', '.') }} kayıt</span><strong>%{{ min(100, activeRun.checkpoint / activeRun.declaredCount * 100)|round(1) }}</strong></p>
+                    <progress aria-label="Senkronizasyon ilerlemesi" max="{{ activeRun.declaredCount }}" value="{{ activeRun.checkpoint }}">{{ activeRun.checkpoint }} / {{ activeRun.declaredCount }}</progress>
+                {% else %}
+                    <p class="help-text">Toplam kayıt sayısı henüz belli değil. {{ activeRun.checkpoint|number_format(0, ',', '.') }} kayıt işlendi.</p>
                 {% endif %}
+                <p class="help-text">Bu alan işlem sürerken 5 saniyede bir güncellenir.</p>
                 {% if activeRun.latestError %}<p class="b2b-latest-error">{{ activeRun.latestError }}</p>{% endif %}
             </section>
+        {% else %}
+            <p class="empty-state">Şu anda devam eden senkronizasyon yok.</p>
         {% endif %}
 
         <section class="integration-section" aria-labelledby="last-success-heading">
-            <h2 id="last-success-heading">Last successful runs</h2>
+            <h2 id="last-success-heading">Son başarılı işlemler</h2>
             <dl class="detail-grid">
                 <div>
-                    <dt>FULL</dt>
-                    <dd>{{ latestFull ? latestFull.finishedAt ? latestFull.finishedAt|date('Y-m-d H:i') : 'In progress' : 'No successful run' }}</dd>
+                    <dt>Tam senkronizasyon</dt>
+                    <dd>{{ latestFull ? latestFull.finishedAt ? latestFull.finishedAt|date('d.m.Y H:i') : 'Devam ediyor' : 'Henüz başarılı işlem yok' }}</dd>
                 </div>
                 <div>
-                    <dt>DAILY</dt>
-                    <dd>{{ latestDaily ? latestDaily.finishedAt ? latestDaily.finishedAt|date('Y-m-d H:i') : 'In progress' : 'No successful run' }}</dd>
+                    <dt>Günlük senkronizasyon</dt>
+                    <dd>{{ latestDaily ? latestDaily.finishedAt ? latestDaily.finishedAt|date('d.m.Y H:i') : 'Devam ediyor' : 'Henüz başarılı işlem yok' }}</dd>
                 </div>
             </dl>
         </section>
@@ -73,50 +82,50 @@
         {% if selectedRun %}
             {% set counters = selectedRun.counters.toArray %}
             <section class="integration-section" aria-labelledby="selected-run-heading">
-                <h2 id="selected-run-heading">Run #{{ selectedRun.id }} counters</h2>
-                <p class="run-state">{{ selectedRun.mode.value|upper }} / {{ selectedRun.state.value|capitalize }} / checkpoint {{ selectedRun.checkpoint }}</p>
+                <h2 id="selected-run-heading">İşlem #{{ selectedRun.id }} sayaçları</h2>
+                <p class="run-state">{{ ui.text(selectedRun.mode.value) }} / {{ ui.text(selectedRun.state.value) }} / ilerleme {{ selectedRun.checkpoint }}</p>
                 {% if selectedRun.latestError %}<p class="b2b-latest-error" data-testid="selected-run-error">{{ selectedRun.latestError }}</p>{% endif %}
                 <dl class="counter-grid">
-                    <div><dt>Scanned</dt><dd data-testid="counter-scanned">{{ counters.scanned }}</dd></div>
-                    <div><dt>Created</dt><dd data-testid="counter-created">{{ counters.created }}</dd></div>
-                    <div><dt>Updated</dt><dd data-testid="counter-updated">{{ counters.updated }}</dd></div>
-                    <div><dt>Skipped</dt><dd data-testid="counter-skipped">{{ counters.skipped }}</dd></div>
-                    <div><dt>Conflicts</dt><dd data-testid="counter-conflicts">{{ counters.conflicts }}</dd></div>
-                    <div><dt>Categories created</dt><dd data-testid="counter-categories_created">{{ counters.categories_created }}</dd></div>
-                    <div><dt>Categories reused</dt><dd data-testid="counter-categories_reused">{{ counters.categories_reused }}</dd></div>
-                    <div><dt>Identifiers imported</dt><dd data-testid="counter-identifiers_imported">{{ counters.identifiers_imported }}</dd></div>
-                    <div><dt>Images imported</dt><dd data-testid="counter-images_imported">{{ counters.images_imported }}</dd></div>
-                    <div><dt>Images failed</dt><dd data-testid="counter-images_failed">{{ counters.images_failed }}</dd></div>
-                    <div><dt>Stock updated</dt><dd data-testid="counter-stock_updated">{{ counters.stock_updated }}</dd></div>
-                    <div><dt>Stock failed</dt><dd data-testid="counter-stock_failed">{{ counters.stock_failed }}</dd></div>
-                    <div><dt>Prices updated</dt><dd data-testid="counter-price_updated">{{ counters.price_updated }}</dd></div>
-                    <div><dt>Prices failed</dt><dd data-testid="counter-price_failed">{{ counters.price_failed }}</dd></div>
-                    <div><dt>DAILY new products</dt><dd data-testid="counter-daily_new_products">{{ counters.daily_new_products }}</dd></div>
+                    <div><dt>Taranan</dt><dd data-testid="counter-scanned">{{ counters.scanned }}</dd></div>
+                    <div><dt>Yeni oluşturulan</dt><dd data-testid="counter-created">{{ counters.created }}</dd></div>
+                    <div><dt>Güncellenen</dt><dd data-testid="counter-updated">{{ counters.updated }}</dd></div>
+                    <div><dt>Atlanan</dt><dd data-testid="counter-skipped">{{ counters.skipped }}</dd></div>
+                    <div><dt>Çakışmalar</dt><dd data-testid="counter-conflicts">{{ counters.conflicts }}</dd></div>
+                    <div><dt>Yeni kategoriler</dt><dd data-testid="counter-categories_created">{{ counters.categories_created }}</dd></div>
+                    <div><dt>Eşleşen kategoriler</dt><dd data-testid="counter-categories_reused">{{ counters.categories_reused }}</dd></div>
+                    <div><dt>Aktarılan kodlar</dt><dd data-testid="counter-identifiers_imported">{{ counters.identifiers_imported }}</dd></div>
+                    <div><dt>Aktarılan görseller</dt><dd data-testid="counter-images_imported">{{ counters.images_imported }}</dd></div>
+                    <div><dt>Görsel hataları</dt><dd data-testid="counter-images_failed">{{ counters.images_failed }}</dd></div>
+                    <div><dt>Güncellenen stoklar</dt><dd data-testid="counter-stock_updated">{{ counters.stock_updated }}</dd></div>
+                    <div><dt>Stok hataları</dt><dd data-testid="counter-stock_failed">{{ counters.stock_failed }}</dd></div>
+                    <div><dt>Güncellenen fiyatlar</dt><dd data-testid="counter-price_updated">{{ counters.price_updated }}</dd></div>
+                    <div><dt>Fiyat hataları</dt><dd data-testid="counter-price_failed">{{ counters.price_failed }}</dd></div>
+                    <div><dt>Günlük işlemde yeni ürünler</dt><dd data-testid="counter-daily_new_products">{{ counters.daily_new_products }}</dd></div>
                 </dl>
             </section>
         {% endif %}
 
         <section class="integration-section" aria-labelledby="run-history-heading">
-            <h2 id="run-history-heading">Run history</h2>
-            <p>{{ runPage.total }} runs</p>
-            <div class="table-wrap">
+            <h2 id="run-history-heading">İşlem geçmişi</h2>
+            <p>{{ runPage.total }} işlem</p>
+            <div class="table-wrap" tabindex="0" role="region" aria-label="Kayıt tablosu">
                 <table>
                     <thead>
-                        <tr><th>Run</th><th>Provider</th><th>Mode</th><th>State</th><th>Checkpoint</th><th>Created</th><th>Finished</th></tr>
+                        <tr><th scope="col">İşlem</th><th scope="col">Sağlayıcı</th><th scope="col">Tür</th><th scope="col">Durum</th><th scope="col">İlerleme</th><th scope="col">Oluşturulma</th><th scope="col">Bitiş</th></tr>
                     </thead>
                     <tbody>
                         {% for run in runPage.items %}
                             <tr>
                                 <td><a href="{{ path('admin_integration_b2b', {run_id: run.id}) }}">#{{ run.id }}</a></td>
                                 <td>{{ run.providerKey }}</td>
-                                <td>{{ run.mode.value|upper }}</td>
-                                <td>{{ run.state.value|capitalize }}</td>
+                                <td>{{ ui.text(run.mode.value) }}</td>
+                                <td>{{ ui.badge(run.state.value) }}</td>
                                 <td>{{ run.checkpoint }}</td>
-                                <td>{{ run.createdAt|date('Y-m-d H:i') }}</td>
-                                <td>{{ run.finishedAt ? run.finishedAt|date('Y-m-d H:i') : '-' }}</td>
+                                <td>{{ run.createdAt|date('d.m.Y H:i') }}</td>
+                                <td>{{ run.finishedAt ? run.finishedAt|date('d.m.Y H:i') : '-' }}</td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="7">No synchronization runs recorded.</td></tr>
+                            <tr><td colspan="7">Henüz senkronizasyon kaydı yok.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

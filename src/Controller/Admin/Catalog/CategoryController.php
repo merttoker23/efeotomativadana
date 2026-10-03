@@ -51,7 +51,7 @@ final class CategoryController extends AbstractController
             'name' => $category->name(),
             'parent' => $category->parent()?->slug(),
         ]);
-        $manager->delete($category); $this->addFlash('success', 'Category deleted.');
+        $manager->delete($category); $this->addFlash('success', 'Kategori silindi.');
         return $this->redirectToRoute('admin_catalog_category_index');
     }
 
@@ -59,7 +59,7 @@ final class CategoryController extends AbstractController
     {
         $form = $this->createForm(AdminCategoryType::class, $data); $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
-            try { $saved = $manager->saveCategory($category, $data); $this->addFlash('success', 'Category saved.'); return $this->redirectToRoute('admin_catalog_category_edit', ['id' => $saved->id()]); }
+            try { $saved = $manager->saveCategory($category, $data); $this->addFlash('success', 'Kategori kaydedildi.'); return $this->redirectToRoute('admin_catalog_category_edit', ['id' => $saved->id()]); }
             catch (\DomainException|\InvalidArgumentException $exception) { $form->addError(new FormError($exception->getMessage())); }
         }
         return $this->render('admin/catalog/categories/form.html.twig', ['form' => $form, 'category' => $category], new Response(status: $form->isSubmitted() ? 422 : 200));

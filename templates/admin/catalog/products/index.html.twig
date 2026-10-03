@@ -1,12 +1,13 @@
 {% extends 'admin/base.html.twig' %}
-{% block title %}Products{% endblock %}
+{% import 'admin/_labels.html.twig' as ui %}
+{% block title %}Ürünler{% endblock %}
 {% block body %}
 <section class="panel">
-    <div class="page-heading"><div><p class="eyebrow">Catalog</p><h1>Products</h1></div><a class="button-link" href="{{ path('admin_catalog_product_new') }}">New product</a></div>
-    <form class="filter-bar" method="get"><label>Search <input type="search" name="q" value="{{ query }}"></label><label>Status <select name="status"><option value="">All</option><option value="published" {{ status == 'published' ? 'selected' }}>Published</option><option value="draft" {{ status == 'draft' ? 'selected' }}>Draft</option></select></label><button type="submit">Filter</button></form>
-    <p data-testid="result-summary">{{ page.total }} products</p>
-    <div class="table-wrap"><table><thead><tr><th>SKU</th><th>Name</th><th>Status</th><th>Brand</th><th></th></tr></thead><tbody>
-    {% for product in page.items %}<tr data-testid="product-row"><td>{{ product.sku }}</td><td>{{ product.name }}</td><td><span class="status-badge">{{ product.publicationStatus.value }}</span></td><td>{{ product.brand ? product.brand.name : '—' }}</td><td><a href="{{ path('admin_catalog_product_edit', {id: product.id}) }}">Edit</a></td></tr>{% else %}<tr><td colspan="5">No products found.</td></tr>{% endfor %}
+    <div class="page-heading"><div><p class="eyebrow">Katalog</p><h1>Ürünler</h1></div><a class="button-link" href="{{ path('admin_catalog_product_new') }}">Yeni ürün</a></div>
+    <form class="filter-bar" method="get"><label>Ara <input type="search" name="q" value="{{ query }}"></label><label>Durum <select name="status"><option value="">Tümü</option><option value="published" {{ status == 'published' ? 'selected' }}>Yayında</option><option value="draft" {{ status == 'draft' ? 'selected' }}>Taslak</option></select></label><button type="submit">Filtrele</button></form>
+    <p data-testid="result-summary">{{ page.total }} ürün</p>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Kayıt tablosu"><table><thead><tr><th scope="col">SKU</th><th scope="col">Ad</th><th scope="col">Durum</th><th scope="col">Marka</th><th scope="col"><span class="visually-hidden">İşlemler</span></th></tr></thead><tbody>
+    {% for product in page.items %}<tr data-testid="product-row"><td>{{ product.sku }}</td><td>{{ product.name }}</td><td><span class="status-badge" data-status="{{ product.publicationStatus.value }}">{{ ui.text(product.publicationStatus.value) }}</span></td><td>{{ product.brand ? product.brand.name : '—' }}</td><td><a href="{{ path('admin_catalog_product_edit', {id: product.id}) }}">Düzenle</a></td></tr>{% else %}<tr><td colspan="5">Ürün bulunamadı. Arama veya filtreleri değiştirin.</td></tr>{% endfor %}
     </tbody></table></div>
     {% include 'admin/_pagination.html.twig' with {page: page, route: 'admin_catalog_product_index', query: {q: query, status: status}} only %}
 </section>
