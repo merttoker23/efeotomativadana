@@ -12,7 +12,18 @@
         {% for slide in section.data.slides %}
             {% set dimensions = image_dimensions(slide.image) %}
             {% set feature = slide.secondaryText is not empty or slide.secondaryLink is not empty %}
-            <div class="hero-slide{% if loop.first %} active{% else %} alt{% endif %}{% if feature %} mobile-feature{% endif %}"
+            {# A slide may be nothing but a picture. The dark margin the theme leaves around the
+               photograph is there to give words somewhere to sit; with no words there is nothing to
+               leave room for, so those slides are marked and the stylesheet fills the whole frame. #}
+            {% set imageOnly = (slide.label|default('')) is empty
+                and (slide.title|default('')) is empty
+                and (slide.priceLabel|default('')) is empty
+                and (slide.priceValue|default('')) is empty
+                and (slide.primaryText|default('')) is empty
+                and (slide.primaryLink|default('')) is empty
+                and (slide.secondaryText|default('')) is empty
+                and (slide.secondaryLink|default('')) is empty %}
+            <div class="hero-slide{% if loop.first %} active{% else %} alt{% endif %}{% if feature %} mobile-feature{% endif %}{% if imageOnly %} image-only{% endif %}"
                  data-home-slider-target="slide"
                  role="group"
                  aria-roledescription="slayt"

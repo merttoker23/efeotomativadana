@@ -2278,6 +2278,25 @@ select:focus-visible {
     filter: hue-rotate(22deg) saturate(0.75);
 }
 
+/* A slide that is nothing but a photograph. The inset above exists so the headline has somewhere
+   to sit; with nothing to sit over the picture it would read as an empty black band around the
+   banner. The photograph therefore fills the frame, and `cover` crops it rather than stretching
+   it, so a banner of any ratio still reaches every edge of the slide. */
+.hero-slide.image-only .hero-photo {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* The theme shifts the second slide's photograph so three slides of one campaign do not look like
+   one photograph repeated. An uploaded banner is artwork an administrator chose, so its colours are
+   published as uploaded and the image-only slide is not tinted either. */
+.hero-slide.image-only.alt .hero-photo {
+    filter: none;
+}
+
 .hero-content {
     position: relative;
     z-index: 2;

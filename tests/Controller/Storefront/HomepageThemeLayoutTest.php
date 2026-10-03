@@ -153,6 +153,50 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame(0, $crawler->filter('.hero .hero-cta')->count(), 'No fixed per-slide call to action survives.');
     }
 
+    /**
+     * A slide may be nothing but a banner, and then the frame's dark margin has nothing to make
+     * room for.
+     *
+     * The theme insets the photograph so a headline has space; on an image-only slide that inset is
+     * an empty black band, which is what an administrator uploading their own artwork sees. So the
+     * slide is marked, the stylesheet fills the frame with `cover` so a banner of any ratio covers
+     * it without being stretched, and the theme's second-slide tint is not applied to a banner
+     * whose colours were chosen by whoever uploaded it.
+     */
+    public function testAnImageOnlySlideFillsTheHeroFrameInItsUploadedColours(): void
+    {
+        $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
+            $this->slide(['label' => '', 'title' => '']),
+            $this->slide(['label' => '', 'title' => '']),
+            $this->slide(['label' => '', 'title' => '']),
+            $this->slide(['title' => 'Metinli kare']),
+        ]], 10);
+
+        $crawler = $this->home();
+        $slides = $crawler->filter('.hero-slide');
+
+        self::assertSame(3, $slides->filter('.image-only')->count());
+        // The second banner is an `.alt` slide, which is the one the theme tints.
+        self::assertStringContainsString('alt', (string) $slides->eq(1)->attr('class'));
+        self::assertStringContainsString('image-only', (string) $slides->eq(1)->attr('class'));
+        self::assertStringNotContainsString('image-only', (string) $slides->eq(3)->attr('class'));
+        self::assertSame('Metinli kare', trim($slides->eq(3)->filter('.hero-title')->text()));
+
+        $css = $this->declarationsOf(dirname(__DIR__, 3).'/assets/styles/storefront.css');
+        // Three classes against one, so this wins over the inset photograph and over the mobile
+        // breakpoint that shrinks it; `inset` is what takes back the `left: 10%` margin.
+        self::assertSame('0', $css['.hero-slide.image-only .hero-photo']['inset']);
+        self::assertSame('100%', $css['.hero-slide.image-only .hero-photo']['width']);
+        self::assertSame('100%', $css['.hero-slide.image-only .hero-photo']['height']);
+        self::assertSame('cover', $css['.hero-slide.image-only .hero-photo']['object-fit'], 'A banner is cropped to fill the frame, never stretched.');
+        self::assertSame('none', $css['.hero-slide.image-only.alt .hero-photo']['filter']);
+
+        // The theme's own geometry is untouched: a slide that has words keeps the inset photograph.
+        self::assertSame('10%', $css['.hero-photo']['left']);
+        self::assertSame('82%', $css['.hero-photo']['width']);
+        self::assertSame('hue-rotate(22deg) saturate(0.75)', $css['.hero-slide.alt .hero-photo']['filter']);
+    }
+
     public function testProductTabsCarryRealTabPanelsAndTabBehaviour(): void
     {
         $first = $this->product('TAB-01', 'Filtre', 'filtre');
