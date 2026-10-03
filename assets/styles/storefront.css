@@ -155,22 +155,27 @@ select:focus-visible {
     opacity: 0.96;
 }
 
-/* Row two: the reference's three columns of 73.6px. */
+/* Row two: the reference's three columns of 73.6px. Its first track is 192px, which holds its
+   126.4px logo image; this store's lockup is a 48px mark beside two lines of name, so the track
+   here is 224px to hold it whole (48 + 11.2 + 164.8) and the fluid search gives up the 32px
+   difference rather than the space going unused. The 1300px breakpoint below narrows the track
+   to 152px as the reference does. */
 .header-main {
     display: grid;
-    grid-template-columns: 192px minmax(320px, 1fr) auto;
+    grid-template-columns: 224px minmax(320px, 1fr) auto;
     align-items: center;
     gap: 19.2px;
     height: 73.6px;
 }
 
-/* The reference prints a 126.4px logo image into the 192px first column; this store has a mark and
-   a name instead, so the lockup is sized to that same column and row and clips rather than
-   pushing the search out of the grid. */
+/* The lockup inside that track: the mark at 48px reads as a logo rather than a token, and the two
+   lines beside it are set as type, 16px and 10.4px, which is 152.6px and 147.3px of text in the
+   164.8px the track leaves them. Both lines keep the reference's own ellipsis, so a longer store
+   name shortens rather than pushing the search out of the grid. */
 .storefront-brand {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 11.2px;
     min-width: 0;
     height: 100%;
 }
@@ -179,12 +184,12 @@ select:focus-visible {
     display: grid;
     place-items: center;
     flex: 0 0 auto;
-    width: 33.6px;
-    height: 33.6px;
+    width: 48px;
+    height: 48px;
     border-radius: 4px;
     color: var(--storefront-navy);
     background: var(--storefront-yellow);
-    font-size: 12.5px;
+    font-size: 16px;
     font-weight: 900;
     letter-spacing: -0.08em;
 }
@@ -195,7 +200,7 @@ select:focus-visible {
 }
 
 .brand-copy strong {
-    font-size: 13.6px;
+    font-size: 16px;
     line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
@@ -205,19 +210,25 @@ select:focus-visible {
 .brand-copy small {
     margin-top: 1.6px;
     color: #b9c8d8;
-    font-size: 8.8px;
-    letter-spacing: 0.08em;
+    font-size: 10.4px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+/* The search takes the whole middle track. The reference holds it to a fixed 759.2px block, which
+   only fills its row at the reference's own 1901px width and leaves a hole on either side of it
+   everywhere else; this store has no two square buttons in the action group, so the track is
+   wider than the reference's search anyway. Letting it stretch means the field always runs from
+   the brand lockup to the action pills, with the 19.2px column gap as the only separation, and
+   the third `auto` track keeps that group pinned and right-aligned. */
 .storefront-search {
     display: flex;
-    justify-self: center;
+    justify-self: stretch;
     width: 100%;
-    max-width: 761.6px;
+    min-width: 0;
     height: 40.8px;
     border-radius: 4px;
     overflow: hidden;
@@ -1534,18 +1545,12 @@ select:focus-visible {
 
 @media (min-width: 1301px) {
     /* The reference's own measurements for the wide header, measured against its 1901px reference:
-       the search is a fixed 759.2px block set 17.1px in from the brand column rather than centred in
-       the track, each pill has its own width, and the menu band's controls sit 4px lower in the
-       64px row at a depth of 43.2px. */
+       each pill has its own width and the menu band's controls sit 4px lower in the 64px row at a
+       depth of 43.2px. Its fixed 759.2px search is deliberately not carried over: at this store's
+       wider action group it left a dead gap before the pills, so the search keeps the fluid
+       stretch of the base rule instead. */
     .topbar-left {
         gap: 15.2px;
-    }
-
-    .storefront-search {
-        justify-self: start;
-        margin-left: 17.1px;
-        width: 759.2px;
-        max-width: 759.2px;
     }
 
     .action-btn.account {
