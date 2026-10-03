@@ -8,7 +8,6 @@
 {% if section.data.slides %}
     {% set total = section.data.slides|length %}
     <section class="hero" aria-roledescription="carousel" aria-label="{{ section.title }}" data-controller="home-slider">
-        <span class="hero-marker" aria-hidden="true"></span>
         {% for slide in section.data.slides %}
             {% set dimensions = image_dimensions(slide.image) %}
             {% set feature = slide.secondaryText is not empty or slide.secondaryLink is not empty %}
@@ -29,6 +28,13 @@
                  aria-roledescription="slayt"
                  aria-label="{{ loop.index }}/{{ total }}"
                  {% if not loop.first %}aria-hidden="true" tabindex="-1"{% endif %}>
+                {# The theme's yellow tab in the corner of the frame. It is drawn per slide rather
+                   than once on the frame, because a slide that is nothing but a banner must not wear
+                   it: the tab marks a composition that has words over its picture, and on a bare
+                   banner it would sit on the artwork as a stray chip of colour. The stylesheet hides
+                   it on `.hero-slide.image-only`, so a text slide keeps the reference's marker and an
+                   image-only slide keeps a clean edge. #}
+                <span class="hero-marker" aria-hidden="true"></span>
                 {# The headline beside the image already states what the slide is, so the image
                    carries no alt text of its own. Only the first slide is fetched eagerly: five
                    equally-weighted candidates for the largest contentful paint would make the

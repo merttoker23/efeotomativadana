@@ -1,16 +1,30 @@
-{# The header itself. The notice band above it is not part of the header: the theme puts it at the
-   top of the page, above this element, and `storefront/layout/_notice.html.twig` renders it there.
-   The shell controller lives on the body so it can reach both. #}
+{# The theme's header, its three rows in the theme's own order and nothing else: a top bar, a main
+   row of brand / search / actions, and a menu band. `tema/index.html` draws exactly these three and
+   `tema/assets/css/style.css` measures every one of them, so the row structure, the lengths, the
+   colours and the breakpoints here are the reference's rather than a second arrangement.
+
+   The content is this store's, placed in the slots the reference leaves for it: the store's own two
+   lines in the top bar, its name where the reference prints a logo image, the catalogue search
+   where the reference prints its search, account / contact / blog as the three white pills of the
+   main row, and the wishlist, compare and yellow cart block in the menu band.
+
+   The notice band above this element is not part of the header: the theme puts it at the top of the
+   page, above the header, and `storefront/layout/_notice.html.twig` renders it there. The shell
+   controller lives on the body so it can reach both. #}
 <header class="site-header">
     <div class="header-topbar">
-        <div class="container topbar-inner">
-            <p>Otomotiv yedek parçada yerel uzmanlık</p>
-            <p>Güvenli alışveriş · Kolay iade · Hızlı destek</p>
+        <div class="container topbar">
+            <div class="topbar-left">
+                <p>Otomotiv yedek parçada yerel uzmanlık</p>
+            </div>
+            <div class="topbar-right">
+                <p>Güvenli alışveriş · Kolay iade · Hızlı destek</p>
+            </div>
         </div>
     </div>
 
     <div class="header-primary">
-        <div class="container header-primary-inner">
+        <div class="container header-main">
             <a class="storefront-brand" href="{{ path('app_home') }}" aria-label="{{ store.name }} ana sayfa" data-storefront-shell-target="brand">
                 <span class="brand-mark" aria-hidden="true">EO</span>
                 <span class="brand-copy">
@@ -25,10 +39,17 @@
                 <button type="submit" aria-label="Ürün ara">⌕</button>
             </form>
 
+            {# The theme's three white pills, in its order. The account pill leads to the login form
+               or to the account itself depending on the visitor, which is the behaviour it already
+               had; the state is carried by the link's own label rather than by a second line the
+               reference does not have. #}
             {% set header_cart = storefront_cart() %}
             <div class="header-actions" aria-label="Mağaza kısayolları">
-                <a class="header-action" href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}">Hesabım <small>{{ is_granted('ROLE_CUSTOMER') ? 'Profil' : 'Giriş' }}</small></a>
-                <a class="header-action cart-action" href="{{ path('storefront_cart_index') }}">Sepet {% if header_cart.total %}<small>{{ header_cart.total|storefront_money }}</small>{% endif %}<strong>{{ header_cart.itemCount }}</strong></a>
+                <a class="header-action action-btn account"
+                   href="{{ path(is_granted('ROLE_CUSTOMER') ? 'customer_account_dashboard' : 'customer_login') }}"
+                   aria-label="{{ is_granted('ROLE_CUSTOMER') ? 'Hesabım (Profil)' : 'Hesabım (Giriş)' }}"><span class="action-icon" aria-hidden="true">♙</span>Hesabım<span class="action-caret" aria-hidden="true">⌄</span></a>
+                <a class="header-action action-btn contact" href="{{ path('storefront_information_index') }}"><span class="action-icon" aria-hidden="true">✉</span>İletişim</a>
+                <a class="header-action action-btn blog" href="{{ path('storefront_blog_index') }}"><span class="action-icon" aria-hidden="true">▤</span>Blog</a>
                 <button
                     class="mobile-menu-toggle"
                     type="button"
@@ -42,5 +63,5 @@
         </div>
     </div>
 
-    {% include 'storefront/layout/_navigation.html.twig' %}
+    {% include 'storefront/layout/_navigation.html.twig' with {header_cart: header_cart} %}
 </header>

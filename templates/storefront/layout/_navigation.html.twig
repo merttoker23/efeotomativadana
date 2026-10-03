@@ -1,23 +1,39 @@
-<div class="navigation-band">
-    <div class="container navigation-inner">
-        <a class="departments-control" href="{{ path('storefront_catalog_index') }}">
-            <span aria-hidden="true">☷</span>
-            Tüm Kategoriler
-            <small>{{ catalog_navigation.categories|default([])|length }}</small>
-        </a>
+{# The theme's menu band: the departments button and the main links on the left, the quick links
+   and the yellow cart block on the right. `tema/index.html` keeps the wishlist and the compare
+   links in exactly this row, beside the cart — there is no separate white navigation strip in the
+   reference, which is where the two of them came from.
 
-        <nav class="main-navigation" aria-label="Ana navigasyon">
-            <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
-            <a href="{{ path('storefront_catalog_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_catalog_' and app.request.attributes.get('_route') != 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Ürünler</a>
-            <a href="{{ path('storefront_catalog_brands') }}"{% if app.request.attributes.get('_route') == 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Markalar</a>
-            <span aria-disabled="true">Kampanyalar</span>
-        </nav>
+   The cart block is the theme's own: a yellow pill carrying the item count, the total and the cart
+   mark, and both numbers are this store's real summary rather than the reference's placeholder. #}
+<div class="container nav-row">
+    <a class="departments" href="{{ path('storefront_catalog_index') }}">
+        <span class="hamb" aria-hidden="true">☷</span>
+        <span>Tüm Kategoriler</span>
+        <span class="new-tag" aria-hidden="true">{{ catalog_navigation.categories|default([])|length }}</span>
+    </a>
 
-        <div class="quick-navigation" aria-label="Hızlı erişim">
-            <a href="{{ path('storefront_wishlist_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}>İstek Listem</a>
-            <a href="{{ path('storefront_compare_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_compare_' %} aria-current="page"{% endif %}>Karşılaştır</a>
-        </div>
-    </div>
+    <nav class="main-navigation" aria-label="Ana navigasyon">
+        <a href="{{ path('app_home') }}"{% if app.request.attributes.get('_route') == 'app_home' %} aria-current="page"{% endif %}>Ana Sayfa</a>
+        <a href="{{ path('storefront_catalog_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_catalog_' and app.request.attributes.get('_route') != 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Ürünler</a>
+        <a href="{{ path('storefront_catalog_brands') }}"{% if app.request.attributes.get('_route') == 'storefront_catalog_brands' %} aria-current="page"{% endif %}>Markalar</a>
+        <span aria-disabled="true">Kampanyalar</span>
+    </nav>
+
+    <div class="nav-spacer"></div>
+
+    <nav class="quick-navigation" aria-label="Hızlı erişim">
+        <a class="header-action" href="{{ path('storefront_wishlist_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_wishlist_' %} aria-current="page"{% endif %}><span class="action-icon" aria-hidden="true">♡</span>&nbsp;İstek Listem</a>
+        <a class="header-action" href="{{ path('storefront_compare_index') }}"{% if app.request.attributes.get('_route') starts with 'storefront_compare_' %} aria-current="page"{% endif %}><span class="action-icon" aria-hidden="true">↬</span>&nbsp;Karşılaştır</a>
+    </nav>
+
+    {# A cart whose lines are not all available has no total to print, so the total segment is left
+       out entirely rather than shown as a zero that would read as an empty basket. An empty basket
+       then reads "0 ürün", which is what it is. The reference writes the count, the total and the
+       cart mark as one line of text, and so does this: the block's own 10.4px gap would sit between
+       three pieces of text that belong in one run. #}
+    <a class="header-action cart-action cart-button" href="{{ path('storefront_cart_index') }}">
+        <span>{{ header_cart.itemCount }} ürün{% if header_cart.total %} - {{ header_cart.total|storefront_money }}{% endif %}&nbsp;<span aria-hidden="true">♧</span></span>
+    </a>
 </div>
 
 <nav

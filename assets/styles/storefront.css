@@ -113,203 +113,252 @@ select:focus-visible {
     background: var(--storefront-navy);
 }
 
+/* The header.
+
+   `tema/index.html` draws three rows and `tema/assets/css/style.css` measures every one of them, so
+   what follows is the reference's header rather than a second arrangement of the same parts: a top
+   bar, a main row of 192px / search / three white pills, and a 64px menu band, all three inside one
+   navy block. There is no separate white navigation strip — the reference has none, which is why
+   the wishlist and compare links now sit in the menu band beside the yellow cart block, where the
+   reference keeps its own quick links.
+
+   Every length below is the reference's own, expressed in rem at its 16px root, and the breakpoints
+   are its own: 1300px, 1024px and 680px. */
 .site-header {
     color: #fff;
     background: var(--storefront-navy);
 }
 
-.topbar-inner,
-.header-primary-inner,
-.navigation-inner {
+/* Row one: the top bar, 46.4px tall with this store's two lines at either end. */
+.topbar {
     display: flex;
     align-items: center;
-}
-
-.header-topbar {
-    border-bottom: 1px solid rgb(255 255 255 / 13%);
-}
-
-.topbar-inner {
     justify-content: space-between;
-    min-height: 40px;
-    color: #bac9d9;
-    font-size: 0.72rem;
+    height: 46.4px;
+    font-size: 12.8px;
+    font-weight: 600;
 }
 
-.topbar-inner p {
-    margin: 0;
-}
-
-.header-primary-inner {
-    display: grid;
-    grid-template-columns: minmax(240px, 0.8fr) minmax(300px, 1.8fr) auto;
-    gap: 2rem;
-    min-height: 88px;
-}
-
-.storefront-brand {
-    display: inline-flex;
+.topbar-left,
+.topbar-right {
+    display: flex;
     align-items: center;
-    gap: 0.75rem;
-    width: max-content;
+    gap: 19.2px;
+}
+
+.topbar-right {
+    gap: 14.4px;
+}
+
+.topbar p {
+    margin: 0;
+    opacity: 0.96;
+}
+
+/* Row two: the reference's three columns of 73.6px. */
+.header-main {
+    display: grid;
+    grid-template-columns: 192px minmax(320px, 1fr) auto;
+    align-items: center;
+    gap: 19.2px;
+    height: 73.6px;
+}
+
+/* The reference prints a 126.4px logo image into the 192px first column; this store has a mark and
+   a name instead, so the lockup is sized to that same column and row and clips rather than
+   pushing the search out of the grid. */
+.storefront-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 100%;
 }
 
 .brand-mark {
     display: grid;
     place-items: center;
-    width: 2.8rem;
-    height: 2.8rem;
-    border-radius: 0.35rem;
+    flex: 0 0 auto;
+    width: 33.6px;
+    height: 33.6px;
+    border-radius: 4px;
     color: var(--storefront-navy);
     background: var(--storefront-yellow);
+    font-size: 12.5px;
     font-weight: 900;
     letter-spacing: -0.08em;
 }
 
 .brand-copy {
     display: grid;
+    min-width: 0;
 }
 
 .brand-copy strong {
-    font-size: 1.15rem;
-    line-height: 1.2;
+    font-size: 13.6px;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .brand-copy small {
-    margin-top: 0.2rem;
+    margin-top: 1.6px;
     color: #b9c8d8;
-    font-size: 0.65rem;
+    font-size: 8.8px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .storefront-search {
     display: flex;
-    width: min(100%, 48rem);
-    min-height: 42px;
-    border-radius: 0.3rem;
+    justify-self: center;
+    width: 100%;
+    max-width: 761.6px;
+    height: 40.8px;
+    border-radius: 4px;
     overflow: hidden;
+    color: #555;
     background: #fff;
 }
 
 .storefront-search input {
     flex: 1;
     min-width: 0;
-    padding: 0 1rem;
+    padding: 0 16px;
     border: 0;
-    color: #555d66;
-    background: #fff;
+    outline: 0;
+    font-size: 12.8px;
 }
 
 .storefront-search button {
-    width: 3rem;
+    width: 43.2px;
     border: 0;
-    color: var(--storefront-navy);
-    background: var(--storefront-yellow);
-    font-size: 1.35rem;
-}
-
-.storefront-search :disabled {
-    opacity: 1;
+    color: #50585e;
+    background: #fff;
+    font-size: 20px;
 }
 
 .header-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 0.5rem;
+    gap: 8px;
 }
 
-.header-action {
-    display: inline-flex;
+/* The reference's white pills: 40.8px tall, a 4px radius, the store's dark text on white. */
+.action-btn {
+    display: flex;
     align-items: center;
-    gap: 0.5rem;
-    min-height: 42px;
-    padding: 0 0.85rem;
-    border: 1px solid rgb(255 255 255 / 24%);
-    border-radius: 0.3rem;
-    color: #dce5ef;
-    font-size: 0.78rem;
+    justify-content: center;
+    gap: 8px;
+    height: 40.8px;
+    min-width: 89.6px;
+    padding: 0 14.4px;
+    border: 1px solid #fff;
+    border-radius: 4px;
+    color: #3b4249;
+    background: #fff;
+    font-size: 12.8px;
+    white-space: nowrap;
 }
 
-.header-action small {
-    color: #9fb2c7;
-    font-size: 0.62rem;
-}
-
-.header-action strong {
-    display: grid;
-    place-items: center;
-    width: 1.35rem;
-    height: 1.35rem;
-    border-radius: 50%;
-    color: var(--storefront-navy);
-    background: var(--storefront-yellow);
-}
-
+/* The reference's marks are text in the same run as the labels, so they take the label's 12.8px
+   rather than a size of their own; only the departments mark, which the reference does size, is
+   separated out below. */
 .mobile-menu-toggle {
     display: none;
     align-items: center;
     justify-content: center;
-    width: 42px;
-    height: 42px;
+    width: 36.8px;
+    height: 36.8px;
     border: 0;
-    border-radius: 0.3rem;
+    border-radius: 4px;
     color: var(--storefront-navy);
     background: #fff;
-    font-size: 1.25rem;
+    font-size: 19.2px;
 }
 
-.navigation-band {
-    min-height: 64px;
-    background: #fff;
-    color: var(--storefront-ink);
-}
-
-.navigation-inner {
-    min-height: 64px;
-    gap: 1.75rem;
-}
-
-.departments-control {
-    display: inline-flex;
+/* Row three: the menu band. The departments button and the main links on the left, the quick links
+   and the yellow cart block on the right, with the spacer between them that pushes both right. */
+.nav-row {
+    display: flex;
     align-items: center;
-    gap: 0.65rem;
-    width: 230px;
-    min-height: 43px;
-    padding: 0 0.95rem;
-    border-radius: 0.3rem;
-    color: var(--storefront-navy);
+    gap: 19.2px;
+    height: 64px;
+}
+
+.departments {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10.4px;
+    width: 230.4px;
+    height: 41.6px;
+    padding: 0 14.4px;
+    border: 0;
+    border-radius: 4px;
+    color: #0d294e;
     background: var(--storefront-yellow);
-    font-weight: 750;
+    font-size: 13.6px;
 }
 
-.departments-control small {
-    margin-left: auto;
-    padding: 0.15rem 0.35rem;
-    border-radius: 0.2rem;
-    color: #466b9c;
-    background: #e7eef8;
-    font-size: 0.58rem;
+.hamb {
+    font-size: 16.8px;
 }
 
-.main-navigation,
+/* The reference's own corner tag on the departments button. */
+.new-tag {
+    position: absolute;
+    top: -13.6px;
+    right: 0;
+    padding: 2px 6.4px;
+    border-radius: 4px;
+    color: #5479b5;
+    background: #d9e6ff;
+    font-size: 11.2px;
+}
+
+.main-navigation {
+    display: flex;
+    align-items: center;
+    gap: 25.6px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.main-navigation [aria-disabled="true"] {
+    color: rgb(255 255 255 / 55%);
+}
+
+.nav-spacer {
+    flex: 1;
+}
+
 .quick-navigation {
     display: flex;
     align-items: center;
-    gap: 1.6rem;
-    font-size: 0.82rem;
-    font-weight: 700;
+    gap: 21.6px;
+    font-weight: 600;
 }
 
-.main-navigation [aria-disabled="true"],
-.quick-navigation [aria-disabled="true"] {
-    color: #899099;
-}
-
-.quick-navigation {
-    margin-left: auto;
-    color: #4f5963;
+.cart-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10.4px;
+    margin-left: 4px;
+    height: 41.6px;
+    min-width: 159.2px;
+    border: 0;
+    border-radius: 4px;
+    color: #0d294e;
+    background: var(--storefront-yellow);
+    font-size: 12.8px;
+    white-space: nowrap;
 }
 
 .mobile-navigation {
@@ -1487,17 +1536,89 @@ select:focus-visible {
     }
 }
 
+@media (min-width: 1301px) {
+    /* The reference's own measurements for the wide header, measured against its 1901px reference:
+       the search is a fixed 759.2px block set 17.1px in from the brand column rather than centred in
+       the track, each pill has its own width, and the menu band's controls sit 4px lower in the
+       64px row at a depth of 43.2px. */
+    .topbar-left {
+        gap: 15.2px;
+    }
+
+    .storefront-search {
+        justify-self: start;
+        margin-left: 17.1px;
+        width: 759.2px;
+        max-width: 759.2px;
+    }
+
+    .action-btn.account {
+        width: 115.2px;
+        min-width: 115.2px;
+        padding-inline: 8px;
+    }
+
+    .action-btn.contact {
+        width: 99.2px;
+        min-width: 99.2px;
+        padding-inline: 8px;
+    }
+
+    .action-btn.blog {
+        width: 78.4px;
+        min-width: 78.4px;
+        padding-inline: 6px;
+    }
+
+    .nav-row > .departments,
+    .nav-row > .main-navigation,
+    .nav-row > .quick-navigation,
+    .nav-row > .cart-button {
+        transform: translateY(4px);
+    }
+
+    .departments,
+    .cart-button {
+        height: 43.2px;
+    }
+}
+
 @media (max-width: 1300px) {
     .container {
         width: calc(100% - 36px);
     }
 
-    .header-primary-inner {
-        grid-template-columns: minmax(210px, 0.7fr) minmax(280px, 1.5fr) auto;
-        gap: 1rem;
+    .header-main {
+        grid-template-columns: 152px minmax(320px, 1fr) auto;
     }
 
-    .header-action:first-child {
+    .topbar-right {
+        display: none;
+    }
+
+    /* The reference drops the two secondary pills here and keeps the account one. */
+    .action-btn.contact,
+    .action-btn.blog {
+        display: none;
+    }
+
+    /* The name column narrows with the reference's own 152px track, so the lockup shrinks into it
+       and the tagline, which has no room left, steps aside rather than truncating to nothing. */
+    .brand-mark {
+        width: 30.4px;
+        height: 30.4px;
+        font-size: 11.5px;
+    }
+
+    .storefront-brand {
+        gap: 7px;
+    }
+
+    .brand-copy strong {
+        font-size: 12.5px;
+    }
+
+    .brand-copy small {
         display: none;
     }
 
@@ -1521,26 +1642,59 @@ select:focus-visible {
 }
 
 @media (max-width: 1024px) {
-    .header-topbar {
+    /* The reference's tablet header: no top bar, a 60.8px row, no action pills at all and the
+       menu button in their place, then a 46.4px menu band that keeps only the departments button
+       and the cart. */
+    .topbar {
         display: none;
     }
 
-    .header-primary-inner {
-        grid-template-columns: minmax(200px, 0.7fr) minmax(220px, 1fr) auto;
-        min-height: 68px;
+    .header-main {
+        grid-template-columns: 120px minmax(320px, 1fr) auto;
+        height: 60.8px;
     }
 
-    .brand-copy small,
-    .header-action {
+    .brand-copy {
+        display: none;
+    }
+
+    /* The reference keeps its logo here alone and shrinks it to a 100px wide mark, so this store's
+       lockup becomes the same single horizontal mark at that width rather than a small square with
+       empty column either side of it. */
+    .brand-mark {
+        width: 100px;
+        height: 36.8px;
+        border-radius: 4px;
+        font-size: 17px;
+        letter-spacing: 0;
+    }
+
+    .action-btn {
         display: none;
     }
 
     .mobile-menu-toggle {
-        display: inline-flex;
+        display: flex;
     }
 
-    .navigation-band {
+    .nav-row {
+        height: 46.4px;
+    }
+
+    .departments {
+        width: 188px;
+        height: 35.2px;
+    }
+
+    .main-navigation,
+    .quick-navigation {
         display: none;
+    }
+
+    .cart-button {
+        margin-left: auto;
+        min-width: 120px;
+        height: 35.2px;
     }
 
     .home-top {
@@ -1579,35 +1733,52 @@ select:focus-visible {
         width: calc(100% - 24px);
     }
 
-    .header-primary-inner {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        gap: 0.55rem;
-        min-height: 62px;
+    .header-main {
+        grid-template-columns: 84px minmax(0, 1fr) auto;
+        gap: 7.2px;
     }
 
     .brand-mark {
-        width: 2.35rem;
-        height: 2.35rem;
-        font-size: 0.8rem;
-    }
-
-    .brand-copy {
-        display: none;
+        width: 80px;
+        height: 32px;
+        border-radius: 4px;
+        font-size: 15px;
     }
 
     .storefront-search {
-        min-height: 36px;
+        height: 34.4px;
     }
 
     .storefront-search input {
-        padding-inline: 0.7rem;
-        font-size: 0.7rem;
+        padding-inline: 11.2px;
+        font-size: 11.2px;
     }
 
     .storefront-search button,
     .mobile-menu-toggle {
-        width: 36px;
-        height: 36px;
+        width: 36.8px;
+        height: 36.8px;
+    }
+
+    .nav-row {
+        height: 43.2px;
+    }
+
+    .departments {
+        width: auto;
+        flex: 1;
+    }
+
+    /* The reference keeps only the bag mark in the cart block once there is no room for its text;
+       the count and the total stay in the markup for a screen reader and for the wider breakpoints. */
+    .cart-button {
+        min-width: 43.2px;
+        font-size: 0;
+    }
+
+    .cart-button::after {
+        content: "\1F6CD";
+        font-size: 15.2px;
     }
 
     .page-shell {
@@ -2295,6 +2466,14 @@ select:focus-visible {
    published as uploaded and the image-only slide is not tinted either. */
 .hero-slide.image-only.alt .hero-photo {
     filter: none;
+}
+
+/* The theme's corner tab marks a composition that has words over its picture. On a slide that is
+   nothing but an uploaded banner it would sit on the artwork as a stray chip of yellow, so the
+   image-only slide carries no marker and its edges stay the banner's own. Two classes against one
+   keeps this over the bare `.hero-marker` rule above. */
+.hero-slide.image-only .hero-marker {
+    display: none;
 }
 
 .hero-content {
