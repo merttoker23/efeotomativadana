@@ -35,7 +35,7 @@
                     {route: 'admin_order_index', icon: 'orders', label: 'Siparişleri yönet', note: 'Siparişler ve durum geçmişi'},
                     {route: 'admin_cms_home_index', icon: 'home', label: 'Ana sayfayı düzenle', note: 'Bölümler, görseller ve yayın durumu'},
                     {route: 'admin_shipment_index', icon: 'truck', label: 'Kargoları takip et', note: 'Teslimat ve takip bilgileri'},
-                    {route: 'admin_settings', icon: 'settings', label: 'Mağaza ayarları', note: 'Genel bilgiler ve entegrasyonlar'}
+                    {route: 'admin_settings', icon: 'settings', label: 'Mağaza Ayarları', note: 'Genel bilgiler ve entegrasyonlar'}
                 ] %}<a class="quick-link" href="{{ path(link.route) }}">{{ ui.icon(link.icon) }}<span>{{ link.label }}<small>{{ link.note }}</small></span><span aria-hidden="true">→</span></a>{% endfor %}
             </section>
             <section class="panel"><div class="page-heading"><h2>B2B senkronizasyon</h2>{{ ui.icon('sync') }}</div>

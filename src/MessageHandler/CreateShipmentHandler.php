@@ -56,10 +56,11 @@ final readonly class CreateShipmentHandler
             throw new UnrecoverableMessageHandlingException(sprintf('Shipment %s does not need a carrier.', $shipment->orderNumber()));
         }
 
-        $outcome = $this->orchestrator->providerFor($shipment)->create($this->orchestrator->creationInstructionFor($shipment));
-        $failure = $outcome->failure();
-
-        $this->entityManager->wrapInTransaction(function () use ($message, $outcome, $failure): void {
+        $failure = null;
+        $this->entityManager->wrapInTransaction(function () use ($shipment, $message, &$failure): void {
+            // Keep the order lock through the carrier call: cancellation must not race a
+            // real parcel creation that was formerly started before any row was locked.
+            $this->entityManager->refresh($shipment->order(), \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
             $locked = $this->shipments->findForUpdate($message->shipmentId);
             if (!$locked instanceof Shipment) {
                 // The order went away while the carrier was deciding. The parcel still exists at the
@@ -67,19 +68,12 @@ final readonly class CreateShipmentHandler
                 // orphaned messages is where that has to be resolved.
                 return;
             }
-            if (!$locked->awaitsProviderCreation()) {
-                // The row moved while the carrier was deciding — a status callback got there first,
-                // or an operator acted. Its answer stands, but the carrier has now created a real
-                // parcel, so the reference is adopted rather than thrown away: dropping it would
-                // leave a parcel at the carrier that this store can neither address nor cancel.
-                if (null === $failure) {
-                    $locked->adoptProviderReference($outcome->providerReference(), $outcome->trackingNumber(), \DateTimeImmutable::createFromInterface($this->clock->now()));
-                    $this->shipments->save($locked);
-                    $this->entityManager->flush();
-                }
-
+            if (\App\Module\Order\OrderState::Confirmed !== $locked->order()->state()
+                || !$locked->awaitsProviderCreation()) {
                 return;
             }
+            $outcome = $this->orchestrator->providerFor($locked)->create($this->orchestrator->creationInstructionFor($locked));
+            $failure = $outcome->failure();
             $now = \DateTimeImmutable::createFromInterface($this->clock->now());
             if (null === $failure) {
                 $locked->markReady($outcome->providerReference(), $outcome->trackingNumber(), $now);

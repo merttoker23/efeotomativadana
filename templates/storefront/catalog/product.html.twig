@@ -10,15 +10,18 @@
 
     <article class="container product-detail">
         <section class="product-gallery" aria-label="Ürün görselleri" data-controller="product-gallery">
-            <div class="product-gallery-main">
             {% if product.images is empty %}
+                <div class="product-gallery-main">
                 <img src="{{ product_image_url(null) }}" alt="{{ product.name }} için temsili görsel" width="400" height="320" fetchpriority="high" decoding="async" data-product-gallery-target="main">
+                </div>
             {% else %}
                 {% set image = product.images|first %}
                 {% set dimensions = image_dimensions(image.path) %}
+                <button type="button" class="product-gallery-main product-gallery-zoom" aria-label="{{ product.name }} görselini büyüt" aria-haspopup="dialog" aria-controls="product-image-dialog" data-action="product-gallery#open">
                 <img src="{{ media_url(image.path) }}" alt="{{ image.alt }}"{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} fetchpriority="high" decoding="async" data-product-gallery-target="main">
+                    <span class="product-gallery-zoom-hint" aria-hidden="true">Büyüt</span>
+                </button>
             {% endif %}
-            </div>
             {% if product.images|length > 1 %}
                 <div class="product-gallery-thumbnails" aria-label="Görsel seçimi">
                 {% for image in product.images %}
@@ -28,6 +31,21 @@
                     </button>
                 {% endfor %}
                 </div>
+            {% endif %}
+            {% if product.images is not empty %}
+                <dialog id="product-image-dialog" class="product-gallery-dialog" aria-labelledby="product-image-dialog-title" data-product-gallery-target="dialog" data-action="keydown->product-gallery#keydown cancel->product-gallery#close close->product-gallery#closed click->product-gallery#backdrop">
+                    <div class="product-gallery-dialog-header">
+                        <h2 id="product-image-dialog-title" class="visually-hidden">{{ product.name }} görselleri</h2>
+                        <span class="product-gallery-position" aria-live="polite" data-product-gallery-target="position"></span>
+                        <button type="button" class="product-gallery-dialog-close" aria-label="Büyütülmüş görseli kapat" data-action="product-gallery#close" autofocus><span aria-hidden="true">×</span></button>
+                    </div>
+                    <div class="product-gallery-dialog-stage">
+                        <button type="button" class="product-gallery-dialog-arrow" aria-label="Önceki görsel" data-product-gallery-target="previous" data-action="product-gallery#previous"><span aria-hidden="true">‹</span></button>
+                        <img alt="" class="product-gallery-dialog-image" decoding="async" data-product-gallery-target="zoom">
+                        <button type="button" class="product-gallery-dialog-arrow" aria-label="Sonraki görsel" data-product-gallery-target="next" data-action="product-gallery#next"><span aria-hidden="true">›</span></button>
+                    </div>
+                    <div class="product-gallery-thumbnails product-gallery-dialog-thumbnails" aria-label="Büyütülmüş görsel seçimi" data-product-gallery-target="zoomThumbnails"></div>
+                </dialog>
             {% endif %}
         </section>
 

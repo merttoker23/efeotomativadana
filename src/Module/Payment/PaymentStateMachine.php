@@ -31,7 +31,8 @@ final readonly class PaymentStateMachine
             // A mismatched capture already holds the customer's money, so it can only be
             // given back, never retried or cancelled.
             PaymentState::CapturedAmountMismatch => [PaymentState::PartiallyRefunded, PaymentState::Refunded],
-            PaymentState::Failed, PaymentState::Cancelled, PaymentState::Refunded => [],
+            PaymentState::Failed => [PaymentState::Cancelled],
+            PaymentState::Cancelled, PaymentState::Refunded => [],
         };
     }
 }

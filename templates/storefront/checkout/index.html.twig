@@ -66,6 +66,15 @@
                         {% endfor %}
                     </fieldset>
 
+                    <fieldset class="checkout-step">
+                        <legend><span class="checkout-step-number" aria-hidden="true">4</span> Sipariş notu</legend>
+                        <div class="checkout-address-field">
+                            <label for="order-note">Sipariş notu (isteğe bağlı)</label>
+                            <textarea id="order-note" name="order_note" rows="4" maxlength="1000" aria-describedby="order-note-help"></textarea>
+                            <small id="order-note-help">Siparişinizle ilgili ek bilgi bırakabilirsiniz. En fazla 1000 karakter, yalnızca düz metin.</small>
+                        </div>
+                    </fieldset>
+
                     <button class="checkout-submit" type="submit"{% if checkout.shippingOptions is empty or checkout.paymentOptions is empty %} disabled{% endif %}>Siparişi oluştur</button>
                 </form>
             {% endif %}

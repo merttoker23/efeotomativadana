@@ -70,6 +70,7 @@ final readonly class PaymentAdminManager
         }
 
         return $this->entityManager->wrapInTransaction(function () use ($order, $reason, $actorEmail): Payment {
+            $this->entityManager->refresh($order, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
             $payment = $this->lockedPayment($order);
             if ($payment->state()->hasCapturedFunds()) {
                 throw new \DomainException('A captured payment must be refunded, not cancelled.');
@@ -77,20 +78,19 @@ final readonly class PaymentAdminManager
             if (!$payment->state()->canBeRetried()) {
                 throw new \DomainException(sprintf('A %s payment cannot be cancelled.', $payment->state()->value));
             }
-            $attempt = $payment->latestAttempt();
-            if (null === $attempt) {
-                throw new PaymentNotFound(sprintf('Order %s has no payment attempt to cancel.', $order->orderNumber()));
+            foreach ($payment->attempts() as $attempt) {
+                if ($attempt->state()->awaitsCallbackDecision()) {
+                    $this->releaseAtProvider($payment, $attempt);
+                }
             }
-
-            $this->releaseAtProvider($payment, $attempt);
-            $payment->markCancelled($attempt, $reason, \DateTimeImmutable::createFromInterface($this->clock->now()));
+            $payment->cancelUncaptured($reason, \DateTimeImmutable::createFromInterface($this->clock->now()));
             $this->payments->save($payment);
             $this->audit->record(
                 AuditAction::PaymentCancelled,
                 $order->orderNumber(),
                 [
                     'provider' => $payment->providerKey(),
-                    'attempt_sequence' => $attempt->sequence(),
+                    'attempt_sequence' => $payment->latestAttempt()?->sequence(),
                     'reason' => $reason,
                     // Recorded explicitly because the caller passes an e-mail the audit row
                     // cannot read for itself in a console context, where there is no session.
@@ -112,12 +112,15 @@ final readonly class PaymentAdminManager
         }
         // A provider that never authorized anything has nothing to release; the local state is
         // already the whole truth in that case.
-        $gateway->releaseAuthorization(new Gateway\GatewayRefundInstruction(
+        $outcome = $gateway->releaseAuthorization(new Gateway\GatewayRefundInstruction(
             $attempt->providerReference(),
             $payment->amount(),
             sprintf('void-%s-%d', $payment->order()->orderNumber(), $attempt->sequence()),
             'Store cancelled an uncaptured payment.',
         ));
+        if (null !== $outcome && Gateway\RefundStatus::Completed !== $outcome->status()) {
+            throw new \DomainException('The provider refused to release the payment authorization.');
+        }
     }
 
     private function lockedPayment(CustomerOrder $order): Payment

@@ -125,6 +125,11 @@ final class HomepageThemeLayoutTest extends WebTestCase
             $this->slide(),
         ]], 10);
         $slides = $this->home()->filter('.hero-slide');
+        self::assertNull($slides->eq(0)->filter('img.hero-photo')->attr('loading'));
+        self::assertSame('high', $slides->eq(0)->filter('img.hero-photo')->attr('fetchpriority'));
+        self::assertSame('async', $slides->eq(0)->filter('img.hero-photo')->attr('decoding'));
+        self::assertSame('lazy', $slides->eq(1)->filter('img.hero-photo')->attr('loading'));
+        self::assertSame('async', $slides->eq(1)->filter('img.hero-photo')->attr('decoding'));
         $media = self::getContainer()->get(\App\Twig\StorefrontMediaExtension::class);
         self::assertSame($media->mediaUrl($mobile), $slides->eq(0)->filter('picture source[media="(max-width: 680px)"]')->attr('srcset'));
         self::assertSame($media->productImageUrl(null), $slides->eq(1)->filter('picture source[media="(max-width: 680px)"]')->attr('srcset'));

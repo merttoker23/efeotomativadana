@@ -68,6 +68,12 @@
             </div>
 
             <div class="order-addresses">
+                {% if order.orderNote is not null %}
+                    <section class="order-address-card order-note" data-testid="order-note" aria-labelledby="order-note-heading">
+                        <h2 id="order-note-heading">Sipariş notu</h2>
+                        <p style="white-space: pre-wrap; overflow-wrap: anywhere">{{ order.orderNote }}</p>
+                    </section>
+                {% endif %}
                 {% if shippingAddress %}
                     <section class="order-address-card" aria-labelledby="shipping-address-heading">
                         <h2 id="shipping-address-heading">Teslimat Adresi</h2>
@@ -87,6 +93,18 @@
                     </section>
                 {% endif %}
             </div>
+
+            {% if cancellable %}
+                <section class="order-return-area" aria-labelledby="cancel-heading">
+                    <h2 id="cancel-heading">Sipariş iptali</h2>
+                    <form method="post" action="{{ path('customer_account_order_cancel', {orderNumber: order.orderNumber}) }}" data-controller="order-cancel" data-action="submit->order-cancel#confirm">
+                        <input type="hidden" name="_token" value="{{ csrf_token('customer_order_cancel_' ~ order.orderNumber) }}">
+                        <button class="account-primary-link" type="submit" data-testid="order-cancel">Siparişi İptal Et</button>
+                    </form>
+                </section>
+            {% elseif order.state.value in ['placed', 'confirmed'] %}
+                <p class="account-alert">Kargoya hazırlanmış siparişiniz için aşağıdaki iade işlemlerini kullanabilir veya <a href="{{ path('storefront_contact') }}">destek ile iletişime geçebilirsiniz</a>.</p>
+            {% endif %}
 
             <section class="order-return-area" aria-labelledby="returns-heading">
                 <h2 id="returns-heading">İade işlemleri</h2>

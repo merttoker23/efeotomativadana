@@ -314,12 +314,12 @@ final class SettingsControllerTest extends WebTestCase
     public function testDedicatedSettingsFormsRejectInvalidCsrfWithoutWriting(): void
     {
         $crawler = $this->client->request('GET', '/yeni/admin/settings');
-        self::assertSame(['Mağaza ayarları'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
-        foreach (['seo' => 'SEO', 'shipping' => 'Kargo Ayarları', 'payment' => 'Ödeme Sağlayıcı'] as $page => $label) {
+        self::assertSame(['Mağaza Ayarları'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
+        foreach (['seo' => 'SEO', 'shipping' => 'Kargo Ayarları', 'payment' => 'Ödeme Ayarları', 'cookies' => 'Çerez Ayarları'] as $page => $label) {
             $crawler = $this->client->request('GET', '/yeni/admin/settings/'.$page);
             self::assertSame([$label], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
             $form = $crawler->selectButton('Ayarları kaydet')->form();
-            $form[$page.'_settings[_token]'] = 'invalid';
+            $form[('cookies' === $page ? 'cookie' : $page).'_settings[_token]'] = 'invalid';
             $this->client->submit($form);
             self::assertResponseStatusCodeSame(422);
         }
@@ -349,6 +349,71 @@ final class SettingsControllerTest extends WebTestCase
         $this->client->request('POST', '/yeni/admin/settings/payment', ['payment_settings' => ['merchantKey' => 'unauthenticated-private-key']]);
         self::assertResponseRedirects('/yeni/admin/login');
         self::assertNull($this->client->getProfile());
+    }
+
+    public function testCookieSnippetIsSavedRenderedOnlyOnStorefrontAndRemovedWhenCleared(): void
+    {
+        $snippet = '<script src="https://consent.example.com/embed.js" data-cookie-test="external"></script><script data-cookie-test="inline">window.cookieConsent = true;</script>';
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('h1', 'Çerez Ayarları');
+        self::assertSame(['Çerez Ayarları'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['cookie_settings[script]'] = '  '.$snippet.'  ';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings/cookies');
+        self::assertSame($snippet, self::getContainer()->get(StoreConfiguration::class)->cookieScript());
+        self::assertSame($snippet, json_decode($this->connection->fetchOne('SELECT value FROM store_setting WHERE setting_key = ?', ['cookies.script']), true));
+        self::assertSame(25_000, self::getContainer()->get(StoreConfiguration::class)->shippingFee());
+
+        foreach (['/yeni/', '/yeni/katalog', '/yeni/giris'] as $url) {
+            $this->client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertSelectorCount(1, 'head script[data-cookie-test="external"]');
+            self::assertSelectorCount(1, 'head script[data-cookie-test="inline"]');
+            $policy = $this->client->getResponse()->headers->get('Content-Security-Policy');
+            self::assertStringContainsString('https://consent.example.com', $policy);
+            self::assertStringNotContainsString('unsafe-eval', $policy);
+        }
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        self::assertSelectorNotExists('script[data-cookie-test]');
+        self::assertStringNotContainsString('consent.example.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
+        self::assertSame($snippet, $crawler->selectButton('Ayarları kaydet')->form()['cookie_settings[script]']->getValue());
+
+        $general = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
+        $general['store_settings[storeName]'] = 'Çerez testi mağazası';
+        $this->client->submit($general);
+        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertSame($snippet, self::getContainer()->get(StoreConfiguration::class)->cookieScript());
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['cookie_settings[script]'] = '';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings/cookies');
+        self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
+        $this->client->request('GET', '/yeni/katalog');
+        self::assertSelectorNotExists('script[data-cookie-test]');
+        self::assertStringNotContainsString('consent.example.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
+    }
+
+    public function testCookieSettingsRejectAnonymousWritesInvalidCsrfAndOversizeCode(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['cookie_settings[script]'] = '<script>window.shouldNotRun = true;</script>';
+        $form['cookie_settings[_token]'] = 'invalid';
+        $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
+        $form = $this->client->request('GET', '/yeni/admin/settings/cookies')->selectButton('Ayarları kaydet')->form();
+        $form['cookie_settings[script]'] = str_repeat('x', 50001);
+        $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
+        $this->client->getCookieJar()->clear();
+        $this->client->request('POST', '/yeni/admin/settings/cookies', ['cookie_settings' => ['script' => '<script>window.shouldNotRun = true;</script>']]);
+        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
     }
 
     private function resetDatabaseState(): void

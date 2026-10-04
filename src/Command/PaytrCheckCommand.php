@@ -35,7 +35,7 @@ final class PaytrCheckCommand extends Command
             $errors[] = 'Eksik yapılandırma: '.$variable;
         }
         if ('paytr' !== $this->store->paymentProvider()) {
-            $errors[] = 'Admin > Ödeme Sağlayıcı ekranında PayTR seçin.';
+            $errors[] = 'Admin > Ödeme Ayarları ekranında PayTR seçin.';
         }
         if ($configuration->isConfigured()) {
             try {

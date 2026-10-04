@@ -538,8 +538,9 @@ final class PaymentOrchestrationTest extends KernelTestCase
     public function testASuccessfulCaptureConfirmsAnOrderOnlyWhenItIsStillPlaced(): void
     {
         $order = $this->order('not-placed@example.com', 45_000);
-        $order->transitionTo(OrderState::Cancelled);
         $this->startAwaitingCallback($order, 'FAKE-LATE', 45_000);
+        $order->transitionTo(OrderState::Cancelled);
+        $this->entityManager->flush();
 
         $this->callbacks->handle($this->tokenFor($order), $this->successCallback('FAKE-LATE', 45_000));
 

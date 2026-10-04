@@ -9,6 +9,7 @@ use App\Entity\Commerce\Cart;
 use App\Entity\Commerce\ProductInventory;
 use App\Entity\Commerce\ProductPrice;
 use App\Entity\Customer\CustomerAddress;
+use App\Entity\Customer\AdminUser;
 use App\Entity\Customer\CustomerUser;
 use App\Module\Pricing\TaxCategory;
 use App\Module\Pricing\TaxRate;
@@ -66,6 +67,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSelectorTextContains('.checkout-summary', 'Ara Toplam');
         self::assertSelectorTextContains('.checkout-summary', 'Kargo');
         self::assertSelectorTextContains('.checkout-summary-total', 'Genel Toplam');
+        self::assertSelectorExists('textarea[name="order_note"][maxlength="1000"]');
         $token = $crawler->filter('input[name="_token"]')->attr('value');
         self::assertIsString($token);
         $this->client->request('POST', '/yeni/odeme', [
@@ -74,6 +76,7 @@ final class CheckoutWorkflowTest extends WebTestCase
             'billing_address' => (string) $address->id(),
             'shipping_option' => 'local_standard',
             'payment_option' => 'local_manual',
+            'order_note' => "  Öğleden sonra teslim edin.\nA & B  ",
             'total' => '1',
             'tax' => '0',
             'shipping_cost' => '0',
@@ -87,6 +90,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSame(49_690, (int) $order['grand_total_minor_amount']);
         self::assertSame(2, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_product_inventory'));
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
+        self::assertSame("Öğleden sonra teslim edin.\nA & B", $this->connection->fetchOne('SELECT order_note FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]));
 
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
@@ -95,10 +99,70 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSelectorTextContains('.order-payment', 'üretim dışı');
         self::assertSelectorTextContains('.order-line', 'Web Checkout Ürünü');
 
+        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order['order_number']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="order-note"]', 'Öğleden sonra teslim edin.');
+        self::assertStringContainsString('A &amp; B', $this->client->getResponse()->getContent());
+
+        $administrator = new AdminUser('note-admin@example.com');
+        $this->entityManager->persist($administrator);
+        $this->entityManager->flush();
+        $this->client->loginUser($administrator, 'admin');
+        $this->client->request('GET', '/yeni/admin/orders/'.$order['order_number']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="order-note"]', 'Öğleden sonra teslim edin.');
+        self::assertStringContainsString('A &amp; B', $this->client->getResponse()->getContent());
+
+        // Even imported legacy data bypassing domain validation must remain escaped.
+        $legacyNote = '<script data-legacy-order-note>alert(1)</script>';
+        $this->connection->update('commerce_customer_order', ['order_note' => $legacyNote], ['order_number' => $order['order_number']]);
+        $this->entityManager->clear();
+        $this->client->request('GET', '/yeni/admin/orders/'.$order['order_number']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="order-note"]', $legacyNote);
+        self::assertSelectorNotExists('script[data-legacy-order-note]');
+        $this->client->loginUser($customer, 'main');
+        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order['order_number']);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="order-note"]', $legacyNote);
+        self::assertSelectorNotExists('script[data-legacy-order-note]');
+
         $attacker = $this->customer('other@example.com');
         $this->client->loginUser($attacker, 'main');
         $this->client->request('GET', '/yeni/siparis/'.$order['order_number'].'/basarili');
         self::assertResponseStatusCodeSame(404);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidOrderNotes')]
+    public function testInvalidOrderNoteLeavesCartAndStockUntouched(string $note): void
+    {
+        $customer = $this->customer('invalid-note@example.com');
+        $address = $this->address($customer, 'Ev', 'Not Cad. 1');
+        $this->cartLine($customer, 10_000, 3, 1);
+        $this->client->loginUser($customer, 'main');
+        $crawler = $this->client->request('GET', '/yeni/odeme');
+        $this->client->request('POST', '/yeni/odeme', [
+            '_token' => $crawler->filter('input[name="_token"]')->attr('value'),
+            'shipping_address' => $address->id(),
+            'billing_address' => $address->id(),
+            'shipping_option' => 'local_standard',
+            'payment_option' => 'local_manual',
+            'order_note' => $note,
+        ]);
+        self::assertResponseRedirects('/yeni/odeme');
+        self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]));
+        self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
+        self::assertSame(3, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_product_inventory'));
+        $this->client->followRedirect();
+        self::assertSelectorExists('.storefront-flash-error');
+        self::assertSelectorNotExists('script[data-invalid-note]');
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function invalidOrderNotes(): iterable
+    {
+        yield 'HTML script rejected' => ['<script data-invalid-note>alert(1)</script>'];
+        yield 'maximum exceeded' => [str_repeat('ğ', 1001)];
     }
 
     public function testCheckoutPostRequiresCsrfAndKeepsCartOnFailure(): void
@@ -159,6 +223,11 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSame($subtotal, (int) $order['subtotal_minor_amount']);
         self::assertSame($shippingMinor, (int) $order['shipping_minor_amount']);
         self::assertSame($totalMinor, (int) $order['grand_total_minor_amount']);
+        self::assertNull($this->connection->fetchOne('SELECT order_note FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]));
+        $orderNumber = $this->connection->fetchOne('SELECT order_number FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]);
+        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$orderNumber);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[data-testid="order-note"]');
     }
 
     /** @return iterable<string, array{int, bool, string, string, int, int}> */

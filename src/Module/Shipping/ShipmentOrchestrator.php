@@ -166,6 +166,32 @@ final readonly class ShipmentOrchestrator
      */
     public function cancel(Shipment $shipment, string $reason, string $actorEmail): Shipment
     {
+        $refused = null;
+        $cancelled = $this->entityManager->wrapInTransaction(function () use ($shipment, $reason, $actorEmail, &$refused): Shipment {
+            $this->entityManager->refresh($shipment->order(), \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+            $locked = $this->shipments->findForUpdate((int) $shipment->id())
+                ?? throw new ShipmentNotFound('Shipment was not found.');
+            if (!$locked->state()->isCancellable()) {
+                throw new \DomainException('This shipment cannot be cancelled.');
+            }
+            try {
+                // Resolve and recall the carrier reference under the creation lock too.
+                return $this->cancelLocked($locked, $reason, $actorEmail);
+            } catch (ShipmentCancellationRefused $failure) {
+                $refused = $failure;
+
+                return $locked;
+            }
+        });
+        if (null !== $refused) {
+            throw $refused;
+        }
+
+        return $cancelled;
+    }
+
+    private function cancelLocked(Shipment $shipment, string $reason, string $actorEmail): Shipment
+    {
         $reason = trim($reason);
         if ('' === $reason) {
             throw new \InvalidArgumentException('A shipment cancellation requires a reason.');
@@ -386,9 +412,14 @@ final readonly class ShipmentOrchestrator
     {
         $id = (int) $shipment->id();
 
-        $applied = $this->entityManager->wrapInTransaction(function () use ($id, $change, $action, $payload): Shipment {
+        $applied = $this->entityManager->wrapInTransaction(function () use ($shipment, $id, $change, $action, $payload): Shipment {
+            $this->entityManager->refresh($shipment->order(), \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
             $locked = $this->shipments->findForUpdate($id)
                 ?? throw new ShipmentNotFound(sprintf('Shipment %d was not found.', $id));
+            if (\App\Module\Order\OrderState::Cancelled === $locked->order()->state()
+                && AuditAction::ShipmentCancelled !== $action) {
+                throw new \DomainException('A cancelled order cannot advance its shipment.');
+            }
             $change($locked);
             $this->shipments->save($locked);
             if (null !== $action) {

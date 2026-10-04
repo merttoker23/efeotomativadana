@@ -52,6 +52,7 @@ final class CheckoutController extends AbstractController
                     $request->request->getInt('billing_address'),
                     $request->request->getString('shipping_option'),
                     $request->request->getString('payment_option'),
+                    $request->request->getString('order_note'),
                 ));
                 $this->addFlash('success', 'Siparişiniz güvenle oluşturuldu.');
 

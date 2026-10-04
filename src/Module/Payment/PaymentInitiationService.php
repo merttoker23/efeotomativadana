@@ -45,6 +45,7 @@ final readonly class PaymentInitiationService
         $idempotencyKey ??= $this->defaultIdempotencyKey($order);
 
         return $this->entityManager->wrapInTransaction(function () use ($order, $gateway, $idempotencyKey): PaymentStartResult {
+            $this->lockOpenOrder($order);
             $payment = $this->payments->findOneForUpdate($order) ?? $this->createPayment($order, $gateway);
 
             if (null !== ($existing = $this->existingAttempt($payment, $idempotencyKey))) {
@@ -94,6 +95,7 @@ final readonly class PaymentInitiationService
         $gateway = $this->gateways->resolveOrFail($providerKey ?? $this->configuredProviderKey());
 
         return $this->entityManager->wrapInTransaction(function () use ($order, $gateway): PaymentStartResult {
+            $this->lockOpenOrder($order);
             $payment = $this->payments->findOneForUpdate($order) ?? $this->createPayment($order, $gateway);
             $latest = $payment->latestAttempt();
             if (null !== $latest && !$payment->state()->canBeRetried()) {
@@ -135,6 +137,8 @@ final readonly class PaymentInitiationService
     {
         $this->entityManager->wrapInTransaction(function () use ($attempt): void {
             $payment = $attempt->payment();
+            $this->entityManager->refresh($payment->order(), \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+            $this->payments->findOneForUpdate($payment->order());
             if (!$payment->state()->canBeRetried()) {
                 return;
             }
@@ -142,6 +146,14 @@ final readonly class PaymentInitiationService
             $this->payments->save($payment);
             $this->entityManager->flush();
         });
+    }
+
+    private function lockOpenOrder(CustomerOrder $order): void
+    {
+        $this->entityManager->refresh($order, \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
+        if (in_array($order->state(), [\App\Module\Order\OrderState::Cancelled, \App\Module\Order\OrderState::Completed], true)) {
+            throw new \DomainException('A closed order cannot start a payment.');
+        }
     }
 
     private function apply(Payment $payment, PaymentAttempt $attempt, Gateway\GatewayInitiationOutcome $outcome): void

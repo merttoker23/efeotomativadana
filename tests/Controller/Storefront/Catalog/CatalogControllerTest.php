@@ -334,6 +334,7 @@ final class CatalogControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $detailPlaceholder = (string) $crawler->filter('.product-gallery img')->first()->attr('src');
         self::assertStringStartsWith('/yeni/assets/storefront/images/product-placeholder-', $detailPlaceholder);
+        self::assertSelectorNotExists('.product-gallery-zoom, .product-gallery-dialog');
 
         $crawler = $this->client->request('GET', '/yeni/katalog?sort=name-asc');
         self::assertResponseIsSuccessful();
@@ -349,6 +350,8 @@ final class CatalogControllerTest extends WebTestCase
         foreach ($sources as $source) {
             self::assertStringStartsWith('/yeni/', $source);
         }
+        self::assertSelectorCount(2, '.product-card img[loading="lazy"][decoding="async"][width="640"][height="640"]');
+        self::assertSelectorCount(3, '.payments img[loading="lazy"][decoding="async"][width][height]');
     }
 
     public function testProductImagesReserveTheirRealAspectRatiosAndOnlyTheLeadImageIsEager(): void
@@ -360,7 +363,7 @@ final class CatalogControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/yeni/urun/boyutlu-urun');
 
         self::assertResponseIsSuccessful();
-        $images = $crawler->filter('.product-gallery img');
+        $images = $crawler->filter('.product-gallery-main img, .product-gallery-thumbnails img');
         self::assertCount(3, $images);
         self::assertSame('640', $images->eq(0)->attr('width'));
         self::assertSame('640', $images->eq(0)->attr('height'));
@@ -372,6 +375,8 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSame('async', $images->eq(2)->attr('decoding'));
         self::assertSelectorCount(2, '.product-gallery-thumbnail');
         self::assertSelectorExists('.product-gallery-thumbnail[aria-pressed="true"]');
+        self::assertSelectorExists('dialog[data-product-gallery-target="dialog"]');
+        self::assertSelectorNotExists('dialog img[src], dialog[open]');
     }
 
     public function testDetailTabsOnlyRenderAvailableDataAndRelatedCardsExcludeTheCurrentProduct(): void

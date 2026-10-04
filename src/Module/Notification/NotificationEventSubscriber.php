@@ -45,6 +45,15 @@ final readonly class NotificationEventSubscriber
     }
 
     #[AsEventListener]
+    public function onOrderCancelled(\App\Module\Notification\Event\OrderCancelled $event): void
+    {
+        $this->publish(new NotificationEvent(NotificationType::OrderCancelled, $event->order->orderNumber(), $event->order->customerEmail(), [
+            'order_number' => $event->order->orderNumber(),
+            'customer_name' => $event->order->customerName(),
+        ]));
+    }
+
+    #[AsEventListener]
     public function onPaymentCaptured(PaymentCaptured $event): void
     {
         $this->publish(new NotificationEvent(NotificationType::PaymentReceived, $event->order->orderNumber(), $event->order->customerEmail(), [

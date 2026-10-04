@@ -43,8 +43,8 @@ final class StoreConfigurationTest extends KernelTestCase
     public function testRequiredSettingsArePersistedExactlyOnce(): void
     {
         $persistedKeys = $this->connection->fetchFirstColumn('SELECT setting_key FROM store_setting ORDER BY setting_key');
-        // Colors, Analytics and shipping amounts use defaults until saved; no migration seeds them.
-        $optional = static fn (string $key): bool => str_starts_with($key, 'storefront.color.') || str_starts_with($key, 'analytics.') || in_array($key, [SettingKey::ShippingFee->value, SettingKey::FreeShippingThreshold->value], true);
+        // Colors, Analytics, cookie code and shipping amounts use defaults until saved.
+        $optional = static fn (string $key): bool => str_starts_with($key, 'storefront.color.') || str_starts_with($key, 'analytics.') || in_array($key, [SettingKey::ShippingFee->value, SettingKey::FreeShippingThreshold->value, SettingKey::CookieScript->value], true);
         $persistedKeys = array_values(array_filter($persistedKeys, static fn (string $key): bool => !$optional($key)));
         $requiredKeys = array_map(
             static fn (SettingKey $key): string => $key->value,
@@ -67,6 +67,25 @@ final class StoreConfigurationTest extends KernelTestCase
         );
 
         self::assertFalse($this->configuration()->isB2bEnabled());
+    }
+
+    public function testCookieSettingsUseNullDefaultAndValidateOutsideTheAdminForm(): void
+    {
+        $this->connection->executeStatement('DELETE FROM store_setting WHERE setting_key = ?', [SettingKey::CookieScript->value]);
+        $configuration = $this->configuration();
+        self::assertNull($configuration->cookieScript());
+        $snippet = '<script>window.cookieTest = true;</script>';
+        $configuration->saveCookies(new \App\Module\Settings\CookieSettingsData('  '.$snippet.'  '));
+        self::getContainer()->get('doctrine')->getManager()->clear();
+        self::assertSame($snippet, $configuration->currentCookies()->script);
+        try {
+            $configuration->saveCookies(new \App\Module\Settings\CookieSettingsData(str_repeat('x', 50001)));
+            self::fail('Oversize cookie code must be rejected at the persistence boundary.');
+        } catch (ValidationFailedException) {
+            self::assertSame($snippet, $configuration->cookieScript());
+        }
+        $configuration->saveCookies(new \App\Module\Settings\CookieSettingsData(" \n\t"));
+        self::assertNull($configuration->cookieScript());
     }
 
     public function testTypedSettingsPersistAcrossEntityManagerClear(): void

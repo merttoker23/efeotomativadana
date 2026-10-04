@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Payment;
 
 use App\Entity\Commerce\CustomerOrder;
-use App\Entity\Commerce\OrderStatusChange;
 use App\Entity\Commerce\Payment;
 use App\Entity\Commerce\PaymentRefund;
 use App\Module\Audit\AuditAction;
@@ -13,7 +12,6 @@ use App\Module\Audit\AuditLogger;
 use App\Module\Order\OrderState;
 use App\Module\Loyalty\RewardService;
 use App\Module\Payment\Gateway\GatewayRefundInstruction;
-use App\Module\Payment\Gateway\GatewayRefundOutcome;
 use App\Module\Payment\Gateway\RefundStatus;
 use App\Repository\Commerce\PaymentRepository;
 use App\Shared\Money\Money;
@@ -40,10 +38,11 @@ final readonly class PaymentRefundService
         private ClockInterface $clock,
         private AuditLogger $audit,
         private RewardService $rewards,
+        private \App\Module\Order\OrderCancellationService $cancellation,
     ) {
     }
 
-    public function refund(CustomerOrder $order, Money $amount, string $reason, string $actorEmail): PaymentRefund
+    public function refund(CustomerOrder $order, Money $amount, string $reason, string $actorEmail, bool $announceCancellation = true): PaymentRefund
     {
         $reason = trim($reason);
         $actorEmail = mb_strtolower(trim($actorEmail));
@@ -131,6 +130,10 @@ final readonly class PaymentRefundService
             throw new RefundRefused($refused);
         }
 
+        if ($announceCancellation) {
+            $this->cancellation->announce($order);
+        }
+
         return $refund ?? throw new \LogicException('A refund request produced neither a refund nor a recorded refusal.');
     }
 
@@ -150,14 +153,6 @@ final readonly class PaymentRefundService
         if (OrderState::Cancelled === $order->state() || OrderState::Completed === $order->state()) {
             return;
         }
-        $from = $order->state();
-        $order->transitionTo(OrderState::Cancelled);
-        $this->entityManager->persist(new OrderStatusChange(
-            $order,
-            $from,
-            OrderState::Cancelled,
-            sprintf('Fully refunded: %s', $reason),
-            $actorEmail,
-        ));
+        $this->cancellation->complete($order, sprintf('Fully refunded: %s', $reason), $actorEmail);
     }
 }

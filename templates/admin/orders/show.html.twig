@@ -13,6 +13,12 @@
         <dt>Teslimat</dt><dd>{{ order.shippingOptionLabel }}</dd>
         <dt>Ödeme</dt><dd>{{ order.paymentOptionLabel }}</dd>
     </dl>
+    {% if order.orderNote is not null %}
+        <article class="subpanel order-note" data-testid="order-note">
+            <h2>Sipariş notu</h2>
+            <p style="white-space: pre-wrap; overflow-wrap: anywhere">{{ order.orderNote }}</p>
+        </article>
+    {% endif %}
     <p><a href="{{ path('admin_payment_show', {orderNumber: order.orderNumber}) }}">Ödeme geçmişi</a></p>
     <p>
         {% if shipment is not null %}

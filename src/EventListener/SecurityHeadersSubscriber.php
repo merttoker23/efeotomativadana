@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\EventListener;
 
 use App\Module\Settings\StoreConfiguration;
+use App\Module\Settings\CookieScriptOrigins;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -73,7 +74,8 @@ final class SecurityHeadersSubscriber
         $storefront = $customerRoute || (is_string($controller) && str_starts_with($controller, 'App\\Controller\\Storefront\\'));
         $analytics = $storefront
             && null !== $this->configuration?->ga4MeasurementId();
-        $event->getResponse()->headers->add($this->headers($analytics));
+        $cookieScriptOrigins = $storefront ? CookieScriptOrigins::fromSnippet($this->configuration?->cookieScript()) : [];
+        $event->getResponse()->headers->add($this->headers($analytics, $cookieScriptOrigins));
     }
 
     /**
@@ -83,16 +85,17 @@ final class SecurityHeadersSubscriber
      * directly, without booting a second container in a test environment. A security control
      * that can only be verified by switching environments tends not to be verified at all.
      *
+     * @param list<string> $cookieScriptOrigins
      * @return array<string, string>
      */
-    public function headers(bool $analytics = false): array
+    public function headers(bool $analytics = false, array $cookieScriptOrigins = []): array
     {
         $headers = [
             'X-Content-Type-Options' => 'nosniff',
             'X-Frame-Options' => 'DENY',
             'Referrer-Policy' => 'strict-origin-when-cross-origin',
             'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=()',
-            'Content-Security-Policy' => $this->contentSecurityPolicy($analytics),
+            'Content-Security-Policy' => $this->contentSecurityPolicy($analytics, $cookieScriptOrigins),
         ];
 
         if ($this->isProduction()) {
@@ -111,8 +114,10 @@ final class SecurityHeadersSubscriber
      * `data:` is allowed in `img-src` because the skeleton layout's favicon is an inline data
      * URI and the storefront renders uploaded images as data in a few previews; it is not
      * allowed in `script-src` or `object-src`, where it would be a way to run code.
+     *
+     * @param list<string> $cookieScriptOrigins
      */
-    public function contentSecurityPolicy(bool $analytics = false): string
+    public function contentSecurityPolicy(bool $analytics = false, array $cookieScriptOrigins = []): string
     {
         $directives = [
             "default-src 'self'",
@@ -143,6 +148,12 @@ final class SecurityHeadersSubscriber
             $directives[2] .= ' https://www.googletagmanager.com';
             $directives[3] .= ' https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com';
             $directives[5] .= ' https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://region1.analytics.google.com';
+        }
+
+        // Only script-src gains the explicit HTTPS hosts of administrator-managed script
+        // tags, and only storefront responses supply them. Other directives stay closed.
+        foreach ($cookieScriptOrigins as $origin) {
+            $directives[2] .= ' '.$origin;
         }
 
         return implode('; ', $directives);

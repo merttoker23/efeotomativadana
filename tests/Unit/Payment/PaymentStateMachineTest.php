@@ -26,6 +26,7 @@ final class PaymentStateMachineTest extends TestCase
         yield 'succeeded to partially refunded' => [PaymentState::Succeeded, PaymentState::PartiallyRefunded];
         yield 'succeeded to refunded' => [PaymentState::Succeeded, PaymentState::Refunded];
         yield 'partially refunded to refunded' => [PaymentState::PartiallyRefunded, PaymentState::Refunded];
+        yield 'failed uncaptured payment to cancelled' => [PaymentState::Failed, PaymentState::Cancelled];
     }
 
     #[DataProvider('allowedTransitions')]

@@ -18,6 +18,7 @@ final class StorefrontThemeExtension extends AbstractExtension
         return [
             new TwigFunction('storefront_colors', $this->configuration->storefrontColors(...)),
             new TwigFunction('storefront_ga4_measurement_id', $this->configuration->ga4MeasurementId(...)),
+            new TwigFunction('storefront_cookie_script', $this->configuration->cookieScript(...)),
         ];
     }
 }

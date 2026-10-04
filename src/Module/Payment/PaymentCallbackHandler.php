@@ -38,6 +38,7 @@ final readonly class PaymentCallbackHandler
         private ClockInterface $clock,
         private EventDispatcherInterface $events,
         private RewardService $rewards,
+        private \App\Module\Order\OrderCancellationService $cancellation,
     ) {
     }
 
@@ -90,7 +91,7 @@ final readonly class PaymentCallbackHandler
             return PaymentCallbackResult::rejected($authentication->reason() ?? 'unverified', $payment->state());
         }
 
-        return $this->entityManager->wrapInTransaction(function () use ($attempt, $authentication): PaymentCallbackResult {
+        $result = $this->entityManager->wrapInTransaction(function () use ($attempt, $authentication): PaymentCallbackResult {
             $this->entityManager->refresh($attempt->payment()->order(), \Doctrine\DBAL\LockMode::PESSIMISTIC_WRITE);
             // Initiation and staff cancellation lock payment before changing its attempts.
             $this->payments->findOneForUpdate($attempt->payment()->order());
@@ -124,6 +125,11 @@ final readonly class PaymentCallbackHandler
                 default => PaymentCallbackResult::rejected('unknown_outcome', $lockedPayment->state()),
             };
         });
+        if ($result->accepted() && 'cancelled' === $authentication->outcome()) {
+            $this->cancellation->announce($payment->order());
+        }
+
+        return $result;
     }
 
     /** The attempt a return token addresses, for redirecting the customer to their order. */
@@ -202,7 +208,8 @@ final readonly class PaymentCallbackHandler
     private function applyCancellation(Payment $payment, PaymentAttempt $attempt): PaymentCallbackResult
     {
         $now = $this->now();
-        $payment->markCancelled($attempt, 'The customer cancelled at the provider.', $now);
+        // Retired hosted sessions cannot stay actionable after the order is cancelled.
+        $payment->cancelUncaptured('The customer cancelled at the provider.', $now);
         $this->cancelOrder($payment->order(), $now);
         $this->payments->save($payment);
         $this->entityManager->flush();
@@ -226,8 +233,7 @@ final readonly class PaymentCallbackHandler
         if (OrderState::Placed !== $order->state()) {
             return;
         }
-        $order->transitionTo(OrderState::Cancelled);
-        $this->entityManager->persist(new OrderStatusChange($order, OrderState::Placed, OrderState::Cancelled, 'Payment cancelled at the payment provider.', 'payment-gateway'));
+        $this->cancellation->complete($order, 'Payment cancelled at the payment provider.', 'payment-gateway');
     }
 
     private function now(): \DateTimeImmutable

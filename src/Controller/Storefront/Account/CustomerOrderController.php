@@ -69,7 +69,7 @@ final class CustomerOrderController extends AbstractController
     }
 
     #[Route('/hesabim/siparisler/{orderNumber}', name: 'customer_account_order_show', requirements: ['orderNumber' => self::ORDER_NUMBER], methods: ['GET'])]
-    public function show(string $orderNumber, CustomerOrderRepository $orders, PaymentRepository $payments, ShipmentRepository $shipments, ReturnService $returns, StorefrontPageContext $context, OrderThumbnailRepository $thumbnails): Response
+    public function show(string $orderNumber, CustomerOrderRepository $orders, PaymentRepository $payments, ShipmentRepository $shipments, ReturnService $returns, StorefrontPageContext $context, OrderThumbnailRepository $thumbnails, \App\Module\Order\CustomerOrderCancellationService $cancellation): Response
     {
         $order = $this->order($orders, $orderNumber);
         [$eligible, $reason] = $returns->eligibilityOf($order);
@@ -81,9 +81,31 @@ final class CustomerOrderController extends AbstractController
             'shippingAddress' => $order->address(\App\Module\Order\OrderAddressRole::Shipping),
             'billingAddress' => $order->address(\App\Module\Order\OrderAddressRole::Billing),
             'returnable' => $eligible,
+            'cancellable' => $cancellation->canCancel($order),
             'returnIneligibility' => $reason,
             'returns' => $returns->pageForCustomer($this->customer(), 1, 5)->items,
         ]));
+    }
+
+    #[Route('/hesabim/siparisler/{orderNumber}/iptal', name: 'customer_account_order_cancel', requirements: ['orderNumber' => self::ORDER_NUMBER], methods: ['POST'])]
+    public function cancel(string $orderNumber, Request $request, CustomerOrderRepository $orders, \App\Module\Order\CustomerOrderCancellationService $cancellation): Response
+    {
+        $order = $this->order($orders, $orderNumber);
+        if (!$this->isCsrfTokenValid('customer_order_cancel_'.$order->orderNumber(), $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Geçersiz iptal isteği.');
+        }
+        try {
+            $cancellation->cancel($this->customer(), $orderNumber);
+            $this->addFlash('success', 'Siparişiniz iptal edildi. Tahsil edilmiş ödeme varsa iade işlemi tamamlandı.');
+        } catch (\App\Module\Order\OrderNotFound) {
+            throw $this->createNotFoundException();
+        } catch (\App\Module\Payment\RefundRefused) {
+            $this->addFlash('error', 'Ödeme iadesi tamamlanamadığı için siparişiniz iptal edilmedi. Lütfen destek ile iletişime geçin.');
+        } catch (\DomainException) {
+            $this->addFlash('error', 'Bu sipariş iptal edilemiyor. İade işlemlerini kullanabilir veya destek ile iletişime geçebilirsiniz.');
+        }
+
+        return $this->redirectToRoute('customer_account_order_show', ['orderNumber' => $orderNumber]);
     }
 
     /**

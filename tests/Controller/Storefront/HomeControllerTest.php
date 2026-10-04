@@ -87,12 +87,17 @@ final class HomeControllerTest extends WebTestCase
         $card = $crawler->filter('.blog-card[href="/yeni/blog/kapakli-yazi"]');
         self::assertCount(1, $card->filter('.blog-cover img'));
         self::assertSame('/yeni'.$cover, $card->filter('.blog-cover img')->attr('src'));
+        self::assertSame('lazy', $card->filter('img')->attr('loading'));
+        self::assertSame('async', $card->filter('img')->attr('decoding'));
         self::assertSelectorExists('.blog-card[href="/yeni/blog/kapaksiz-yazi"] .blog-cover');
         self::assertSelectorNotExists('.blog-card[href="/yeni/blog/kapaksiz-yazi"] img');
         $crawler = $this->client->request('GET', '/yeni/blog');
         self::assertSame('/yeni'.$cover, $crawler->filter('.blog-post-card[href="/yeni/blog/kapakli-yazi"] img')->attr('src'));
+        self::assertSelectorExists('.blog-post-card img[loading="lazy"][decoding="async"]');
         $crawler = $this->client->request('GET', '/yeni/blog/kapakli-yazi');
         self::assertSame('/yeni'.$cover, $crawler->filter('.blog-post-hero img')->attr('src'));
+        self::assertSelectorExists('.blog-post-hero img[fetchpriority="high"][decoding="async"]');
+        self::assertSelectorNotExists('.blog-post-hero img[loading="lazy"]');
     }
 
     public function testHomeUsesMappedLocalAssetsWithoutStaticThemeLinks(): void

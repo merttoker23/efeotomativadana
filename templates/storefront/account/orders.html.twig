@@ -29,7 +29,6 @@
                                 <span class="order-card-identity">
                                     <strong class="order-card-number">{{ order.orderNumber }}</strong>
                                     <span class="order-card-date"><time datetime="{{ order.createdAt|date('c') }}">{{ order.createdAt|date('d.m.Y H:i') }}</time></span>
-                                    <span class="order-card-state">{{ summary.stateLabel }}{% if not summary.hasPayment %} · Ödeme bekleniyor{% endif %}</span>
                                 </span>
                                 <span class="order-card-preview">
                                     <span class="order-thumbnails" aria-hidden="true">
@@ -40,8 +39,9 @@
                                     </span>
                                     <span class="order-card-count">{{ summary.lines|length }} ürün · {{ summary.quantity }} adet</span>
                                 </span>
+                                <span class="order-card-state">{{ summary.stateLabel }}{% if not summary.hasPayment %} · Ödeme bekleniyor{% endif %}</span>
                                 <span class="order-card-amount" data-testid="order-total"><small>Toplam</small><strong>{{ order.grandTotal|storefront_money }}</strong></span>
-                                <span class="order-card-toggle"><span class="when-closed">Detayları göster</span><span class="when-open">Detayları gizle</span><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                <span class="order-card-toggle" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18" focusable="false"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
                             </summary>
                             <div class="order-card-content">
                                 {% include 'storefront/account/_order_products.html.twig' with {lines: summary.lines} only %}

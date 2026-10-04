@@ -7,6 +7,7 @@ namespace App\Entity\Commerce;
 use App\Entity\Catalog\Product;
 use App\Entity\Customer\CustomerUser;
 use App\Module\Order\OrderAddressRole;
+use App\Module\Order\OrderNote;
 use App\Module\Order\OrderState;
 use App\Repository\Commerce\CustomerOrderRepository;
 use App\Shared\Money\Money;
@@ -79,6 +80,9 @@ class CustomerOrder
     #[ORM\Column(length: 160)]
     private string $paymentOptionLabel;
 
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $orderNote;
+
     /** @var Collection<int, OrderItem> */
     #[ORM\OneToMany(mappedBy: 'order', targetEntity: OrderItem::class, cascade: ['persist'], orphanRemoval: true)]
     #[ORM\OrderBy(['id' => 'ASC'])]
@@ -108,6 +112,7 @@ class CustomerOrder
         string $paymentOptionKey,
         string $paymentOptionLabel,
         \DateTimeImmutable $placedAt,
+        ?string $orderNote = null,
     ) {
         if (1 !== preg_match('/^EOA-\d{8}-[0-9A-F]{12}$/', $orderNumber)) {
             throw new \InvalidArgumentException('Order number has an invalid format.');
@@ -142,6 +147,7 @@ class CustomerOrder
         $this->shippingOptionLabel = trim($shippingOptionLabel);
         $this->paymentOptionKey = trim($paymentOptionKey);
         $this->paymentOptionLabel = trim($paymentOptionLabel);
+        $this->orderNote = OrderNote::normalize($orderNote);
         $this->items = new ArrayCollection();
         $this->addresses = new ArrayCollection();
         $this->createdAt = $this->updatedAt = $placedAt;
@@ -163,6 +169,7 @@ class CustomerOrder
     public function shippingOptionLabel(): string { return $this->shippingOptionLabel; }
     public function paymentOptionKey(): string { return $this->paymentOptionKey; }
     public function paymentOptionLabel(): string { return $this->paymentOptionLabel; }
+    public function orderNote(): ?string { return $this->orderNote; }
     public function createdAt(): \DateTimeImmutable { return $this->createdAt; }
     public function updatedAt(): \DateTimeImmutable { return $this->updatedAt; }
 

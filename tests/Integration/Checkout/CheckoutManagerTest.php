@@ -60,6 +60,7 @@ final class CheckoutManagerTest extends KernelTestCase
             $billing->id() ?? 0,
             'local_standard',
             'local_manual',
+            "  Öğleden sonra teslim edin.\nA & B  ",
         ));
 
         self::assertSame(30_000, $order->subtotal()->minorAmount());
@@ -86,6 +87,7 @@ final class CheckoutManagerTest extends KernelTestCase
         self::assertSame('Atatürk Cad. 1', $persistedOrder->address(OrderAddressRole::Shipping)?->addressLine1());
         self::assertSame('Fatura Cad. 2', $persistedOrder->address(OrderAddressRole::Billing)?->addressLine1());
         self::assertSame('Efe Yılmaz', $persistedOrder->customerName());
+        self::assertSame("Öğleden sonra teslim edin.\nA & B", $persistedOrder->orderNote());
         self::assertNull($persistedOrder->customerPhone());
 
         $this->expectException(\DomainException::class);

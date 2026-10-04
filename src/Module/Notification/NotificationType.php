@@ -18,6 +18,7 @@ namespace App\Module\Notification;
 enum NotificationType: string
 {
     case OrderPlaced = 'order_placed';
+    case OrderCancelled = 'order_cancelled';
     case PaymentReceived = 'payment_received';
     case PaymentFailed = 'payment_failed';
     case ShipmentDispatched = 'shipment_dispatched';
@@ -43,6 +44,7 @@ enum NotificationType: string
     {
         return match ($this) {
             NotificationType::OrderPlaced => 'Siparişiniz alındı',
+            NotificationType::OrderCancelled => 'Siparişiniz iptal edildi',
             NotificationType::PaymentReceived => 'Ödemeniz alındı',
             NotificationType::PaymentFailed => 'Ödemeniz tamamlanamadı',
             NotificationType::ShipmentDispatched => 'Siparişiniz yola çıktı',

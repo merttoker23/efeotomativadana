@@ -1,0 +1,17 @@
+{% extends 'admin/base.html.twig' %}
+{% form_theme form 'admin/_form_theme.html.twig' %}
+{% block title %}Çerez Ayarları{% endblock %}
+{% block body %}
+<section class="panel">
+    <p class="eyebrow">Sistem</p>
+    <h1>Çerez Ayarları</h1>
+    <p>Mağaza sayfalarında kullanılacak çerez yönetimi kodunu düzenleyin.</p>
+    <div class="form-errors">
+        {{ form_start(form) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.script) }}
+        {{ form_row(form.save) }}
+        {{ form_end(form) }}
+    </div>
+</section>
+{% endblock %}

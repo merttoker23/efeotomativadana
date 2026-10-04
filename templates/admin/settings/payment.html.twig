@@ -1,10 +1,10 @@
 {% extends 'admin/base.html.twig' %}
 {% form_theme form 'admin/_form_theme.html.twig' %}
-{% block title %}Ödeme Sağlayıcı{% endblock %}
+{% block title %}Ödeme Ayarları{% endblock %}
 {% block body %}
 <section class="panel">
     <p class="eyebrow">Sistem</p>
-    <h1>Ödeme Sağlayıcı</h1>
+    <h1>Ödeme Ayarları</h1>
     <div class="payment-config-status">
         <span class="status-badge" data-paytr-status>PayTR: {{ configured ? 'Yapılandırıldı' : 'Eksik bilgi' }}</span>
         <span class="status-badge{{ testMode ? ' payment-mode-test' : ' payment-mode-live' }}">{{ testMode ? 'Test' : 'Canlı' }}</span>

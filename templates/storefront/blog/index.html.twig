@@ -17,7 +17,7 @@
             <div class="blog-list">
                 {% for post in posts %}
                     <a class="blog-post-card" href="{{ path('storefront_blog_show', {slug: post.slug}) }}">
-                        <span class="blog-post-cover" aria-hidden="true">{% if post.coverImagePath %}<img src="{{ media_url(post.coverImagePath) }}" alt="" loading="lazy" decoding="async">{% endif %}</span>
+                        <span class="blog-post-cover" aria-hidden="true">{% if post.coverImagePath %}{% set dimensions = image_dimensions(post.coverImagePath) %}<img src="{{ media_url(post.coverImagePath) }}" alt=""{% if dimensions %} width="{{ dimensions.width }}" height="{{ dimensions.height }}"{% endif %} loading="lazy" decoding="async">{% endif %}</span>
                         <span class="blog-post-body">
                             <h2>{{ post.title }}</h2>
                             {% if post.excerpt %}<p>{{ post.excerpt }}</p>{% endif %}

@@ -142,7 +142,24 @@ final class StoreConfiguration implements ResetInterface
         $this->persistValues([SettingKey::PaymentProvider->value => $this->normalizeProvider($provider)]);
     }
 
-    private function validateSection(SeoSettingsData|ShippingSettingsData $data): void
+    public function currentCookies(): CookieSettingsData
+    {
+        return new CookieSettingsData($this->cookieScript());
+    }
+
+    public function saveCookies(CookieSettingsData $data): void
+    {
+        $data->script = $this->normalizeText($data->script);
+        $this->validateSection($data);
+        $this->persistValues([SettingKey::CookieScript->value => $data->script]);
+    }
+
+    public function cookieScript(): ?string
+    {
+        return $this->nullableStringValue(SettingKey::CookieScript);
+    }
+
+    private function validateSection(SeoSettingsData|ShippingSettingsData|CookieSettingsData $data): void
     {
         $violations = $this->validator->validate($data);
         if (count($violations) > 0) {

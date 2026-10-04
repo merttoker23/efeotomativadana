@@ -85,7 +85,7 @@ final class CheckoutManager
             throw new CheckoutViolation('Seçilen ödeme yöntemi kullanılamıyor.');
         }
 
-        $order = $this->entityManager->wrapInTransaction(function () use ($customer, $shippingAddress, $billingAddress, $shippingOption, $paymentOption): CustomerOrder {
+        $order = $this->entityManager->wrapInTransaction(function () use ($customer, $shippingAddress, $billingAddress, $shippingOption, $paymentOption, $selection): CustomerOrder {
             $cart = $this->carts->findOneByCustomerForUpdate($customer);
             if (null === $cart || [] === $cart->items()) {
                 throw new CheckoutViolation('Sepetiniz boş.');
@@ -135,6 +135,7 @@ final class CheckoutManager
                 $paymentOption->key(),
                 $paymentOption->label(),
                 \DateTimeImmutable::createFromInterface($this->clock->now()),
+                $selection->orderNote,
             );
 
             foreach ($lines as [$product, $taxRateBasisPoints, $totals, $quantity]) {

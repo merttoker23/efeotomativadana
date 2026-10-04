@@ -310,6 +310,25 @@ final class Payment
         $this->updatedAt = $at;
     }
 
+    /** Cancel every outstanding attempt, retaining failed attempts as payment history. */
+    public function cancelUncaptured(string $reason, \DateTimeImmutable $at): void
+    {
+        $this->assertNotCaptured();
+        if (!$this->state->canBeRetried()) {
+            throw new \DomainException('Only an uncaptured open payment can be cancelled.');
+        }
+        foreach ($this->attempts as $attempt) {
+            if ($attempt->state()->awaitsCallbackDecision()) {
+                $attempt->markCancelled($reason);
+            }
+        }
+        $this->now = $at;
+        $this->failureCode = 'cancelled';
+        $this->failureMessage = mb_substr(trim($reason), 0, 500);
+        $this->transition(PaymentState::Cancelled, 'store', 'Uncaptured payment and outstanding attempts cancelled.');
+        $this->updatedAt = $at;
+    }
+
     public function markCancelled(PaymentAttempt $attempt, string $reason, \DateTimeImmutable $at): void
     {
         $this->assertOwnsAttempt($attempt);
@@ -329,9 +348,10 @@ final class Payment
      */
     public function recordRejectedRefund(Money $amount, string $reason, SanitizedFailure $failure, \DateTimeImmutable $at): PaymentRefund
     {
+        // Doctrine hydration does not initialize transient constructor state.
+        $this->now = $at;
         $refund = new PaymentRefund($this, $amount, $this->providerKey, $this->rejectedRefundReference(), $reason, $at);
         $refund->markFailed($failure);
-        $this->now = $at;
         $this->refunds->add($refund);
         $this->record($this->state, 'gateway', sprintf('Refund refused: %s', $failure->code()));
 
