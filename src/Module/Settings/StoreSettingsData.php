@@ -62,6 +62,8 @@ final class StoreSettingsData
         #[Assert\NotBlank]
         #[Assert\Regex(pattern: '/\A#[0-9a-fA-F]{6}\z/', message: 'Renk #RRGGBB biçiminde olmalıdır.')]
         public string $storefrontLine = '#e1e3e6',
+        #[Assert\Regex(pattern: Ga4MeasurementId::PATTERN, message: 'Geçerli bir GA4 Measurement ID girin (ör. G-XXXXXXXXXX).')]
+        public ?string $ga4MeasurementId = null,
     ) {
     }
 }

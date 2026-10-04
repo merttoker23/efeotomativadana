@@ -3,12 +3,15 @@
 namespace App\Form\Admin;
 
 use App\Module\Settings\StoreSettingsData;
+use App\Module\Settings\Ga4MeasurementId;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -68,6 +71,18 @@ final class StoreSettingsType extends AbstractType
             ->add('storefrontMuted', ColorType::class, ['label' => 'İkincil metin', 'trim' => false, 'empty_data' => ''])
             ->add('storefrontLine', ColorType::class, ['label' => 'Çizgi', 'trim' => false, 'empty_data' => ''])
             ->add('save', SubmitType::class, ['label' => 'Ayarları kaydet']);
+
+        $builder->add('ga4MeasurementId', TextareaType::class, [
+            'label' => 'GA4 Measurement ID',
+            'required' => false,
+            'empty_data' => '',
+            'help' => 'G-XXXXXXXXXX veya Google standart gtag kodunu yapıştırın. Yalnız Measurement ID kaydedilir. Boş bırakıldığında takip kapatılır.',
+            'attr' => ['rows' => 3, 'placeholder' => 'G-XXXXXXXXXX'],
+        ]);
+        $builder->get('ga4MeasurementId')->addModelTransformer(new CallbackTransformer(
+            static fn (?string $value): string => $value ?? '',
+            static fn (?string $value): ?string => Ga4MeasurementId::normalize($value),
+        ));
     }
 
     public function configureOptions(OptionsResolver $resolver): void

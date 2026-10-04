@@ -46,9 +46,9 @@ final readonly class CatalogQuery
      *
      * @return list<CatalogProductView>
      */
-    public function productsBySource(ProductFeedSource $source, int $limit): array
+    public function productsBySource(ProductFeedSource $source, int $limit, bool $inStockOnly = false): array
     {
-        return $this->repository->productViewsBySource($source, $limit);
+        return $this->repository->productViewsBySource($source, $limit, $inStockOnly);
     }
 
     /**

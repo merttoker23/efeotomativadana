@@ -68,15 +68,16 @@ final readonly class CatalogReadRepository
             ->setFirstResult(($page - 1) * $criteria->perPage)
             ->setMaxResults($criteria->perPage);
 
+        $query->orderBy($this->stockPriorityExpression(), 'ASC');
         match ($criteria->sort) {
-            CatalogSort::Newest => $query->orderBy('product.created_at', 'DESC')->addOrderBy('product.id', 'DESC'),
-            CatalogSort::NameAscending => $query->orderBy('product.name', 'ASC')->addOrderBy('product.id', 'ASC'),
+            CatalogSort::Newest => $query->addOrderBy('product.created_at', 'DESC')->addOrderBy('product.id', 'DESC'),
+            CatalogSort::NameAscending => $query->addOrderBy('product.name', 'ASC')->addOrderBy('product.id', 'ASC'),
             CatalogSort::PriceAscending => $query
-                ->orderBy('CASE WHEN price.id IS NULL THEN 1 ELSE 0 END', 'ASC')
+                ->addOrderBy('CASE WHEN price.id IS NULL THEN 1 ELSE 0 END', 'ASC')
                 ->addOrderBy($effectivePrice, 'ASC')
                 ->addOrderBy('product.id', 'ASC'),
             CatalogSort::PriceDescending => $query
-                ->orderBy('CASE WHEN price.id IS NULL THEN 1 ELSE 0 END', 'ASC')
+                ->addOrderBy('CASE WHEN price.id IS NULL THEN 1 ELSE 0 END', 'ASC')
                 ->addOrderBy($effectivePrice, 'DESC')
                 ->addOrderBy('product.id', 'ASC'),
         };
@@ -127,7 +128,8 @@ final readonly class CatalogReadRepository
             ->andWhere('('.$sameCategory.' OR (product.brand_id = current_product.brand_id AND brand.id IS NOT NULL))')
             ->setParameter('currentId', $productId)
             ->setParameter('published', PublicationStatus::Published->value)
-            ->orderBy('similarity_rank', 'ASC')
+            ->orderBy($this->stockPriorityExpression(), 'ASC')
+            ->addOrderBy('similarity_rank', 'ASC')
             ->addOrderBy('product.created_at', 'DESC')
             ->addOrderBy('product.id', 'DESC')
             ->setMaxResults(8)
@@ -429,7 +431,7 @@ final readonly class CatalogReadRepository
      *
      * @return list<CatalogProductView>
      */
-    public function productViewsBySource(ProductFeedSource $source, int $limit): array
+    public function productViewsBySource(ProductFeedSource $source, int $limit, bool $inStockOnly = false): array
     {
         $limit = max(1, min(24, $limit));
         $query = $this->productViewQuery()
@@ -440,9 +442,16 @@ final readonly class CatalogReadRepository
                 'ranking',
                 'ranking.product_id = product.id',
             )
-            ->orderBy('ranking.weight', 'DESC')
+            ->orderBy($this->stockPriorityExpression(), 'ASC')
+            ->addOrderBy('ranking.weight', 'DESC')
             ->addOrderBy('product.name', 'ASC')
+            ->addOrderBy('product.id', 'ASC')
             ->setMaxResults($limit);
+
+        if ($inStockOnly) {
+            // Homepage feeds exclude unavailable products before LIMIT, retaining their ranking.
+            $query->andWhere('inventory.available_for_sale = 1 AND inventory.quantity > 0');
+        }
 
         if (ProductFeedSource::BestSellers === $source) {
             $query->setParameter(
@@ -807,6 +816,11 @@ final readonly class CatalogReadRepository
 
         return (null === $startsAt || new \DateTimeImmutable((string) $startsAt, new \DateTimeZone('UTC')) <= $now)
             && (null === $endsAt || $now < new \DateTimeImmutable((string) $endsAt, new \DateTimeZone('UTC')));
+    }
+
+    private function stockPriorityExpression(): string
+    {
+        return 'CASE WHEN inventory.available_for_sale = 1 AND inventory.quantity > 0 THEN 0 ELSE 1 END';
     }
 
     private function effectivePriceExpression(): string

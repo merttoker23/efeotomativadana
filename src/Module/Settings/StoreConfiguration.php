@@ -76,6 +76,7 @@ final class StoreConfiguration implements ResetInterface
             storefrontInk: $this->colorValue(SettingKey::StorefrontInk),
             storefrontMuted: $this->colorValue(SettingKey::StorefrontMuted),
             storefrontLine: $this->colorValue(SettingKey::StorefrontLine),
+            ga4MeasurementId: $this->ga4MeasurementId(),
         );
     }
 
@@ -88,6 +89,7 @@ final class StoreConfiguration implements ResetInterface
         $configuration->currency = strtoupper(trim($configuration->currency));
         $configuration->defaultLocale = str_replace('_', '-', trim($configuration->defaultLocale));
         $configuration->seoDefaultDescription = $this->normalizeText($configuration->seoDefaultDescription);
+        $configuration->ga4MeasurementId = Ga4MeasurementId::normalize($configuration->ga4MeasurementId);
 
         $violations = $this->validator->validate($configuration);
         if ($configuration->b2bEnabled && (null === $configuration->b2bProvider || !$this->b2bProviders->supports($configuration->b2bProvider))) {
@@ -127,6 +129,7 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::StorefrontInk->value => $configuration->storefrontInk,
             SettingKey::StorefrontMuted->value => $configuration->storefrontMuted,
             SettingKey::StorefrontLine->value => $configuration->storefrontLine,
+            SettingKey::Ga4MeasurementId->value => $configuration->ga4MeasurementId,
         ];
 
         // The diff is taken from the store's own current values, before anything is written,
@@ -152,6 +155,13 @@ final class StoreConfiguration implements ResetInterface
         }
         // Read-after-write has to see the write, from this process as well as the next request.
         $this->reset();
+    }
+
+    public function ga4MeasurementId(): ?string
+    {
+        $value = $this->value(SettingKey::Ga4MeasurementId);
+
+        return is_string($value) && Ga4MeasurementId::isValid($value) ? $value : null;
     }
 
     public function isB2bEnabled(): bool

@@ -83,7 +83,7 @@ final readonly class HomepageRenderer
         $brands = $this->bySlug($this->catalog->optionsBySlug('brand', $brandSlugs));
         $ranked = [];
         foreach ($feeds as $value => $feed) {
-            $ranked[$value] = $this->catalog->productsBySource($feed, self::TAB_PRODUCTS);
+            $ranked[$value] = $this->catalog->productsBySource($feed, self::TAB_PRODUCTS, inStockOnly: true);
         }
 
         $slots = [
@@ -155,13 +155,13 @@ final readonly class HomepageRenderer
 
                 break;
             case HomeSectionType::ProductCarousel:
-                $data['products'] = $this->pick($productsBySlug, $config['slugs']);
+                $data['products'] = $this->sellableProducts($this->pick($productsBySlug, $config['slugs']));
 
                 break;
             case HomeSectionType::SplitBuilder:
                 // Both draw a row of chosen products; the split builder simply draws its row
                 // beside a promotional panel rather than across a whole card.
-                $data['products'] = $this->pick($productsBySlug, $config['slugs']);
+                $data['products'] = $this->sellableProducts($this->pick($productsBySlug, $config['slugs']));
 
                 break;
             case HomeSectionType::ProductTabs:
@@ -207,7 +207,7 @@ final readonly class HomepageRenderer
         $source = ProductFeedSource::normalize($tab['source'] ?? null);
 
         return $source->isManual()
-            ? $this->pick($productsBySlug, $tab['slugs'])
+            ? $this->sellableProducts($this->pick($productsBySlug, $tab['slugs']))
             : ($ranked[$source->value] ?? []);
     }
 
@@ -227,10 +227,22 @@ final readonly class HomepageRenderer
     }
 
     /**
-     * @param array<string, CatalogProductView|CatalogOption> $available
+     * @param list<CatalogProductView> $products
+     * @return list<CatalogProductView>
+     */
+    private function sellableProducts(array $products): array
+    {
+        // Filtering a manual selection preserves the administrator's order and never borrows
+        // unrelated products to fill it. A selection with no sellable products renders no cards.
+        return array_values(array_filter($products, static fn (CatalogProductView $product): bool => $product->sellable));
+    }
+
+    /**
+     * @template T of CatalogProductView|CatalogOption
+     * @param array<string, T> $available
      * @param list<string>                                     $slugs
      *
-     * @return list<CatalogProductView|CatalogOption>
+     * @return list<T>
      */
     private function pick(array $available, array $slugs): array
     {

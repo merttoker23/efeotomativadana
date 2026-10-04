@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
+use App\Module\Settings\StoreConfiguration;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -56,6 +57,7 @@ final class SecurityHeadersSubscriber
 
     public function __construct(
         private readonly string $environment,
+        private readonly ?StoreConfiguration $configuration = null,
     ) {
     }
 
@@ -65,7 +67,13 @@ final class SecurityHeadersSubscriber
             return;
         }
 
-        $event->getResponse()->headers->add($this->headers());
+        $request = $event->getRequest();
+        $controller = $request->attributes->get('_controller');
+        $customerRoute = str_starts_with((string) $request->attributes->get('_route', ''), 'customer_');
+        $storefront = $customerRoute || (is_string($controller) && str_starts_with($controller, 'App\\Controller\\Storefront\\'));
+        $analytics = $storefront
+            && null !== $this->configuration?->ga4MeasurementId();
+        $event->getResponse()->headers->add($this->headers($analytics));
     }
 
     /**
@@ -77,14 +85,14 @@ final class SecurityHeadersSubscriber
      *
      * @return array<string, string>
      */
-    public function headers(): array
+    public function headers(bool $analytics = false): array
     {
         $headers = [
             'X-Content-Type-Options' => 'nosniff',
             'X-Frame-Options' => 'DENY',
             'Referrer-Policy' => 'strict-origin-when-cross-origin',
             'Permissions-Policy' => 'camera=(), microphone=(), geolocation=(), payment=()',
-            'Content-Security-Policy' => $this->contentSecurityPolicy(),
+            'Content-Security-Policy' => $this->contentSecurityPolicy($analytics),
         ];
 
         if ($this->isProduction()) {
@@ -104,7 +112,7 @@ final class SecurityHeadersSubscriber
      * URI and the storefront renders uploaded images as data in a few previews; it is not
      * allowed in `script-src` or `object-src`, where it would be a way to run code.
      */
-    public function contentSecurityPolicy(): string
+    public function contentSecurityPolicy(bool $analytics = false): string
     {
         $directives = [
             "default-src 'self'",
@@ -128,6 +136,13 @@ final class SecurityHeadersSubscriber
 
         if (!$this->isProduction()) {
             $directives[2] = "script-src 'self' 'unsafe-inline' ".self::DEV_SCRIPT_ORIGIN;
+        }
+
+        if ($analytics) {
+            // Explicit GA4 hosts only; no Ads, preview mode, wildcards or unsafe-eval.
+            $directives[2] .= ' https://www.googletagmanager.com';
+            $directives[3] .= ' https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com';
+            $directives[5] .= ' https://www.googletagmanager.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://region1.analytics.google.com';
         }
 
         return implode('; ', $directives);

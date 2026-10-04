@@ -411,6 +411,11 @@ select:focus-visible {
 }
 
 .action-caret {
+    display: block;
+    flex: 0 0 12px;
+    width: 12px;
+    height: 12px;
+    transform-origin: center;
     transition: transform 0.15s ease;
 }
 

@@ -46,6 +46,16 @@
             }
         </style>
         {% block javascripts %}{{ importmap('app') }}{% endblock %}
+        {% set ga4MeasurementId = storefront_ga4_measurement_id() %}
+        {% if ga4MeasurementId %}
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga4MeasurementId }}"></script>
+            <script data-storefront-analytics>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '{{ ga4MeasurementId|escape('js') }}');
+            </script>
+        {% endif %}
     </head>
 <body class="storefront-page" data-controller="storefront-shell">
         <a class="skip-link" href="#main-content">İçeriğe geç</a>

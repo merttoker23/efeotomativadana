@@ -235,6 +235,66 @@ final class ProductTabsSourcesTest extends WebTestCase
         );
     }
 
+    public function testEveryHomepageProductSectionShowsOnlySellableProductsAndPreservesItsOrder(): void
+    {
+        $products = [];
+        $customer = $this->customer('stock-tabs@example.com');
+        for ($index = 0; $index < 4; ++$index) {
+            $product = $this->product('STOCK-TAB-'.$index, 'Stock tab '.$index, 'stock-tab-'.$index);
+            $products[] = $product;
+            $this->sell($customer, $product, $index + 1, OrderState::Confirmed);
+            for ($saved = 0; $saved <= $index; ++$saved) {
+                $this->manager->persist(new WishlistItem($this->customer('stock-save-'.$index.'-'.$saved.'@example.com'), $product));
+            }
+            $price = $this->manager->getRepository(ProductPrice::class)->findOneBy(['product' => $product]);
+            $price->scheduleSale(Money::ofMinor(9_000 - $index * 1_000, 'TRY'), null, null);
+        }
+        $this->manager->flush();
+        // Both parts of the domain's sellable criterion matter, including positive but blocked stock.
+        $this->connection->update('commerce_product_inventory', ['quantity' => 0], ['product_id' => $products[3]->id()]);
+        $this->connection->update('commerce_product_inventory', ['available_for_sale' => 0], ['product_id' => $products[1]->id()]);
+        $manual = [$products[3]->slug(), $products[0]->slug(), $products[1]->slug(), $products[2]->slug()];
+        $this->tabs([
+            ['title' => 'Çok Satanlar', 'source' => 'best_sellers', 'slugs' => []],
+            ['title' => 'Popüler', 'source' => 'popular', 'slugs' => []],
+            ['title' => 'İndirimdekiler', 'source' => 'on_sale', 'slugs' => []],
+            ['title' => 'Öne Çıkanlar', 'source' => 'featured', 'slugs' => $manual],
+        ]);
+        $carousel = new HomeSection(HomeSectionType::ProductCarousel, 'Stock carousel', ['slugs' => $manual]);
+        $carousel->setEnabled(true);
+        $this->manager->persist($carousel);
+        $grid = new HomeSection(HomeSectionType::ProductCarousel, 'Stock grid', ['slugs' => $manual]);
+        $grid->setEnabled(true);
+        $this->manager->persist($grid);
+        $split = new HomeSection(HomeSectionType::SplitBuilder, 'Stock split', [
+            'label' => 'Stock', 'headline' => 'Stock', 'description' => 'Stock',
+            'cta' => 'Products', 'link' => '/yeni/katalog', 'slugs' => $manual,
+        ]);
+        $split->setEnabled(true);
+        $this->manager->persist($split);
+        $this->manager->flush();
+
+        $crawler = $this->home();
+        $panels = $this->panels($crawler);
+        for ($index = 0; $index < 3; ++$index) {
+            self::assertSame(['stock-tab-2', 'stock-tab-0'], $this->slugs($panels[$index]));
+        }
+        self::assertSame(['stock-tab-0', 'stock-tab-2'], $this->slugs($panels[3]));
+        self::assertSame(['/yeni/urun/stock-tab-0', '/yeni/urun/stock-tab-2'], $crawler->filter('.top-sellers a.seller')->extract(['href']));
+        foreach (['Stock grid', 'Stock split'] as $title) {
+            self::assertSame(['stock-tab-0', 'stock-tab-2'], $this->slugs($crawler->filter('section[aria-label="'.$title.'"]')));
+        }
+        self::assertStringNotContainsString('Stokta Yok', $crawler->filter('main')->text());
+
+        // Stock disappearing later also removes the cards from every area on the next request.
+        $this->connection->update('commerce_product_inventory', ['quantity' => 0], ['product_id' => $products[0]->id()]);
+        $this->connection->update('commerce_product_inventory', ['available_for_sale' => 0], ['product_id' => $products[2]->id()]);
+        $crawler = $this->home();
+        self::assertCount(0, $crawler->filter('main .product-card, main .seller'));
+        self::assertCount(4, $crawler->filter('.product-grid-empty'));
+        self::assertCount(0, $crawler->filter('section[aria-label="Stock grid"], section[aria-label="Stock split"], .top-sellers'));
+    }
+
     /** @return array<int, Crawler> */
     private function panels(Crawler $crawler): array
     {

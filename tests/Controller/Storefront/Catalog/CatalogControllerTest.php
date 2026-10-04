@@ -124,8 +124,8 @@ final class CatalogControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Ürün Kataloğu');
         self::assertSelectorTextContains('.product-card', 'Yağ Filtresi');
-        self::assertSelectorTextContains('.product-card .product-price', '1.399,90 TRY');
-        self::assertSelectorTextContains('.product-card .product-old', '1.599,90 TRY');
+        self::assertSelectorTextContains('.product-card .product-price', '1.399,90 TL');
+        self::assertSelectorTextContains('.product-card .product-old', '1.599,90 TL');
         self::assertSelectorTextContains('.product-card .stock-state', 'Stokta Var');
         self::assertSelectorTextNotContains('.product-card .stock-state', '7');
         self::assertSelectorExists('#catalog-results.catalog-results');

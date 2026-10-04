@@ -129,6 +129,57 @@ final class SettingsControllerTest extends WebTestCase
         self::assertSame('#092a53', self::getContainer()->get(StoreConfiguration::class)->current()->storefrontNavy);
     }
 
+    public function testAnalyticsSnippetIsNormalizedRenderedOnceAndRemovedOnNextRequest(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/katalog');
+        self::assertCount(0, $crawler->filter('head script[src*="googletagmanager.com"]'));
+        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['store_settings[ga4MeasurementId]'] = '<script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC1234567"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag("js", new Date()); gtag("config", "G-ABC1234567");</script>';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertSame('G-ABC1234567', json_decode($this->connection->fetchOne('SELECT value FROM store_setting WHERE setting_key = ?', ['analytics.ga4_measurement_id']), true));
+        self::assertSame('TRY', self::getContainer()->get(StoreConfiguration::class)->currency());
+
+        foreach (['/yeni/', '/yeni/katalog', '/yeni/koleksiyonlar', '/yeni/giris', '/yeni/kayit', '/yeni/parolami-unuttum'] as $url) {
+            $crawler = $this->client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(1, $crawler->filter('head script[async][src="https://www.googletagmanager.com/gtag/js?id=G-ABC1234567"]'));
+            self::assertCount(1, $crawler->filter('head script[data-storefront-analytics]'));
+            $policy = $this->client->getResponse()->headers->get('Content-Security-Policy');
+            self::assertStringContainsString('https://www.googletagmanager.com', $policy);
+            self::assertStringContainsString('https://region1.google-analytics.com', $policy);
+            self::assertStringNotContainsString('unsafe-eval', $policy);
+        }
+        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        self::assertCount(0, $crawler->filter('script[src*="googletagmanager.com"]'));
+        self::assertStringNotContainsString('googletagmanager.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['store_settings[ga4MeasurementId]'] = '';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/yeni/katalog');
+        self::assertCount(0, $crawler->filter('script[src*="googletagmanager.com"], script[data-storefront-analytics]'));
+        self::assertStringNotContainsString('googletagmanager.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
+    }
+
+    public function testInvalidAnalyticsValuesAreRejectedAndStoredScriptsNeverRender(): void
+    {
+        foreach (['UA-1234567-1', 'G-ABC', 'G-ABC1234567<script>alert(1)</script>', '<script>alert(1)</script>', '<script src="https://evil.example/?id=G-ABC1234567"></script>', '<script src="https://www.googletagmanager.com/gtag/js?id=G-ABC1234567"></script><script>gtag("config", "G-XYZ1234567");</script>'] as $invalid) {
+            $crawler = $this->client->request('GET', '/yeni/admin/settings');
+            $form = $crawler->selectButton('Ayarları kaydet')->form();
+            $form['store_settings[ga4MeasurementId]'] = $invalid;
+            $this->client->submit($form);
+            self::assertResponseStatusCodeSame(422);
+            self::assertNull(self::getContainer()->get(StoreConfiguration::class)->current()->ga4MeasurementId);
+        }
+        $this->connection->update('store_setting', ['value' => json_encode('<script>alert(1)</script>')], ['setting_key' => 'analytics.ga4_measurement_id']);
+        $crawler = $this->client->request('GET', '/yeni/katalog');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('script[src*="googletagmanager.com"], script[data-storefront-analytics]'));
+        self::assertStringNotContainsString('<script>alert(1)</script>', $this->client->getResponse()->getContent());
+    }
+
     private function createAdministrator(): AdminUser
     {
         $administrator = new AdminUser('settings-admin@example.com');

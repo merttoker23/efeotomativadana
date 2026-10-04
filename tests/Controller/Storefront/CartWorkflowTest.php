@@ -86,19 +86,19 @@ final class CartWorkflowTest extends WebTestCase
         self::assertGreaterThan(0, $cartId);
         $this->client->loginUser($customer, 'main');
 
-        $withEightLines = $this->profileListing('8', '800,00 TRY');
+        $withEightLines = $this->profileListing('8', '800,00 TL');
 
         for ($i = 9; $i <= 20; ++$i) {
             $this->grow($cartId, $i);
         }
 
-        $withTwentyLines = $this->profileListing('20', '2.000,00 TRY');
+        $withTwentyLines = $this->profileListing('20', '2.000,00 TL');
 
         for ($i = 21; $i <= 44; ++$i) {
             $this->grow($cartId, $i);
         }
 
-        $withFortyFourLines = $this->profileListing('44', '4.400,00 TRY');
+        $withFortyFourLines = $this->profileListing('44', '4.400,00 TL');
 
         // A per-line query would make every step grow by the number of lines added. Going from
         // 8 to 20 lines costs exactly one more query, and 44 lines costs the same as 20: that
@@ -175,7 +175,7 @@ final class CartWorkflowTest extends WebTestCase
         self::assertSame($persistedToken, $this->client->getRequest()->getSession()->get('storefront_guest_cart_token'));
         self::assertSelectorTextContains('.cart-line', 'Fren Balatası');
         self::assertSelectorExists('.cart-line input[name="quantity"][value="2"]');
-        self::assertSelectorTextContains('.cart-summary', '246,90 TRY');
+        self::assertSelectorTextContains('.cart-summary', '246,90 TL');
         self::assertSelectorTextContains('.cart-action', '2');
     }
 
@@ -219,7 +219,7 @@ final class CartWorkflowTest extends WebTestCase
         self::assertResponseRedirects('/yeni/sepet');
         $this->client->followRedirect();
         self::assertSelectorExists('.cart-line input[name="quantity"][value="4"]');
-        self::assertSelectorTextContains('.cart-summary', '400,00 TRY');
+        self::assertSelectorTextContains('.cart-summary', '400,00 TL');
         self::assertSame(4, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_cart_item'));
     }
 

@@ -30,6 +30,6 @@ final class StorefrontMoneyExtension extends AbstractExtension
             $formatted .= ','.$fraction;
         }
 
-        return $formatted.' '.$money->currency();
+        return $formatted.' '.('TRY' === $money->currency() ? 'TL' : $money->currency());
     }
 }

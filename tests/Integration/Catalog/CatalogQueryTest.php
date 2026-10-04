@@ -136,6 +136,47 @@ final class CatalogQueryTest extends KernelTestCase
         self::assertSame([], $this->catalog->similarProducts($current->id()));
     }
 
+    public function testStockPriorityPrecedesEverySortAndPaginationIsDeterministic(): void
+    {
+        $brand = new Brand('Stock Brand', 'stock-brand');
+        $brand->publish();
+        $category = new Category('Stock Category', 'stock-category');
+        $category->publish();
+        $this->product('STOCK-ZERO', 'A', 'stock-zero', true, $brand, $category, 100, 0);
+        $blocked = $this->product('STOCK-BLOCKED', 'B', 'stock-blocked', true, $brand, $category, 200, 8);
+        $this->product('STOCK-ONE', 'C', 'stock-one', true, $brand, $category, 300, 2);
+        $this->product('STOCK-TWO', 'C', 'stock-two', true, $brand, $category, 300, 2);
+        $this->entityManager->flush();
+        $this->connection->update('commerce_product_inventory', ['available_for_sale' => 0], ['product_id' => $blocked->id()]);
+
+        foreach (CatalogSort::cases() as $sort) {
+            $criteria = new CatalogCriteria(query: 'STOCK-', categorySlug: $category->slug(), brandSlug: $brand->slug(), sort: $sort);
+            $all = $this->catalog->search($criteria)->items;
+            self::assertSame([true, true, false, false], array_column($all, 'sellable'));
+            $paged = [];
+            for ($page = 1; $page <= 4; ++$page) {
+                $paged[] = $this->catalog->search(new CatalogCriteria(query: 'STOCK-', sort: $sort, page: $page, perPage: 1))->items[0]->id;
+            }
+            self::assertSame(array_column($all, 'id'), $paged);
+            if (CatalogSort::PriceAscending === $sort || CatalogSort::NameAscending === $sort) {
+                self::assertSame(['STOCK-ONE', 'STOCK-TWO', 'STOCK-ZERO', 'STOCK-BLOCKED'], array_column($all, 'sku'));
+            }
+        }
+    }
+
+    public function testSimilarProductsPutSellableBrandMatchesBeforeUnavailableCategoryMatches(): void
+    {
+        $brand = new Brand('Stock Related', 'stock-related');
+        $brand->publish();
+        $category = new Category('Stock Related', 'stock-related');
+        $category->publish();
+        $current = $this->product('STOCK-CURRENT', 'Current', 'stock-current', true, $brand, $category);
+        $this->product('STOCK-CATEGORY', 'Category', 'stock-category-related', true, null, $category, 100, 0);
+        $this->product('STOCK-BRAND', 'Brand', 'stock-brand-related', true, $brand);
+        $this->entityManager->flush();
+        self::assertSame(['STOCK-BRAND', 'STOCK-CATEGORY'], array_column($this->catalog->similarProducts($current->id()), 'sku'));
+    }
+
     private function product(
         string $sku,
         string $name,
