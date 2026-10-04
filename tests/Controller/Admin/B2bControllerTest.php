@@ -183,6 +183,25 @@ final class B2bControllerTest extends WebTestCase
         return $token;
     }
 
+    public function testCompletedRunWithItemFailuresShowsWarningAndCounters(): void
+    {
+        $this->client->loginUser($this->createAdministrator(), 'admin');
+        $now = new \DateTimeImmutable();
+        $run = B2bSyncRun::queue('efe', B2bSyncMode::Full, $now);
+        $run->markRunning($now);
+        $run->recordSnapshot('/tmp/test.json', 2, str_repeat('a', 64), $now);
+        $run->recordBatch(B2bSyncCounters::empty()->recordScanned(2)->recordCreated()->recordSkipped()->recordPriceFailed(), 2, $now);
+        $run->complete($now);
+        $em = self::getContainer()->get(EntityManagerInterface::class);
+        $em->persist($run);
+        $em->flush();
+        $this->client->request('GET', '/yeni/admin/integration/b2b', ['run_id' => $run->id()]);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.run-state', 'Tamamlandı (hatalı kayıtlar var)');
+        self::assertSelectorTextContains('[data-testid="run-result"]', '1 kayıt uygulandı; 1 kayıt atlandı/hata verdi');
+        self::assertSelectorTextContains('[data-testid="counter-price_failed"]', '1');
+    }
+
     private function createAdministrator(): AdminUser
     {
         $administrator = new AdminUser('b2b-admin@example.com');

@@ -165,6 +165,12 @@ class B2bSyncRun
     public function complete(\DateTimeImmutable $now): void
     {
         $this->assertRunning();
+        $counters = $this->counters();
+        if (null === $this->declaredCount || $this->checkpoint !== $this->declaredCount
+            || $counters->scanned() !== $this->checkpoint
+            || $counters->created() + $counters->updated() + $counters->skipped() !== $counters->scanned()) {
+            throw new \DomainException('A B2B run can only complete after consuming its snapshot with consistent counters.');
+        }
         $this->state = B2bSyncState::Completed;
         $this->activeProviderKey = null;
         $this->latestError = null;
@@ -205,6 +211,13 @@ class B2bSyncRun
     public function snapshotSha256(): ?string { return $this->snapshotSha256; }
     public function checkpoint(): int { return $this->checkpoint; }
     public function counters(): B2bSyncCounters { return B2bSyncCounters::fromArray($this->counters); }
+    public function hasItemErrors(): bool
+    {
+        $counters = $this->counters();
+
+        return $counters->skipped() > 0 || $counters->conflicts() > 0 || $counters->priceFailed() > 0
+            || $counters->stockFailed() > 0 || $counters->imagesFailed() > 0;
+    }
     public function latestError(): ?string { return $this->latestError; }
     public function version(): int { return $this->version; }
     public function createdAt(): \DateTimeImmutable { return $this->createdAt; }

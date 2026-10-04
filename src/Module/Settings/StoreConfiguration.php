@@ -79,6 +79,7 @@ final class StoreConfiguration implements ResetInterface
             storefrontMuted: $this->colorValue(SettingKey::StorefrontMuted),
             storefrontLine: $this->colorValue(SettingKey::StorefrontLine),
             ga4MeasurementId: $this->ga4MeasurementId(),
+            contactEmail: $this->contactEmail(),
         );
     }
 
@@ -88,6 +89,7 @@ final class StoreConfiguration implements ResetInterface
         $configuration->paymentProvider = $this->normalizeProvider($configuration->paymentProvider);
         $configuration->shippingProvider = $this->normalizeProvider($configuration->shippingProvider);
         $configuration->storeName = trim($configuration->storeName);
+        $configuration->contactEmail = $this->normalizeText($configuration->contactEmail);
         $configuration->currency = strtoupper(trim($configuration->currency));
         $configuration->defaultLocale = str_replace('_', '-', trim($configuration->defaultLocale));
         $configuration->seoDefaultDescription = $this->normalizeText($configuration->seoDefaultDescription);
@@ -113,6 +115,7 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::B2bEnabled->value => $configuration->b2bEnabled,
             SettingKey::B2bProvider->value => $configuration->b2bProvider,
             SettingKey::StoreName->value => $configuration->storeName,
+            SettingKey::ContactEmail->value => $configuration->contactEmail,
             SettingKey::StoreCurrency->value => $configuration->currency,
             SettingKey::StoreDefaultLocale->value => $configuration->defaultLocale,
             SettingKey::StoreDefaultTaxRate->value => $configuration->defaultTaxRate,
@@ -166,6 +169,11 @@ final class StoreConfiguration implements ResetInterface
         $value = $this->value(SettingKey::Ga4MeasurementId);
 
         return is_string($value) && Ga4MeasurementId::isValid($value) ? $value : null;
+    }
+
+    public function contactEmail(): ?string
+    {
+        return $this->nullableStringValue(SettingKey::ContactEmail);
     }
 
     public function isB2bEnabled(): bool

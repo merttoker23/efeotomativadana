@@ -116,6 +116,29 @@ final class B2bFullSyncTest extends KernelTestCase
         self::assertSame(1, (int) $this->connection->fetchOne("SELECT COUNT(*) FROM integration_external_mapping WHERE resource_type = 'product'"));
     }
 
+    public function testFullRefreshPersistsChangedPriceStockAndNewImage(): void
+    {
+        $first = $this->writer->importFull($this->fixtureItem(), 700);
+        self::assertTrue($first->isSuccess());
+        $productId = $first->product()?->id();
+        $record = $this->fixtureRecord();
+        $record['listefiyati'] = '900.00';
+        $record['mevcut_stok'] = '7';
+        $record['urunresimleri'][] = 'https://b2b.efeotoyedekparca.com.tr/urunler/new-full.jpg';
+        $this->entityManager->clear();
+        $updated = $this->writer->importFull($this->normalizer()->normalize($record), 701);
+        self::assertTrue($updated->isSuccess());
+        self::assertSame($productId, $updated->product()?->id());
+        self::assertSame(1, $updated->counters()->updated());
+        self::assertSame(1, $updated->counters()->imagesImported());
+        self::assertSame(108000, (int) $this->connection->fetchOne('SELECT base_minor_amount FROM commerce_product_price WHERE product_id = ?', [$productId]));
+        self::assertSame(7, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_product_inventory WHERE product_id = ?', [$productId]));
+        self::assertSame(2, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM catalog_product_image WHERE product_id = ?', [$productId]));
+        $again = $this->writer->importFull($this->normalizer()->normalize($record), 702);
+        self::assertTrue($again->isSuccess());
+        self::assertSame(0, $again->counters()->imagesImported());
+    }
+
     public function testFullImportRejectsZeroPriceProducts(): void
     {
         $record = $this->fixtureRecord();
@@ -124,6 +147,58 @@ final class B2bFullSyncTest extends KernelTestCase
         $this->expectException(B2bPermanentProviderException::class);
 
         $this->normalizer()->normalize($record);
+    }
+
+    public function testDeletedMappedCategoriesAreRebuiltWithoutBlockingProductUpdates(): void
+    {
+        $first = $this->writer->importFull($this->fixtureItem(), 710);
+        self::assertTrue($first->isSuccess());
+        $productId = $first->product()?->id();
+        $oldRootId = $this->connection->fetchOne("SELECT local_resource_id FROM integration_external_mapping WHERE external_id = 'efe:root:efe-otomotiv'");
+        $this->connection->executeStatement('DELETE FROM catalog_category');
+        $this->entityManager->clear();
+        $record = $this->fixtureRecord();
+        $record['listefiyati'] = '900.00';
+        $record['mevcut_stok'] = '7';
+        $updated = $this->writer->importFull($this->normalizer()->normalize($record), 711);
+        self::assertTrue($updated->isSuccess(), $updated->error()?->message() ?? 'Category recovery failed.');
+        self::assertSame($productId, $updated->product()?->id());
+        self::assertSame(2, $updated->counters()->categoriesCreated());
+        self::assertSame(108000, (int) $this->connection->fetchOne('SELECT base_minor_amount FROM commerce_product_price WHERE product_id = ?', [$productId]));
+        self::assertSame(7, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_product_inventory WHERE product_id = ?', [$productId]));
+        self::assertNotSame($oldRootId, $this->connection->fetchOne("SELECT local_resource_id FROM integration_external_mapping WHERE external_id = 'efe:root:efe-otomotiv'"));
+        self::assertSame(2, (int) $this->connection->fetchOne("SELECT COUNT(*) FROM integration_external_mapping WHERE resource_type = 'category'"));
+        $again = $this->writer->importFull($this->normalizer()->normalize($record), 712);
+        self::assertTrue($again->isSuccess());
+        self::assertSame(0, $again->counters()->categoriesCreated());
+    }
+
+    public function testDeletedProviderRootIsRebuiltAndExistingLeafReattached(): void
+    {
+        $first = $this->writer->importFull($this->fixtureItem(), 720);
+        self::assertTrue($first->isSuccess());
+        $leafId = $first->product()?->categories()[0]->id();
+        $rootId = $this->connection->fetchOne("SELECT local_resource_id FROM integration_external_mapping WHERE external_id = 'efe:root:efe-otomotiv'");
+        $this->connection->executeStatement('DELETE FROM catalog_category WHERE id = ?', [$rootId]);
+        $this->entityManager->clear();
+        $updated = $this->writer->importFull($this->fixtureItem(), 721);
+        self::assertTrue($updated->isSuccess(), $updated->error()?->message() ?? 'Root recovery failed.');
+        self::assertSame(1, $updated->counters()->categoriesCreated());
+        self::assertSame($leafId, $updated->product()?->categories()[0]->id());
+        $newRootId = $this->connection->fetchOne("SELECT local_resource_id FROM integration_external_mapping WHERE external_id = 'efe:root:efe-otomotiv'");
+        self::assertSame((int) $newRootId, (int) $this->connection->fetchOne('SELECT parent_id FROM catalog_category WHERE id = ?', [$leafId]));
+    }
+
+    public function testCategoryMappingToHumanOwnedResourceRemainsAConflict(): void
+    {
+        $local = $this->catalog->createCategory('Human category', 'human-category', CatalogSource::Local);
+        $this->entityManager->persist(ExternalResourceMapping::create('efe', \App\Module\Integration\B2b\B2bResourceType::Category, 'efe:root:efe-otomotiv', 'category', $local->id(), new \DateTimeImmutable(), 730));
+        $this->entityManager->flush();
+        $result = $this->writer->importFull($this->fixtureItem(), 731);
+        self::assertFalse($result->isSuccess());
+        self::assertSame('conflict', $result->error()?->errorType()->value);
+        self::assertSame('Human category', $local->name());
+        self::assertSame(CatalogSource::Local, $local->source());
     }
 
     /**

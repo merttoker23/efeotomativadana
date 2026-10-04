@@ -24,6 +24,10 @@
 # by exhausting a shared budget.
 framework:
     rate_limiter:
+        contact:
+            policy: sliding_window
+            limit: 5
+            interval: '1 hour'
         # Account creation. Keyed by address because the cost being protected against is a
         # scripted run of throwaway accounts, not a person signing up twice.
         registration:

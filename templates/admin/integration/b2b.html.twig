@@ -22,7 +22,7 @@
             </div>
         </header>
 
-        <p class="help-text">Tam senkronizasyon tüm kataloğu aktarır. Günlük senkronizasyon güncel stok ve fiyatları işler.</p>
+        <p class="help-text">Tam senkronizasyon tüm kataloğu aktarır. Günlük senkronizasyon güncel stok ve fiyatları işler, eksik görselleri ekler ve yeni ürünleri aktarır.</p>
         {% if not actionsEnabled %}<p class="alert" role="status">{% if activeRun %}Yeni işlem başlatmak için devam eden senkronizasyonun tamamlanmasını bekleyin.{% else %}Senkronizasyonu başlatmak için <a href="{{ path('admin_settings') }}">entegrasyon ve sağlayıcı ayarlarını</a> kontrol edin.{% endif %}</p>{% endif %}
         <dl class="integration-status-grid">
             <div>
@@ -83,7 +83,8 @@
             {% set counters = selectedRun.counters.toArray %}
             <section class="integration-section" aria-labelledby="selected-run-heading">
                 <h2 id="selected-run-heading">İşlem #{{ selectedRun.id }} sayaçları</h2>
-                <p class="run-state">{{ ui.text(selectedRun.mode.value) }} / {{ ui.text(selectedRun.state.value) }} / ilerleme {{ selectedRun.checkpoint }}</p>
+                <p class="run-state">{{ ui.text(selectedRun.mode.value) }} / {{ selectedRun.state.value == 'completed' and selectedRun.hasItemErrors ? 'Tamamlandı (hatalı kayıtlar var)' : ui.text(selectedRun.state.value) }} / ilerleme {{ selectedRun.checkpoint }} / {{ selectedRun.declaredCount ?? '—' }}</p>
+                <p data-testid="run-result">{{ counters.created + counters.updated }} kayıt uygulandı; {{ counters.skipped }} kayıt atlandı/hata verdi; {{ counters.images_failed }} görsel hatası.</p>
                 {% if selectedRun.latestError %}<p class="b2b-latest-error" data-testid="selected-run-error">{{ selectedRun.latestError }}</p>{% endif %}
                 <dl class="counter-grid">
                     <div><dt>Taranan</dt><dd data-testid="counter-scanned">{{ counters.scanned }}</dd></div>
@@ -119,8 +120,8 @@
                                 <td><a href="{{ path('admin_integration_b2b', {run_id: run.id}) }}">#{{ run.id }}</a></td>
                                 <td>{{ run.providerKey }}</td>
                                 <td>{{ ui.text(run.mode.value) }}</td>
-                                <td>{{ ui.badge(run.state.value) }}</td>
-                                <td>{{ run.checkpoint }}</td>
+                                <td>{% if run.state.value == 'completed' and run.hasItemErrors %}<span class="status-badge status-warning">Tamamlandı (hatalı kayıtlar var)</span>{% else %}{{ ui.badge(run.state.value) }}{% endif %}</td>
+                                <td>{{ run.checkpoint }} / {{ run.declaredCount ?? '—' }}</td>
                                 <td>{{ run.createdAt|date('d.m.Y H:i') }}</td>
                                 <td>{{ run.finishedAt ? run.finishedAt|date('d.m.Y H:i') : '-' }}</td>
                             </tr>

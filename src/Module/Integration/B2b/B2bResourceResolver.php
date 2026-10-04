@@ -569,14 +569,26 @@ final class B2bResourceResolver
     {
         $mapping = $this->mappings->findOneByExternalId($this->providerKey, B2bResourceType::Category, $externalId);
         if (null !== $mapping) {
-            $category = $this->entityManager->find(Category::class, (int) $mapping->localResourceId());
-            if (!$category instanceof Category || CatalogSource::External !== $category->source()) {
+            if ('category' !== $mapping->localResourceType()) {
                 throw new B2bResourceConflictException('A category mapping points to an invalid local resource.');
             }
-            $mapping->seenIn($runId, $seenAt);
-            $this->entityManager->flush();
+            $category = $this->entityManager->find(Category::class, (int) $mapping->localResourceId());
+            if ($category instanceof Category && CatalogSource::External !== $category->source()) {
+                throw new B2bResourceConflictException('A category mapping points to an invalid local resource.');
+            }
+            if ($category instanceof Category) {
+                // Deleting a provider root sets its surviving leaves' parent to NULL.
+                // Restore the feed hierarchy when that root is recreated.
+                $category->changeParent($parent);
+                $mapping->seenIn($runId, $seenAt);
+                $this->entityManager->flush();
 
-            return new B2bResolvedCategory($category, 0, 1);
+                return new B2bResolvedCategory($category, 0, 1);
+            }
+            // Mappings have no local foreign key. Only an absent category is recoverable;
+            // a live human-owned category remains a conflict above.
+            $this->entityManager->remove($mapping);
+            $this->entityManager->flush();
         }
         $slug = $this->availableCategorySlug($name, $externalId);
         $category = $this->catalog->createCategory($name, $slug, CatalogSource::External, $parent);

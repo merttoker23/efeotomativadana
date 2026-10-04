@@ -194,6 +194,81 @@ final class B2bSyncResumeTest extends KernelTestCase
         $processor->process($runId);
     }
 
+    public function testFullSnapshotCannotShrinkAgainstSuccessfulFullBaseline(): void
+    {
+        $now = new \DateTimeImmutable('2026-07-24T12:00:00+00:00');
+        $baseline = B2bSyncRun::queue('efe', B2bSyncMode::Full, $now);
+        $baseline->markRunning($now);
+        $baseline->recordSnapshot($this->directory.'/baseline.json', 100, str_repeat('a', 64), $now);
+        $baseline->recordBatch(\App\Module\Integration\B2b\B2bSyncCounters::empty()->recordScanned(100)->recordCreated(100), 100, $now);
+        $baseline->complete($now);
+        $this->entityManager->persist($baseline);
+        $this->entityManager->flush();
+        $run = $this->runs->createOrGetActive('efe', B2bSyncMode::Full)->run;
+        $provider = new ScriptedPositionProvider($this->directory, [], 49);
+        try {
+            $this->processor($provider)->process($run->id());
+            self::fail('A reduced FULL must be refused before importing.');
+        } catch (\App\Module\Integration\B2b\Exception\B2bRetryableProviderException $error) {
+            self::assertStringContainsString('smaller', $error->getMessage());
+            self::assertSame(0, $run->checkpoint());
+            self::assertNotSame(\App\Module\Integration\B2b\B2bSyncState::Completed, $run->state());
+        }
+    }
+
+    public function testRunCannotCompleteBeforeConsumingItsSnapshot(): void
+    {
+        $now = new \DateTimeImmutable('2026-07-24T12:00:00+00:00');
+        $run = B2bSyncRun::queue('efe', B2bSyncMode::Full, $now);
+        $run->markRunning($now);
+        $run->recordSnapshot($this->directory.'/incomplete.json', 2, str_repeat('a', 64), $now);
+        $run->recordBatch(\App\Module\Integration\B2b\B2bSyncCounters::empty()->recordScanned()->recordCreated(), 1, $now);
+        $this->expectException(\DomainException::class);
+        $run->complete($now);
+    }
+
+    public function testFullWithManyIdentityFailuresDoesNotComplete(): void
+    {
+        $script = [];
+        for ($i = 0; $i < 12; ++$i) {
+            $script[] = [$i, B2bFeedRecord::failure(new \App\Module\Integration\B2b\B2bItemError(\App\Module\Integration\B2b\B2bErrorType::Conflict, 'Untrusted local product.'))];
+        }
+        $run = $this->runs->createOrGetActive('efe', B2bSyncMode::Full)->run;
+        $runId = $run->id();
+        try {
+            $this->processor(new ScriptedPositionProvider($this->directory, $script))->process($runId);
+            self::fail('Many identity failures cannot complete successfully.');
+        } catch (\App\Module\Integration\B2b\Exception\B2bRetryableProviderException $error) {
+            self::assertStringContainsString('identity or item failures', $error->getMessage());
+            $this->entityManager->clear();
+            $stored = $this->entityManager->find(B2bSyncRun::class, $runId);
+            self::assertSame(12, $stored->checkpoint());
+            self::assertSame(12, $stored->counters()->scanned());
+            self::assertSame(12, $stored->counters()->skipped());
+            self::assertNotSame(\App\Module\Integration\B2b\B2bSyncState::Completed, $stored->state());
+        }
+    }
+
+    public function testFullWithManyMalformedFeedIdsDoesNotComplete(): void
+    {
+        $record = $this->fixtureRecord(0);
+        $record['id'] = null;
+        $json = json_encode(['ok' => true, 'count' => 12, 'data' => array_fill(0, 12, $record)], JSON_THROW_ON_ERROR);
+        $run = $this->runs->createOrGetActive('efe', B2bSyncMode::Full)->run;
+        $runId = $run->id();
+        try {
+            $this->processor($this->efeProvider($json))->process($runId);
+            self::fail('A feed with many malformed IDs cannot complete.');
+        } catch (\App\Module\Integration\B2b\Exception\B2bRetryableProviderException $error) {
+            self::assertStringContainsString('identity or item failures', $error->getMessage());
+            $this->entityManager->clear();
+            $stored = $this->entityManager->find(B2bSyncRun::class, $runId);
+            self::assertSame(12, $stored->counters()->skipped());
+            self::assertSame(0, $stored->counters()->conflicts());
+            self::assertNotSame(\App\Module\Integration\B2b\B2bSyncState::Completed, $stored->state());
+        }
+    }
+
     /** @return list<B2bFeedRecord> */
     private function records(): array
     {
@@ -236,11 +311,11 @@ final class B2bSyncResumeTest extends KernelTestCase
         );
     }
 
-    private function efeProvider(): EfeFeedProvider
+    private function efeProvider(?string $json = null): EfeFeedProvider
     {
         $url = 'https://b2b.efeotoyedekparca.com.tr/feed.json';
         $downloader = new EfeSnapshotDownloader(
-            httpClient: new MockHttpClient(new MockResponse($this->fixture(), ['response_headers' => ['content-type: application/json']])),
+            httpClient: new MockHttpClient(new MockResponse($json ?? $this->fixture(), ['response_headers' => ['content-type: application/json']])),
             endpointUrl: $url,
             allowedHosts: ['b2b.efeotoyedekparca.com.tr'],
             snapshotDirectory: $this->directory,

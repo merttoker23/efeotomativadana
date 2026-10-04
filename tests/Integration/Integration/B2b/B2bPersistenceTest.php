@@ -179,7 +179,7 @@ final class B2bPersistenceTest extends KernelTestCase
         ]);
 
         $run->markRunning($startedAt);
-        $run->recordSnapshot('/var/b2b-snapshots/efe/1.json', 92175, str_repeat('a', 64), $startedAt);
+        $run->recordSnapshot('/var/b2b-snapshots/efe/1.json', 250, str_repeat('a', 64), $startedAt);
         $run->recordBatch($counters, 250, $checkpointedAt);
         $run->complete($completedAt);
         $this->entityManager->persist($run);
@@ -196,7 +196,7 @@ final class B2bPersistenceTest extends KernelTestCase
         self::assertNull($reloaded->activeProviderKey());
         self::assertNull($reloaded->latestError());
         self::assertSame('/var/b2b-snapshots/efe/1.json', $reloaded->snapshotPath());
-        self::assertSame(92175, $reloaded->declaredCount());
+        self::assertSame(250, $reloaded->declaredCount());
         self::assertSame(250, $reloaded->checkpoint());
         self::assertSame(250, $reloaded->counters()->scanned());
         self::assertSame(249, $reloaded->counters()->created());

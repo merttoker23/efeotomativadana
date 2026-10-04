@@ -1,0 +1,23 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block body %}
+    <main id="main-content" class="page-shell contact-page" tabindex="-1">
+        <div class="container breadcrumbs"><a href="{{ path('app_home') }}">Ana Sayfa</a> &nbsp;/&nbsp; İletişim</div>
+        <section class="container generic-card contact-card" aria-labelledby="contact-title">
+            <h1 id="contact-title" class="page-title">İletişim</h1>
+            {{ form_start(form, {attr: {class: 'form-grid contact-form'}}) }}
+                {% if form.vars.errors|length %}
+                    <div class="field full contact-errors" role="alert">{{ form_errors(form) }}</div>
+                {% endif %}
+                {% for field in [form.firstName, form.lastName, form.email, form.phone, form.message] %}
+                    <div class="field{{ field == form.message ? ' full' : '' }}">
+                        {{ form_label(field) }}
+                        {{ form_widget(field) }}
+                        {{ form_errors(field) }}
+                    </div>
+                {% endfor %}
+                <div class="field full">{{ form_widget(form.send, {attr: {class: 'btn-yellow'}}) }}</div>
+            {{ form_end(form) }}
+        </section>
+    </main>
+{% endblock %}

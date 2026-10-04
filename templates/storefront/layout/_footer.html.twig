@@ -8,12 +8,12 @@
 <footer class="site-footer">
     <div class="container footer-main">
         <section aria-labelledby="footer-store-title">
-            <div class="footer-logo">{{ store.name }}</div>
+            <div class="footer-logo" id="footer-store-title">{{ store.name }}</div>
             <p>Otomotiv yedek parçada doğru ürünü güvenle bulmanız için yanınızdayız.</p>
         </section>
         <section aria-labelledby="footer-service-title">
             <h4 id="footer-service-title">Müşteri Hizmetleri</h4>
-            <span>İletişim</span>
+            <a href="{{ path('storefront_contact') }}">İletişim</a>
             {% if is_granted('ROLE_CUSTOMER') %}
                 {# Only a real link when it leads somewhere: a dead "İade ve değişim" in the footer of
                    every anonymous page is a support question the store answers for free. #}
@@ -43,6 +43,10 @@
     </div>
     <div class="container footer-bottom">
         <span>© {{ 'now'|date('Y') }} {{ store.name }}</span>
-        <span class="payments">VISA ● MC ● AMEX ●</span>
+        <span class="payments" role="group" aria-label="Ödeme markaları">
+            <img src="{{ asset('images/payments/paytr.svg') }}" alt="PayTR" height="24">
+            <img src="{{ asset('images/payments/visa.svg') }}" alt="Visa" height="24">
+            <img src="{{ asset('images/payments/mastercard.svg') }}" alt="Mastercard" height="24">
+        </span>
     </div>
 </footer>

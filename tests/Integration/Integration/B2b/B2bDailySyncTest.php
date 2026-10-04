@@ -132,7 +132,7 @@ final class B2bDailySyncTest extends KernelTestCase
         parent::tearDown();
     }
 
-    public function testMappedDailyChangesOnlyPriceAndStock(): void
+    public function testMappedDailyChangesPriceStockAndAddsMissingImages(): void
     {
         $item = $this->item(0);
         $created = $this->writer->importFull($item, 1);
@@ -184,8 +184,10 @@ final class B2bDailySyncTest extends KernelTestCase
         self::assertSame($originalSlug, $reloaded->slug());
         self::assertSame($originalCategory, $reloaded->categories()[0]->name());
         self::assertSame($originalBrand, $reloaded->brand()?->name());
-        self::assertSame($originalImageCount, count($reloaded->images()));
-        self::assertSame($originalImages, array_map(static fn ($image): string => $image->path(), $reloaded->images()));
+        self::assertSame($originalImageCount + 1, count($reloaded->images()));
+        foreach ($originalImages as $path) {
+            self::assertContains($path, array_map(static fn ($image): string => $image->path(), $reloaded->images()));
+        }
         $reloadedIdentifiers = array_map(
             static fn ($identifier): string => $identifier->type()->value.':'.$identifier->code(),
             $reloaded->identifiers(),
@@ -198,9 +200,13 @@ final class B2bDailySyncTest extends KernelTestCase
         }
         ksort($reloadedAttributes);
         self::assertSame($originalAttributes, $reloadedAttributes);
-        self::assertSame($mediaCount, count($this->media->stored));
+        self::assertSame($mediaCount + 1, count($this->media->stored));
         self::assertSame(108_000, $this->price($reloaded)->basePrice()->minorAmount());
         self::assertSame(7, $this->inventory($reloaded)->quantity());
+        $again = $this->writer->updateDaily($this->normalizer()->normalize($record), $runId);
+        self::assertTrue($again->isSuccess());
+        self::assertSame(0, $again->counters()->imagesImported());
+        self::assertSame($mediaCount + 1, count($this->media->stored));
     }
 
     public function testDailyAllowsMutableOemIdentifierChangesAndUpdatesPriceAndStock(): void
@@ -753,7 +759,7 @@ final class B2bDailySyncTest extends KernelTestCase
         $baseline = B2bSyncRun::queue('efe', B2bSyncMode::Full, new \DateTimeImmutable('2026-07-25T13:00:00+00:00'));
         $baseline->markRunning(new \DateTimeImmutable('2026-07-25T13:01:00+00:00'));
         $baseline->recordSnapshot('/tmp/baseline.json', 2, str_repeat('c', 64), new \DateTimeImmutable('2026-07-25T13:01:00+00:00'));
-        $baseline->recordBatch(B2bSyncCounters::empty()->recordScanned(2), 2, new \DateTimeImmutable('2026-07-25T13:02:00+00:00'));
+        $baseline->recordBatch(B2bSyncCounters::empty()->recordScanned(2)->recordCreated(2), 2, new \DateTimeImmutable('2026-07-25T13:02:00+00:00'));
         $baseline->complete(new \DateTimeImmutable('2026-07-25T13:03:00+00:00'));
         $this->entityManager->persist($baseline);
         $this->entityManager->flush();

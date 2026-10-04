@@ -75,6 +75,7 @@ final readonly class B2bRunProcessor implements B2bRunProcessorInterface
                 $run->snapshotSha256(),
             ));
             $this->assertDailySnapshotPlausible($run, $snapshot);
+            $this->assertFullSnapshotPlausible($run, $snapshot);
             $run->recordSnapshot($snapshot->path, $snapshot->declaredCount, $snapshot->sha256, $this->now());
             $this->runManager->recordBatch($run, B2bSyncCounters::empty(), $run->checkpoint());
             $this->entityManager->clear();
@@ -139,6 +140,11 @@ final readonly class B2bRunProcessor implements B2bRunProcessorInterface
                     throw new \RuntimeException('The B2B run disappeared during reconciliation.');
                 }
                 $this->runManager->recordBatch($current, $reconciliation, $checkpoint);
+            }
+            $counters = $current->counters();
+            $identityOrItemFailures = $counters->skipped() - $counters->priceFailed() - $counters->stockFailed();
+            if ($identityOrItemFailures >= 10 && $identityOrItemFailures > $counters->scanned() * 0.25) {
+                throw new B2bRetryableProviderException(sprintf('Too many B2B identity or item failures to complete (%d of %d records).', $identityOrItemFailures, $counters->scanned()));
             }
             $this->runManager->complete($current);
             $this->cleaner->remove($snapshot->path);
@@ -279,6 +285,23 @@ final readonly class B2bRunProcessor implements B2bRunProcessorInterface
         );
         if ($mappedProducts > 0 && 0 === $snapshot->declaredCount) {
             throw new B2bRetryableProviderException('An empty DAILY snapshot cannot reconcile an existing catalog.');
+        }
+    }
+
+    private function assertFullSnapshotPlausible(B2bSyncRun $run, B2bSnapshot $snapshot): void
+    {
+        if (B2bSyncMode::Full !== $run->mode()) {
+            return;
+        }
+        $previous = $this->runs->latestSuccessful($run->providerKey(), B2bSyncMode::Full);
+        $baseline = $previous?->declaredCount();
+        // No historical baseline exists for a first FULL. Later feeds may legitimately lose
+        // some rows, but a loss greater than 25% needs a fresh provider response.
+        if (null !== $baseline && $snapshot->declaredCount < (int) ceil($baseline * 0.75)) {
+            if (0 === $run->checkpoint() && null === $run->snapshotPath()) {
+                $this->cleaner->remove($snapshot->path);
+            }
+            throw new B2bRetryableProviderException(sprintf('The FULL snapshot is implausibly smaller than the last successful FULL (%d versus %d records).', $snapshot->declaredCount, $baseline));
         }
     }
 

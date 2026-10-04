@@ -142,8 +142,9 @@ final class B2bCatalogWriter
             $this->inventory->upsert($product, $item->stock(), $item->stock() > 0);
             $this->resources->markProductSeen($item, $runId, $seenAt);
             $counters = $counters->recordUpdated()->recordPriceUpdated()->recordStockUpdated();
+            [$counters, $errors] = $this->importFullImages($product, $item, $runId, $seenAt, $counters, []);
 
-            return B2bItemResult::success($product, $counters);
+            return B2bItemResult::success($product, $counters, $errors);
         } catch (B2bProductIdentityConflictException $exception) {
             return B2bItemResult::failure(new B2bItemError(B2bErrorType::Conflict, $exception->getMessage(), $item->externalId()));
         }

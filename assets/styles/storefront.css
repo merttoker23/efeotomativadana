@@ -1523,7 +1523,7 @@ select:focus-visible {
 .product-identifiers dl div,
 .product-attributes dl div {
     display: grid;
-    grid-template-columns: minmax(120px, 0.7fr) 1fr;
+    grid-template-columns: 200px minmax(0, 1fr);
     gap: 1rem;
     padding: 0.6rem 0;
     border-bottom: 1px solid var(--storefront-line);
@@ -1539,6 +1539,8 @@ select:focus-visible {
 .product-attributes dd {
     margin: 0;
     font-weight: 700;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .brands-directory {
@@ -1698,9 +1700,10 @@ select:focus-visible {
 
 .footer-logo {
     color: #fff;
-    font-size: 1.75rem;
-    font-weight: 900;
-    letter-spacing: -0.125rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: normal;
 }
 
 .site-footer h4 {
@@ -1746,7 +1749,38 @@ select:focus-visible {
 }
 
 .payments {
-    letter-spacing: 0.4rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: normal;
+}
+
+.payments img {
+    display: block;
+    height: 24px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.payments img[alt="Visa"],
+.payments img[alt="Mastercard"] {
+    background: #fff;
+    border-radius: 3px;
+    padding: 3px 5px;
+}
+
+.contact-card { max-width: 980px; margin-bottom: 20.8px; }
+.contact-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.contact-form .field { display: flex; flex-direction: column; gap: 5.6px; min-width: 0; }
+.contact-form .field.full { grid-column: 1 / -1; }
+.contact-form input, .contact-form textarea { width: 100%; border: 1px solid #d6d9dc; border-radius: 4px; padding: 8.8px; background: var(--storefront-card); font: inherit; }
+.contact-form textarea { resize: vertical; }
+.contact-form .btn-yellow { align-self: flex-start; border: 0; border-radius: 4px; padding: 7.2px 9.6px; background: var(--storefront-yellow); color: var(--storefront-ink); font: inherit; font-weight: 700; }
+.contact-errors:empty { display: none; }
+@media (max-width: 680px) {
+    .contact-form { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (min-width: 1025px) {

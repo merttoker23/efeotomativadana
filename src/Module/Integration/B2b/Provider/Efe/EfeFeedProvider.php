@@ -108,10 +108,11 @@ final readonly class EfeFeedProvider implements B2bFeedProviderInterface
     {
         for ($current = $exception; null !== $current; $current = $current->getPrevious()) {
             $message = mb_strtolower($current->getMessage());
-            if (str_contains($message, 'stock')) {
+            if (str_contains($message, 'stock') || str_contains($message, 'mevcut_stok')) {
                 return B2bErrorType::InvalidStock;
             }
-            if (str_contains($message, 'price') || str_contains($message, 'discount') || str_contains($message, 'tax') || str_contains($message, 'vat')) {
+            if (str_contains($message, 'price') || str_contains($message, 'discount') || str_contains($message, 'tax') || str_contains($message, 'vat')
+                || str_contains($message, 'listefiyati') || str_contains($message, 'iskonto') || str_contains($message, 'kdvorani')) {
                 return B2bErrorType::InvalidPrice;
             }
         }

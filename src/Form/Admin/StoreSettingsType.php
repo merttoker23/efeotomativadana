@@ -8,6 +8,7 @@ use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ColorType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
@@ -22,6 +23,7 @@ final class StoreSettingsType extends AbstractType
     {
         $builder
             ->add('storeName', TextType::class, ['label' => 'Mağaza adı'])
+            ->add('contactEmail', EmailType::class, ['label' => 'İletişim e-posta adresi', 'required' => false])
             ->add('defaultLocale', TextType::class, ['label' => 'Mağazanın varsayılan dili'])
             ->add('defaultTaxRate', IntegerType::class, ['label' => 'Varsayılan vergi oranı (%)'])
             ->add('b2bEnabled', CheckboxType::class, [

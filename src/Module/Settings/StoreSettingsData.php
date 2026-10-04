@@ -68,6 +68,9 @@ final class StoreSettingsData
         public int $shippingFee = 25_000,
         #[Assert\Range(min: 0, max: 999_999_999)]
         public int $freeShippingThreshold = 150_000,
+        #[Assert\Email]
+        #[Assert\Length(max: 254)]
+        public ?string $contactEmail = null,
     ) {
     }
 }

@@ -94,6 +94,19 @@ final class EfeFeedProviderTest extends TestCase
         self::assertFalse($streamed[0]->isSuccess());
         self::assertSame(B2bErrorType::InvalidStock, $streamed[0]->error()->errorType());
     }
+    public function testMissingRawPriceAndStockFieldsKeepTheirErrorClassification(): void
+    {
+        foreach (['listefiyati' => B2bErrorType::InvalidPrice, 'iskonto' => B2bErrorType::InvalidPrice, 'kdvorani' => B2bErrorType::InvalidPrice, 'mevcut_stok' => B2bErrorType::InvalidStock] as $field => $expected) {
+            $fixture = json_decode($this->fixture(), true, 512, JSON_THROW_ON_ERROR);
+            unset($fixture['data'][0][$field]);
+            $provider = $this->provider(json_encode($fixture, JSON_THROW_ON_ERROR));
+            $snapshot = $provider->prepareSnapshot($this->request());
+            $records = iterator_to_array($provider->streamItems($snapshot, new B2bSyncCheckpoint()), false);
+            self::assertSame($expected, $records[0]->error()?->errorType(), $field);
+            self::assertTrue($records[1]->isSuccess());
+        }
+    }
+
     public function testMalformedRowYieldsAnErrorAndTheFollowingRowStillSucceeds(): void
     {
         $fixture = json_decode($this->fixture(), true, 512, JSON_THROW_ON_ERROR);

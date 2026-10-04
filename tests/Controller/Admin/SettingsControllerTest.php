@@ -45,6 +45,7 @@ final class SettingsControllerTest extends WebTestCase
         $b2bEnabled->tick();
         $form['store_settings[b2bProvider]'] = 'efe';
         $form['store_settings[storeName]'] = 'Efe Otomotiv Updated';
+        $form['store_settings[contactEmail]'] = 'contact@example.com';
         $this->client->submit($form);
 
         self::assertResponseRedirects('/yeni/admin/settings');
@@ -53,6 +54,7 @@ final class SettingsControllerTest extends WebTestCase
         self::assertTrue($configuration->isB2bEnabled());
         self::assertSame('efe', $configuration->b2bProvider());
         self::assertSame('Efe Otomotiv Updated', $configuration->storeName());
+        self::assertSame('contact@example.com', $configuration->contactEmail());
     }
 
     public function testInvalidTaxRateIsRejectedWithoutChangingStoredSettings(): void
