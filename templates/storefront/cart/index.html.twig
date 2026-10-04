@@ -17,7 +17,7 @@
                     {% for item in cart.items %}
                         <article class="cart-line">
                             <img src="{{ product_image_url(item.imagePath) }}" alt="{{ item.name }}" width="640" height="640" loading="lazy" decoding="async">
-                            <div>
+                            <div class="cart-line-info">
                                 <a href="{{ path('storefront_catalog_product', {slug: item.slug}) }}"><strong>{{ item.name }}</strong></a>
                                 <small>{{ item.sku }}</small>
                                 <span>{{ item.unitPrice ? item.unitPrice|storefront_money : 'Fiyat bilgisi kullanılamıyor' }}</span>
@@ -36,14 +36,16 @@
                                 <input type="hidden" name="_token" value="{{ csrf_token('cart_remove') }}">
                                 <button type="submit">Kaldır</button>
                             </form>
-                            <strong>{{ item.lineTotal ? item.lineTotal|storefront_money : '—' }}</strong>
+                            <strong class="cart-line-total">{{ item.lineTotal ? item.lineTotal|storefront_money : '—' }}</strong>
                         </article>
                     {% endfor %}
                 </div>
-                <aside class="cart-summary">
+                <aside class="cart-summary" aria-label="Sepet özeti">
                     <h2>Sepet özeti</h2>
                     <p><span>Ürün adedi</span><strong>{{ cart.itemCount }}</strong></p>
-                    <p><span>Toplam</span><strong>{{ cart.total ? cart.total|storefront_money : 'Hesaplanamıyor' }}</strong></p>
+                    <p class="cart-summary-subtotal"><span>Ara Toplam</span><strong>{{ cart.total ? cart.total|storefront_money : 'Hesaplanamıyor' }}</strong></p>
+                    <p class="cart-summary-shipping"><span>Kargo</span><strong>{{ shippingCost ? (shippingCost.isZero ? 'Ücretsiz' : shippingCost|storefront_money) : 'Hesaplanamıyor' }}</strong></p>
+                    <p class="cart-summary-total"><span>Genel Toplam</span><strong>{{ grandTotal ? grandTotal|storefront_money : 'Hesaplanamıyor' }}</strong></p>
                     {% if cart.total %}
                         {% if app.user %}
                             <a class="cart-checkout-link" href="{{ path('storefront_checkout') }}">Siparişi tamamla</a>

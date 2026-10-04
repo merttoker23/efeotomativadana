@@ -118,10 +118,10 @@ final class CheckoutWorkflowTest extends WebTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('shippingSummaries')]
-    public function testCheckoutSummaryIncludesServerShipping(int $subtotal, bool $custom, string $shipping, string $total): void
+    public function testCartCheckoutAndOrderShareShippingPolicy(int $subtotal, bool $custom, string $shipping, string $total, int $shippingMinor, int $totalMinor): void
     {
         $customer = $this->customer('summary-checkout@example.com');
-        $this->address($customer, 'Ev', 'Özet Cad. 1');
+        $address = $this->address($customer, 'Ev', 'Özet Cad. 1');
         $this->cartLine($customer, $subtotal, 1, 1);
         if ($custom) {
             $configuration = self::getContainer()->get(\App\Module\Settings\StoreConfiguration::class);
@@ -131,18 +131,40 @@ final class CheckoutWorkflowTest extends WebTestCase
             $configuration->save($settings);
         }
         $this->client->loginUser($customer, 'main');
+        $crawler = $this->client->request('GET', '/yeni/sepet');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.cart-summary-subtotal', 'Ara Toplam');
+        self::assertSelectorTextContains('.cart-summary-shipping', $shipping);
+        self::assertSelectorTextContains('.cart-summary-total', $total);
+        self::assertStringNotContainsString('TRY', $crawler->filter('main')->text());
         $crawler = $this->client->request('GET', '/yeni/odeme');
         self::assertResponseIsSuccessful();
         self::assertStringContainsString($shipping, $crawler->filter('.checkout-summary-line')->last()->text());
         self::assertSelectorTextContains('.checkout-summary-total', $total);
+        $this->client->request('POST', '/yeni/odeme', [
+            '_token' => $crawler->filter('input[name="_token"]')->attr('value'),
+            'shipping_address' => $address->id(),
+            'billing_address' => $address->id(),
+            'shipping_option' => 'local_standard',
+            'payment_option' => 'local_manual',
+            'shipping_cost' => '0',
+            'total' => '1',
+        ]);
+        self::assertResponseRedirects();
+        $order = $this->connection->fetchAssociative('SELECT subtotal_minor_amount, shipping_minor_amount, grand_total_minor_amount FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]);
+        self::assertIsArray($order);
+        self::assertSame($subtotal, (int) $order['subtotal_minor_amount']);
+        self::assertSame($shippingMinor, (int) $order['shipping_minor_amount']);
+        self::assertSame($totalMinor, (int) $order['grand_total_minor_amount']);
     }
 
-    /** @return iterable<string, array{int, bool, string, string}> */
+    /** @return iterable<string, array{int, bool, string, string, int, int}> */
     public static function shippingSummaries(): iterable
     {
-        yield 'paid below threshold' => [149_999, false, '250,00 TL', '1.749,99 TL'];
-        yield 'free at threshold' => [150_000, false, 'Ücretsiz', '1.500,00 TL'];
-        yield 'new settings' => [150_000, true, '325,50 TL', '1.825,50 TL'];
+        yield 'paid below threshold' => [149_999, false, '250,00 TL', '1.749,99 TL', 25_000, 174_999];
+        yield 'free at threshold' => [150_000, false, 'Ücretsiz', '1.500,00 TL', 0, 150_000];
+        yield 'free above threshold' => [150_001, false, 'Ücretsiz', '1.500,01 TL', 0, 150_001];
+        yield 'new settings' => [150_000, true, '325,50 TL', '1.825,50 TL', 32_550, 182_550];
     }
 
     private function customer(string $email): CustomerUser

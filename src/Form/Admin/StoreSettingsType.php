@@ -22,7 +22,6 @@ final class StoreSettingsType extends AbstractType
     {
         $builder
             ->add('storeName', TextType::class, ['label' => 'Mağaza adı'])
-            ->add('currency', TextType::class, ['label' => 'Para birimi (ISO 4217)'])
             ->add('defaultLocale', TextType::class, ['label' => 'Mağazanın varsayılan dili'])
             ->add('defaultTaxRate', IntegerType::class, ['label' => 'Varsayılan vergi oranı (%)'])
             ->add('b2bEnabled', CheckboxType::class, [
@@ -51,12 +50,12 @@ final class StoreSettingsType extends AbstractType
             ])
             ->add('shippingFee', MoneyType::class, [
                 'label' => 'Kargo ücreti (TL)',
-                'currency' => 'TRY', 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
+                'currency' => false, 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
                 'html5' => true, 'attr' => ['min' => '0', 'step' => '0.01'],
             ])
             ->add('freeShippingThreshold', MoneyType::class, [
                 'label' => 'Ücretsiz kargo alt limiti (TL)',
-                'currency' => 'TRY', 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
+                'currency' => false, 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
                 'html5' => true, 'attr' => ['min' => '0', 'step' => '0.01'],
             ])
             ->add('seoIndexingEnabled', CheckboxType::class, [

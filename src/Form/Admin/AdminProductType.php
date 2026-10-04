@@ -9,6 +9,7 @@ use App\Entity\Catalog\Category;
 use App\Module\Catalog\AdminProductData;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
@@ -35,8 +36,8 @@ final class AdminProductType extends AbstractType
             ->add('oemCodes', TextareaType::class, ['required' => false, 'label' => 'OEM kodları', 'help' => 'Her satıra bir kod yazın.'])
             ->add('referenceCodes', TextareaType::class, ['required' => false, 'label' => 'Referans kodları', 'help' => 'Her satıra bir kod yazın.'])
             ->add('imagePaths', TextareaType::class, ['required' => false, 'label' => 'Görseller', 'help' => 'Her satıra bir görsel yolu yazın; | işaretinden sonra alternatif metin ekleyebilirsiniz.'])
-            ->add('baseMinorAmount', IntegerType::class, ['label' => 'Normal fiyat (alt birim)', 'help' => 'TRY için kuruş girin: 100 = 1 TL.'])
-            ->add('currency', TextType::class, ['label' => 'Para birimi (ISO kodu)'])
+            ->add('baseMinorAmount', IntegerType::class, ['label' => 'Normal fiyat (alt birim)', 'help' => 'TL için kuruş girin: 100 = 1 TL.'])
+            ->add('currency', TextType::class, ['label' => 'Para birimi'])
             ->add('taxCategory', TextType::class, ['label' => 'Vergi kategorisi'])
             ->add('taxRateBasisPoints', IntegerType::class, ['label' => 'Vergi oranı (baz puan; %1 = 100)'])
             ->add('saleMinorAmount', IntegerType::class, ['required' => false, 'label' => 'İndirimli fiyat (alt birim)'])
@@ -46,6 +47,11 @@ final class AdminProductType extends AbstractType
             ->add('availableForSale', CheckboxType::class, ['required' => false, 'label' => 'Satışa açık'])
             ->add('inventoryVersion', HiddenType::class, ['mapped' => false, 'data' => $options['inventory_version']])
             ->add('save', SubmitType::class, ['label' => 'Ürünü kaydet']);
+
+        $builder->get('currency')->addModelTransformer(new CallbackTransformer(
+            static fn (?string $value): ?string => 'TRY' === $value ? 'TL' : $value,
+            static fn (?string $value): ?string => 'TL' === $value ? 'TRY' : $value,
+        ));
     }
 
     public function configureOptions(OptionsResolver $resolver): void

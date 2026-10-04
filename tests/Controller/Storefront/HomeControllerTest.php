@@ -4,6 +4,7 @@ namespace App\Tests\Controller\Storefront;
 
 use App\Entity\Catalog\Product;
 use App\Entity\Cms\HomeSection;
+use App\Entity\Cms\BlogPost;
 use App\Entity\Commerce\ProductInventory;
 use App\Entity\Commerce\ProductPrice;
 use App\Module\Cms\HomeSectionType;
@@ -64,6 +65,34 @@ final class HomeControllerTest extends WebTestCase
 
         self::assertSame('/yeni/', $crawler->filter('a.storefront-brand')->attr('href'));
         self::assertSame('h1', $crawler->filter('main h1, main h2')->first()->nodeName());
+    }
+
+    public function testHomepageUsesTheSameBlogCoverAsArchiveAndDetail(): void
+    {
+        $cover = '/uploads/cms/'.str_repeat('a', 32).'.png';
+        $covered = new BlogPost('Kapaklı yazı', 'kapakli-yazi', 'Özet', 'İçerik');
+        $covered->setPublished(true);
+        $covered->setCoverImagePath($cover);
+        $placeholder = new BlogPost('Kapaksız yazı', 'kapaksiz-yazi', 'Özet', 'İçerik');
+        $placeholder->setPublished(true);
+        $section = new HomeSection(HomeSectionType::BlogFeed, 'Blog', ['limit' => 3]);
+        $section->setEnabled(true);
+        foreach ([$covered, $placeholder, $section] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/yeni/');
+        self::assertResponseIsSuccessful();
+        $card = $crawler->filter('.blog-card[href="/yeni/blog/kapakli-yazi"]');
+        self::assertCount(1, $card->filter('.blog-cover img'));
+        self::assertSame('/yeni'.$cover, $card->filter('.blog-cover img')->attr('src'));
+        self::assertSelectorExists('.blog-card[href="/yeni/blog/kapaksiz-yazi"] .blog-cover');
+        self::assertSelectorNotExists('.blog-card[href="/yeni/blog/kapaksiz-yazi"] img');
+        $crawler = $this->client->request('GET', '/yeni/blog');
+        self::assertSame('/yeni'.$cover, $crawler->filter('.blog-post-card[href="/yeni/blog/kapakli-yazi"] img')->attr('src'));
+        $crawler = $this->client->request('GET', '/yeni/blog/kapakli-yazi');
+        self::assertSame('/yeni'.$cover, $crawler->filter('.blog-post-hero img')->attr('src'));
     }
 
     public function testHomeUsesMappedLocalAssetsWithoutStaticThemeLinks(): void

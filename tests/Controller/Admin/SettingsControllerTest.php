@@ -113,6 +113,8 @@ final class SettingsControllerTest extends WebTestCase
     {
         $crawler = $this->client->request('GET', '/yeni/admin/settings');
         self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('[name="store_settings[currency]"]');
+        self::assertStringNotContainsString('TRY', $crawler->filter('main')->text());
         $formNode = $crawler->filter('form[name="store_settings"]');
         self::assertSame(['Mağaza', 'Özellikler', 'Sağlayıcılar', 'Kargo Ayarları', 'SEO', 'Google Analytics', 'Storefront Renkleri'], $formNode->filter('fieldset legend')->each(static fn ($node) => $node->text()));
         self::assertCount(1, $formNode->filter('button[type="submit"]'));
@@ -128,6 +130,7 @@ final class SettingsControllerTest extends WebTestCase
         $configuration = self::getContainer()->get(StoreConfiguration::class);
         self::assertSame(32_550, $configuration->shippingFee());
         self::assertSame(200_000, $configuration->freeShippingThreshold());
+        self::assertSame('TRY', $configuration->currency());
     }
 
     public function testNegativeShippingAmountIsRejected(): void

@@ -5,6 +5,7 @@ namespace App\Controller\Storefront\Cart;
 use App\Entity\Catalog\Product;
 use App\Module\Cart\CartManager;
 use App\Module\Cart\CartViolation;
+use App\Module\Checkout\LocalStandardShippingOption;
 use App\Shared\StorefrontPageContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,10 +16,15 @@ use Symfony\Component\Routing\Attribute\Route;
 final class CartController extends AbstractController
 {
     #[Route('/sepet', name: 'storefront_cart_index', methods: ['GET'])]
-    public function index(StorefrontPageContext $context, CartManager $carts): Response
+    public function index(StorefrontPageContext $context, CartManager $carts, LocalStandardShippingOption $shipping): Response
     {
+        $cart = $carts->view();
+        $shippingCost = null !== $cart->total ? $shipping->cost($cart->total) : null;
+
         return $this->render('storefront/cart/index.html.twig', $context->withLayout([
-            'cart' => $carts->view(),
+            'cart' => $cart,
+            'shippingCost' => $shippingCost,
+            'grandTotal' => null !== $cart->total && null !== $shippingCost ? $cart->total->add($shippingCost) : null,
         ]));
     }
 

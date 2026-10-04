@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Form\Admin;
 
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -44,6 +45,10 @@ final class ReturnRefundType extends AbstractType
             'attr' => ['maxlength' => 120],
             'constraints' => [new Assert\NotBlank(message: 'İade sağlayıcı referansı zorunludur.')],
         ]);
+        $builder->get('currency')->addModelTransformer(new CallbackTransformer(
+            static fn (?string $value): ?string => 'TRY' === $value ? 'TL' : $value,
+            static fn (?string $value): ?string => 'TL' === $value ? 'TRY' : $value,
+        ));
         $builder->add('submit', SubmitType::class, [
             'label' => 'İade kaydını tamamla',
             'attr' => ['class' => 'button-row'],
