@@ -25,6 +25,8 @@ class BlogPost
     private string $body;
     #[ORM\Column]
     private bool $published = false;
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $coverImagePath = null;
 
     public function __construct(string $title, string $slug, string $excerpt, string $body)
     {
@@ -38,6 +40,14 @@ class BlogPost
     public function body(): string { return $this->body; }
     public function published(): bool { return $this->published; }
     public function setPublished(bool $published): void { $this->published = $published; }
+    public function coverImagePath(): ?string { return $this->coverImagePath; }
+    public function setCoverImagePath(?string $path): void
+    {
+        if (null !== $path && 1 !== preg_match('~\A/uploads/cms/[a-f0-9]{32}\.(?:jpg|png|webp)\z~', $path)) {
+            throw new \InvalidArgumentException('Choose an image from the media library.');
+        }
+        $this->coverImagePath = $path;
+    }
 
     public function update(string $title, string $slug, string $excerpt, string $body): void
     {

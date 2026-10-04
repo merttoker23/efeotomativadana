@@ -64,6 +64,10 @@ final class StoreSettingsData
         public string $storefrontLine = '#e1e3e6',
         #[Assert\Regex(pattern: Ga4MeasurementId::PATTERN, message: 'Geçerli bir GA4 Measurement ID girin (ör. G-XXXXXXXXXX).')]
         public ?string $ga4MeasurementId = null,
+        #[Assert\Range(min: 0, max: 999_999_999)]
+        public int $shippingFee = 25_000,
+        #[Assert\Range(min: 0, max: 999_999_999)]
+        public int $freeShippingThreshold = 150_000,
     ) {
     }
 }

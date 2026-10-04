@@ -121,7 +121,7 @@ final class CheckoutManager
                 $lines[] = [$product, $price->taxRate()->basisPoints(), $totals, $item->quantity()];
             }
 
-            $shippingCost = $shippingOption->cost($subtotal->currency());
+            $shippingCost = $shippingOption->cost($subtotal);
             $grandTotal = $subtotal->add($shippingCost);
             $order = new CustomerOrder(
                 $this->numbers->generate(),

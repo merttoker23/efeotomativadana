@@ -36,6 +36,23 @@
                 </fieldset>
 
                 <fieldset>
+                    <legend>Kargo Ayarları</legend>
+                    {{ form_row(form.shippingFee) }}
+                    {{ form_row(form.freeShippingThreshold) }}
+                </fieldset>
+
+                <fieldset>
+                    <legend>SEO</legend>
+                    {{ form_row(form.seoIndexingEnabled) }}
+                    {{ form_row(form.seoDefaultDescription) }}
+                </fieldset>
+
+                <fieldset>
+                    <legend>Google Analytics</legend>
+                    {{ form_row(form.ga4MeasurementId) }}
+                </fieldset>
+
+                <fieldset>
                     <legend>Storefront Renkleri</legend>
                     {{ form_row(form.storefrontNotice) }}
                     {{ form_row(form.storefrontNavy) }}
@@ -48,10 +65,6 @@
                     {{ form_row(form.storefrontLine) }}
                 </fieldset>
 
-                <fieldset>
-                    <legend>Google Analytics</legend>
-                    {{ form_row(form.ga4MeasurementId) }}
-                </fieldset>
                 {{ form_row(form.save) }}
             {{ form_end(form) }}
         </div>

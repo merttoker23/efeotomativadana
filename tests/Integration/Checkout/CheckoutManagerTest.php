@@ -64,7 +64,8 @@ final class CheckoutManagerTest extends KernelTestCase
 
         self::assertSame(30_000, $order->subtotal()->minorAmount());
         self::assertSame(5_000, $order->taxTotal()->minorAmount());
-        self::assertSame(30_000, $order->grandTotal()->minorAmount());
+        self::assertSame(25_000, $order->shippingTotal()->minorAmount());
+        self::assertSame(55_000, $order->grandTotal()->minorAmount());
         self::assertSame(3, $inventory->quantity());
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]));
@@ -108,6 +109,46 @@ final class CheckoutManagerTest extends KernelTestCase
         self::assertSame(3, $inventory->quantity());
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]));
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('shippingThresholds')]
+    public function testShippingThresholdAndPersistedSnapshot(int $subtotal, int $shipping): void
+    {
+        $customer = $this->customer('shipping-threshold@example.com');
+        $address = $this->address($customer, 'Ev', 'Kargo Cad. 1');
+        $this->cartLine($customer, $subtotal, 1, 1);
+        $order = $this->manager()->place($customer, new CheckoutSelection($address->id() ?? 0, $address->id() ?? 0, 'local_standard', 'local_manual'));
+        self::assertSame($shipping, $order->shippingTotal()->minorAmount());
+        self::assertSame($subtotal + $shipping, $order->grandTotal()->minorAmount());
+        $id = $order->id();
+        $this->entityManager->clear();
+        $saved = $this->entityManager->find(CustomerOrder::class, $id);
+        self::assertInstanceOf(CustomerOrder::class, $saved);
+        self::assertSame($shipping, $saved->shippingTotal()->minorAmount());
+    }
+
+    /** @return iterable<string, array{int, int}> */
+    public static function shippingThresholds(): iterable
+    {
+        yield '1499.99 TL' => [149_999, 25_000];
+        yield '1500 TL' => [150_000, 0];
+    }
+
+    public function testPlacementUsesSettingsChangedAfterPreview(): void
+    {
+        $customer = $this->customer('shipping-settings@example.com');
+        $address = $this->address($customer, 'Ev', 'Kargo Cad. 2');
+        $this->cartLine($customer, 150_000, 1, 1);
+        $option = self::getContainer()->get(\App\Module\Checkout\LocalStandardShippingOption::class);
+        self::assertSame(0, $option->cost(Money::ofMinor(150_000, 'TRY'))->minorAmount());
+        $configuration = self::getContainer()->get(\App\Module\Settings\StoreConfiguration::class);
+        $settings = $configuration->current();
+        $settings->shippingFee = 32_500;
+        $settings->freeShippingThreshold = 200_000;
+        $configuration->save($settings);
+        $order = $this->manager()->place($customer, new CheckoutSelection($address->id() ?? 0, $address->id() ?? 0, 'local_standard', 'local_manual'));
+        self::assertSame(32_500, $order->shippingTotal()->minorAmount());
+        self::assertSame(182_500, $order->grandTotal()->minorAmount());
     }
 
     public function testHighValueOrderPersistsBeyondSignedIntegerRange(): void

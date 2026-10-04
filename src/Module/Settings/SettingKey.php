@@ -15,6 +15,8 @@ enum SettingKey: string
     case LoyaltyEarnPercentage = 'loyalty.earn_percentage';
     case PaymentProvider = 'payment.provider';
     case ShippingProvider = 'shipping.provider';
+    case ShippingFee = 'shipping.fee';
+    case FreeShippingThreshold = 'shipping.free_threshold';
     // Indexing stays on by default: a store that has not launched should be switched off from
     // its own settings, not be invisible in production until someone remembers a code change.
     case SeoIndexingEnabled = 'seo.indexing_enabled';
@@ -40,6 +42,8 @@ enum SettingKey: string
             self::StoreDefaultLocale => 'tr',
             self::StoreDefaultTaxRate => 20,
             self::LoyaltyEarnPercentage => 1,
+            self::ShippingFee => 25_000,
+            self::FreeShippingThreshold => 150_000,
             self::StorefrontNotice => '#071e3c',
             self::StorefrontNavy => '#092a53',
             self::StorefrontNavyLight => '#123d70',

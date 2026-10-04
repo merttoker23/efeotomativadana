@@ -1,0 +1,20 @@
+<fieldset>
+    <legend>Kapak görseli</legend>
+    <div class="cms-image" data-controller="home-section-image">
+        <label for="cover_image_file">Kapak görseli yükle</label>
+        <input id="cover_image_file" type="file" name="cover_image_file" accept="image/jpeg,image/png,image/webp" data-home-section-image-target="file" data-action="change->home-section-image#preview">
+        <label for="cover_image">Medya kütüphanesinden seç</label>
+        <select id="cover_image" name="cover_image" data-home-section-image-target="select" data-action="change->home-section-image#preview">
+            <option value="">Görsel seçilmedi</option>
+            {% for image in library %}
+                <option value="{{ image.path }}" data-preview-url="{{ media_url(image.path) }}"{{ values.cover_image == image.path ? ' selected' : '' }}>{{ image.filename }} — {{ (image.bytes / 1024)|round(1) }} KB</option>
+            {% endfor %}
+            {% if values.cover_image and values.cover_image not in library|map(image => image.path) %}
+                <option value="{{ values.cover_image }}" data-preview-url="{{ media_url(values.cover_image) }}" selected>Mevcut kapak görseli</option>
+            {% endif %}
+        </select>
+        <p class="help-text">JPEG, PNG veya WebP · en fazla 5 MB. Yeni yükleme seçilen kütüphane görselinin yerine kullanılır.</p>
+        <img class="cms-image-preview" data-home-section-image-target="preview" src="{{ values.cover_image ? media_url(values.cover_image) : '' }}" alt="Kapak görseli önizlemesi"{% if not values.cover_image %} hidden{% endif %}>
+        <label><input type="checkbox" name="remove_cover" value="1"{{ values.remove_cover ? ' checked' : '' }}> Kapak görselini kaldır</label>
+    </div>
+</fieldset>

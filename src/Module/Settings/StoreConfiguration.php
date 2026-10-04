@@ -65,6 +65,8 @@ final class StoreConfiguration implements ResetInterface
             loyaltyEarnPercentage: $this->intValue(SettingKey::LoyaltyEarnPercentage),
             paymentProvider: $this->nullableStringValue(SettingKey::PaymentProvider),
             shippingProvider: $this->nullableStringValue(SettingKey::ShippingProvider),
+            shippingFee: $this->shippingFee(),
+            freeShippingThreshold: $this->freeShippingThreshold(),
             seoIndexingEnabled: $this->boolValue(SettingKey::SeoIndexingEnabled),
             seoDefaultDescription: $this->nullableStringValue(SettingKey::SeoDefaultDescription),
             storefrontNotice: $this->colorValue(SettingKey::StorefrontNotice),
@@ -118,6 +120,8 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::LoyaltyEarnPercentage->value => $configuration->loyaltyEarnPercentage,
             SettingKey::PaymentProvider->value => $configuration->paymentProvider,
             SettingKey::ShippingProvider->value => $configuration->shippingProvider,
+            SettingKey::ShippingFee->value => $configuration->shippingFee,
+            SettingKey::FreeShippingThreshold->value => $configuration->freeShippingThreshold,
             SettingKey::SeoIndexingEnabled->value => $configuration->seoIndexingEnabled,
             SettingKey::SeoDefaultDescription->value => $configuration->seoDefaultDescription,
             SettingKey::StorefrontNotice->value => $configuration->storefrontNotice,
@@ -217,6 +221,16 @@ final class StoreConfiguration implements ResetInterface
     public function isSeoIndexingEnabled(): bool
     {
         return $this->boolValue(SettingKey::SeoIndexingEnabled);
+    }
+
+    public function shippingFee(): int
+    {
+        return $this->intValue(SettingKey::ShippingFee);
+    }
+
+    public function freeShippingThreshold(): int
+    {
+        return $this->intValue(SettingKey::FreeShippingThreshold);
     }
 
     /**

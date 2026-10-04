@@ -9,6 +9,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -48,6 +49,16 @@ final class StoreSettingsType extends AbstractType
                 'required' => false,
                 'empty_data' => '',
             ])
+            ->add('shippingFee', MoneyType::class, [
+                'label' => 'Kargo ücreti (TL)',
+                'currency' => 'TRY', 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
+                'html5' => true, 'attr' => ['min' => '0', 'step' => '0.01'],
+            ])
+            ->add('freeShippingThreshold', MoneyType::class, [
+                'label' => 'Ücretsiz kargo alt limiti (TL)',
+                'currency' => 'TRY', 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
+                'html5' => true, 'attr' => ['min' => '0', 'step' => '0.01'],
+            ])
             ->add('seoIndexingEnabled', CheckboxType::class, [
                 'label' => 'Mağazanın arama motorlarında görünmesine izin ver',
                 'required' => false,
@@ -69,8 +80,7 @@ final class StoreSettingsType extends AbstractType
             ->add('storefrontCard', ColorType::class, ['label' => 'Kart arka planı', 'trim' => false, 'empty_data' => ''])
             ->add('storefrontInk', ColorType::class, ['label' => 'Metin', 'trim' => false, 'empty_data' => ''])
             ->add('storefrontMuted', ColorType::class, ['label' => 'İkincil metin', 'trim' => false, 'empty_data' => ''])
-            ->add('storefrontLine', ColorType::class, ['label' => 'Çizgi', 'trim' => false, 'empty_data' => ''])
-            ->add('save', SubmitType::class, ['label' => 'Ayarları kaydet']);
+            ->add('storefrontLine', ColorType::class, ['label' => 'Çizgi', 'trim' => false, 'empty_data' => '']);
 
         $builder->add('ga4MeasurementId', TextareaType::class, [
             'label' => 'GA4 Measurement ID',
@@ -83,6 +93,7 @@ final class StoreSettingsType extends AbstractType
             static fn (?string $value): string => $value ?? '',
             static fn (?string $value): ?string => Ga4MeasurementId::normalize($value),
         ));
+        $builder->add('save', SubmitType::class, ['label' => 'Ayarları kaydet']);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

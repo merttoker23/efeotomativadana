@@ -17,8 +17,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * link carrying a cover block, a title and the post's own summary. The post itself is the same card
  * with the title at the top, a wide cover beneath it and the post's excerpt and body under that.
  *
- * Nothing here invents a cover image: `BlogPost` has no cover field, so the reference's own
- * placeholder gradient is what both pages draw, and the test says so rather than skipping it.
+ * Posts without a cover retain the reference's own
+ * placeholder gradient; selected covers appear on the archive and the detail page.
  */
 final class BlogPagesTest extends WebTestCase
 {
@@ -106,6 +106,21 @@ final class BlogPagesTest extends WebTestCase
         $this->client->request('GET', '/yeni/blog/gizli');
 
         self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testCoverIsPersistedAndUsedInListingAndDetail(): void
+    {
+        $post = $this->post('Kapaklı yazı', 'kapakli-yazi', 'Özet.', 'Gövde.');
+        $path = '/uploads/cms/'.str_repeat('a', 32).'.png';
+        $post->setCoverImagePath($path);
+        $this->manager->flush();
+        $this->manager->clear();
+        $crawler = $this->client->request('GET', '/yeni/blog');
+        self::assertResponseIsSuccessful();
+        self::assertSame('/yeni'.$path, $crawler->filter('.blog-post-cover img')->attr('src'));
+        $crawler = $this->client->request('GET', '/yeni/blog/kapakli-yazi');
+        self::assertResponseIsSuccessful();
+        self::assertSame('/yeni'.$path, $crawler->filter('.blog-post-hero img')->attr('src'));
     }
 
     private function post(string $title, string $slug, string $excerpt, string $body): BlogPost

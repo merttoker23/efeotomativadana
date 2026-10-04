@@ -1,22 +1,7 @@
 {% extends 'storefront/base.html.twig' %}
 
-{# The blog archive as `tema/blog.html` draws it.
 
-   The reference is one breadcrumb row, then a single white card holding the page title and a
-   three-across grid of cards; every card is one link carrying a cover block, the title and the
-   summary. Its own numbers are the numbers below — the 5.6px card radius, the 24px card padding,
-   the 27.2px page title, the 16px grid gap, the 176px cover and the 17.6px inner padding — and its
-   own two breakpoints are the repository's: three columns, two from 1024px, one from 680px.
-
-   What is in the grid is this store's own published posts. The reference's cards are filled with a
-   placeholder gradient because the reference theme has no cover images at all, and this store's
-   `BlogPost` has no cover field either, so that same placeholder is used here rather than
-   inventing a table, a migration or an image nobody chose. When a post does grow a cover, only the
-   cover block below changes.
-
-   The published filter and the pager are the ones the controller already applies; this template
-   draws them and decides nothing about which posts are visible. #}
-
+{# Layout and cover sizing follow tema/blog.html; posts without covers keep its gradient. #}
 {% block body %}
     {% set pager = page %}
     <main id="main-content" class="page-shell" tabindex="-1">
@@ -32,18 +17,13 @@
             <div class="blog-list">
                 {% for post in posts %}
                     <a class="blog-post-card" href="{{ path('storefront_blog_show', {slug: post.slug}) }}">
-                        {# The reference's cover block, with no image inside it. Hidden from assistive
-                           technology because it is decoration: the link already says where it goes
-                           and what it is called. #}
-                        <span class="blog-post-cover" aria-hidden="true"></span>
+                        <span class="blog-post-cover" aria-hidden="true">{% if post.coverImagePath %}<img src="{{ media_url(post.coverImagePath) }}" alt="" loading="lazy" decoding="async">{% endif %}</span>
                         <span class="blog-post-body">
                             <h2>{{ post.title }}</h2>
                             {% if post.excerpt %}<p>{{ post.excerpt }}</p>{% endif %}
                         </span>
                     </a>
                 {% else %}
-                    {# The archive with nothing in it says so inside the same card the posts would
-                       have been in, rather than leaving a title floating over an empty page. #}
                     <p class="blog-empty">Henüz yayımlanmış yazı yok.</p>
                 {% endfor %}
             </div>

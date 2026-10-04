@@ -109,6 +109,37 @@ final class SettingsControllerTest extends WebTestCase
         }
     }
 
+    public function testSettingsOrderAndShippingAmountsInLira(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        self::assertResponseIsSuccessful();
+        $formNode = $crawler->filter('form[name="store_settings"]');
+        self::assertSame(['Mağaza', 'Özellikler', 'Sağlayıcılar', 'Kargo Ayarları', 'SEO', 'Google Analytics', 'Storefront Renkleri'], $formNode->filter('fieldset legend')->each(static fn ($node) => $node->text()));
+        self::assertCount(1, $formNode->filter('button[type="submit"]'));
+        self::assertSame(0, $formNode->filterXPath('.//button[@type="submit"]/following::fieldset')->count());
+        self::assertSame(2, $formNode->filterXPath('.//fieldset[legend="SEO"]//input')->count());
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        self::assertSame('250.00', $form['store_settings[shippingFee]']->getValue());
+        self::assertSame('1500.00', $form['store_settings[freeShippingThreshold]']->getValue());
+        $form['store_settings[shippingFee]'] = '325.50';
+        $form['store_settings[freeShippingThreshold]'] = '2000';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings');
+        $configuration = self::getContainer()->get(StoreConfiguration::class);
+        self::assertSame(32_550, $configuration->shippingFee());
+        self::assertSame(200_000, $configuration->freeShippingThreshold());
+    }
+
+    public function testNegativeShippingAmountIsRejected(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['store_settings[shippingFee]'] = '-1';
+        $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(25_000, self::getContainer()->get(StoreConfiguration::class)->shippingFee());
+    }
+
     public function testInvalidStorefrontColorsAreRejectedWithoutPersistence(): void
     {
         foreach (['#fff', '#1234567', '#zzzzzz', 'red', '#123456; color:red', "#123456\n", ''] as $invalid) {

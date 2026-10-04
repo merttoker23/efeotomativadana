@@ -63,9 +63,15 @@ final class CheckoutController extends AbstractController
             }
         }
 
+        $cart = $carts->view();
+        $view = $checkout->view($customer);
+        $shippingCost = null !== $cart->total && [] !== $view->shippingOptions ? $view->shippingOptions[0]->cost($cart->total) : null;
+
         return $this->render('storefront/checkout/index.html.twig', $context->withLayout([
-            'checkout' => $checkout->view($customer),
-            'cart' => $carts->view(),
+            'checkout' => $view,
+            'cart' => $cart,
+            'shippingCost' => $shippingCost,
+            'grandTotal' => null !== $cart->total && null !== $shippingCost ? $cart->total->add($shippingCost) : null,
         ]));
     }
 

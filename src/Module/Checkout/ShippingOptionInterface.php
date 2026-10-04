@@ -16,5 +16,5 @@ interface ShippingOptionInterface
 
     public function available(): bool;
 
-    public function cost(string $currency): Money;
+    public function cost(Money $subtotal): Money;
 }

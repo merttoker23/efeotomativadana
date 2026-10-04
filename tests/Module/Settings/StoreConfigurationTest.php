@@ -43,11 +43,12 @@ final class StoreConfigurationTest extends KernelTestCase
     public function testRequiredSettingsArePersistedExactlyOnce(): void
     {
         $persistedKeys = $this->connection->fetchFirstColumn('SELECT setting_key FROM store_setting ORDER BY setting_key');
-        // Colors and Analytics are optional until saved; no migration seeds these keys.
-        $persistedKeys = array_values(array_filter($persistedKeys, static fn (string $key): bool => !str_starts_with($key, 'storefront.color.') && !str_starts_with($key, 'analytics.')));
+        // Colors, Analytics and shipping amounts use defaults until saved; no migration seeds them.
+        $optional = static fn (string $key): bool => str_starts_with($key, 'storefront.color.') || str_starts_with($key, 'analytics.') || in_array($key, [SettingKey::ShippingFee->value, SettingKey::FreeShippingThreshold->value], true);
+        $persistedKeys = array_values(array_filter($persistedKeys, static fn (string $key): bool => !$optional($key)));
         $requiredKeys = array_map(
             static fn (SettingKey $key): string => $key->value,
-            array_values(array_filter(SettingKey::cases(), static fn (SettingKey $key): bool => !str_starts_with($key->value, 'storefront.color.') && !str_starts_with($key->value, 'analytics.'))),
+            array_values(array_filter(SettingKey::cases(), static fn (SettingKey $key): bool => !$optional($key->value))),
         );
         sort($requiredKeys);
 

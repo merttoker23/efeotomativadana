@@ -103,11 +103,14 @@
     {% endif %}
 
     {% if similarProducts %}
-        <section class="container similar-products" aria-labelledby="similar-products-title">
+        {% set similarCount = similarProducts|length %}
+        <section class="container similar-products" aria-labelledby="similar-products-title" data-product-count="{{ similarCount }}">
             <div class="section-head"><h2 id="similar-products-title">Benzer Ürünler</h2></div>
             <div class="product-grid">
                 {% for similarProduct in similarProducts %}
-                    {% include 'components/product_card.html.twig' with {product: similarProduct} only %}
+                    <div class="similar-product-item{{ loop.index <= (similarCount // 5) * 5 ? ' similar-desktop' : '' }}{{ loop.index <= (similarCount // 4) * 4 ? ' similar-medium' : '' }}{{ loop.index <= (similarCount // 3) * 3 ? ' similar-tablet' : '' }}{{ loop.index <= (similarCount // 2) * 2 ? ' similar-mobile' : '' }}">
+                        {% include 'components/product_card.html.twig' with {product: similarProduct} only %}
+                    </div>
                 {% endfor %}
             </div>
         </section>

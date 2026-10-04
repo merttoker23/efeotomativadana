@@ -88,10 +88,11 @@ final class ShippingMethodRegistryTest extends KernelTestCase
      */
     public function testEveryMethodThisPhaseFulfilsIsAlsoOfferedAtCheckout(): void
     {
+        self::bootKernel();
         $registry = new ShippingMethodRegistry([new LocalManualShippingMethod()]);
         $offered = array_map(
             static fn (ShippingOptionInterface $option): string => $option->key(),
-            [new \App\Module\Checkout\LocalStandardShippingOption()],
+            [self::getContainer()->get(\App\Module\Checkout\LocalStandardShippingOption::class)],
         );
 
         self::assertNotEmpty($registry->keys());
@@ -154,11 +155,13 @@ final class ShippingMethodRegistryTest extends KernelTestCase
 
     public function testTheLocalMethodIsOfferedAndPricedByTheCheckoutWithoutACarrier(): void
     {
-        $option = new \App\Module\Checkout\LocalStandardShippingOption();
+        self::bootKernel();
+        $option = self::getContainer()->get(\App\Module\Checkout\LocalStandardShippingOption::class);
 
         self::assertTrue($option->available(), 'Hand delivery must be available in every environment.');
         self::assertSame('local_standard', (new LocalManualShippingMethod())->key());
-        self::assertSame(0, $option->cost('TRY')->minorAmount());
+        self::assertSame(25_000, $option->cost(\App\Shared\Money\Money::ofMinor(149_999, 'TRY'))->minorAmount());
+        self::assertSame(0, $option->cost(\App\Shared\Money\Money::ofMinor(150_000, 'TRY'))->minorAmount());
     }
 }
 

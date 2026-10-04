@@ -7,6 +7,7 @@ use App\Entity\Cms\InformationPage;
 use App\Entity\Seo\SeoResourceType;
 use App\Module\Audit\AuditAction;
 use App\Module\Audit\AuditLogger;
+use App\Module\Cms\CmsMediaStorage;
 use App\Module\Seo\SlugRedirectRecorder;
 use App\Repository\Cms\BlogPostRepository;
 use App\Repository\Cms\InformationPageRepository;
@@ -23,6 +24,7 @@ final class ContentController extends AbstractController
 {
     public function __construct(
         private readonly SlugRedirectRecorder $redirects,
+        private readonly CmsMediaStorage $media,
     ) {
     }
 
@@ -78,11 +80,19 @@ final class ContentController extends AbstractController
     private function form(string $kind, BlogPost|InformationPage|null $item, Request $request, BlogPostRepository $posts, InformationPageRepository $pages, EntityManagerInterface $manager): Response
     {
         $values = ['title' => $item?->title() ?? '', 'slug' => $item?->slug() ?? '', 'excerpt' => $item instanceof BlogPost ? $item->excerpt() : '', 'body' => $item?->body() ?? '', 'published' => $item?->published() ?? false];
+        if ('blog' === $kind) {
+            $values['cover_image'] = $item instanceof BlogPost ? ($item->coverImagePath() ?? '') : '';
+            $values['remove_cover'] = false;
+        }
         $error = null;
         if ($request->isMethod('POST')) {
             $this->csrf($request, 'cms_content_form_'.$kind);
             foreach (['title', 'slug', 'excerpt', 'body'] as $key) { $values[$key] = $request->request->getString($key); }
             $values['published'] = '1' === $request->request->getString('published');
+            if ('blog' === $kind) {
+                $values['cover_image'] = trim($request->request->getString('cover_image', $values['cover_image']));
+                $values['remove_cover'] = '1' === $request->request->getString('remove_cover');
+            }
             try {
                 $existing = ('blog' === $kind ? $posts : $pages)->findOneBy(['slug' => $values['slug']]);
                 if (null !== $existing && $existing !== $item) { throw new \InvalidArgumentException('Slug is already in use.'); }
@@ -93,9 +103,22 @@ final class ContentController extends AbstractController
                 $wasPublished = null !== $item && $item->published() && $values['published'];
                 $previousSlug = $item?->slug();
                 if ('blog' === $kind) {
+                    $upload = $request->files->get('cover_image_file');
+                    $cover = $values['remove_cover'] ? null : ($values['cover_image'] ?: null);
+                    if (null === $upload && null !== $cover && (!$this->media->holds($cover) || !in_array($cover, array_column($this->media->library(PHP_INT_MAX), 'path'), true))) {
+                        $values['cover_image'] = '';
+                        throw new \InvalidArgumentException('Choose an image from the media library.');
+                    }
                     $item ??= new BlogPost($values['title'], $values['slug'], $values['excerpt'], $values['body']);
                     if (!$item instanceof BlogPost) { throw new \LogicException(); }
                     $item->update($values['title'], $values['slug'], $values['excerpt'], $values['body']);
+                    if (!$values['remove_cover'] && null !== $upload) {
+                        if (!$upload instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                            throw new \InvalidArgumentException('Choose an image.');
+                        }
+                        $cover = $this->media->store($upload);
+                    }
+                    $item->setCoverImagePath($cover);
                 } else {
                     $item ??= new InformationPage($values['title'], $values['slug'], $values['body']);
                     if (!$item instanceof InformationPage) { throw new \LogicException(); }
@@ -116,7 +139,10 @@ final class ContentController extends AbstractController
                 return $this->redirectToRoute('admin_cms_content_index', ['kind' => $kind]);
             } catch (\InvalidArgumentException $exception) { $error = $exception->getMessage(); }
         }
-        return $this->render('admin/cms/content/form.html.twig', ['kind' => $kind, 'item' => $item, 'values' => $values, 'error' => $error], new Response(status: null === $error ? 200 : 422));
+        if ('blog' === $kind && '' !== $values['cover_image'] && !$this->media->holds($values['cover_image'])) {
+            $values['cover_image'] = '';
+        }
+        return $this->render('admin/cms/content/form.html.twig', ['kind' => $kind, 'item' => $item, 'values' => $values, 'error' => $error, 'library' => 'blog' === $kind ? $this->media->library(200) : []], new Response(status: null === $error ? 200 : 422));
     }
 
     private function csrf(Request $request, string $key): void

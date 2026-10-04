@@ -60,6 +60,9 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSelectorTextContains('main h1', 'Ödeme ve sipariş');
         self::assertSelectorTextContains('.checkout-payment-warning', 'üretim dışı');
         self::assertSelectorNotExists('input[name="payment_option"][value="gateway_checkout"]');
+        self::assertSelectorTextContains('.checkout-summary', 'Ara Toplam');
+        self::assertSelectorTextContains('.checkout-summary', 'Kargo');
+        self::assertSelectorTextContains('.checkout-summary-total', 'Genel Toplam');
         $token = $crawler->filter('input[name="_token"]')->attr('value');
         self::assertIsString($token);
         $this->client->request('POST', '/yeni/odeme', [
@@ -70,6 +73,7 @@ final class CheckoutWorkflowTest extends WebTestCase
             'payment_option' => 'local_manual',
             'total' => '1',
             'tax' => '0',
+            'shipping_cost' => '0',
         ]);
 
         $order = $this->connection->fetchAssociative('SELECT order_number, subtotal_minor_amount, tax_minor_amount, grand_total_minor_amount FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]);
@@ -77,7 +81,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertResponseRedirects('/yeni/siparis/'.$order['order_number'].'/basarili');
         self::assertSame(24_690, (int) $order['subtotal_minor_amount']);
         self::assertSame(4_115, (int) $order['tax_minor_amount']);
-        self::assertSame(24_690, (int) $order['grand_total_minor_amount']);
+        self::assertSame(49_690, (int) $order['grand_total_minor_amount']);
         self::assertSame(2, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_product_inventory'));
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
 
@@ -111,6 +115,34 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_customer_order'));
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('shippingSummaries')]
+    public function testCheckoutSummaryIncludesServerShipping(int $subtotal, bool $custom, string $shipping, string $total): void
+    {
+        $customer = $this->customer('summary-checkout@example.com');
+        $this->address($customer, 'Ev', 'Özet Cad. 1');
+        $this->cartLine($customer, $subtotal, 1, 1);
+        if ($custom) {
+            $configuration = self::getContainer()->get(\App\Module\Settings\StoreConfiguration::class);
+            $settings = $configuration->current();
+            $settings->shippingFee = 32_550;
+            $settings->freeShippingThreshold = 200_000;
+            $configuration->save($settings);
+        }
+        $this->client->loginUser($customer, 'main');
+        $crawler = $this->client->request('GET', '/yeni/odeme');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString($shipping, $crawler->filter('.checkout-summary-line')->last()->text());
+        self::assertSelectorTextContains('.checkout-summary-total', $total);
+    }
+
+    /** @return iterable<string, array{int, bool, string, string}> */
+    public static function shippingSummaries(): iterable
+    {
+        yield 'paid below threshold' => [149_999, false, '250,00 TL', '1.749,99 TL'];
+        yield 'free at threshold' => [150_000, false, 'Ücretsiz', '1.500,00 TL'];
+        yield 'new settings' => [150_000, true, '325,50 TL', '1.825,50 TL'];
     }
 
     private function customer(string $email): CustomerUser
