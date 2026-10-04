@@ -29,7 +29,12 @@ final readonly class GatewayCheckoutPaymentOption implements GatewayPaymentOptio
     {
         $provider = $this->configuration->paymentProvider();
 
-        return null !== $provider && in_array($provider, $this->gateways->selectableKeys(), true);
+        if (null === $provider || !in_array($provider, $this->gateways->selectableKeys(), true)) {
+            return false;
+        }
+
+        // An incomplete PayTR account cannot take payments in any environment.
+        return 'paytr' !== $provider || true === $this->gateways->resolve($provider)?->productionReady();
     }
 
     public function productionReady(): bool { return true; }

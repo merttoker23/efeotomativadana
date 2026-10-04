@@ -53,7 +53,7 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
 
     public function __construct(
         private HttpClientInterface $httpClient,
-        private PaytrConfiguration $configuration,
+        private PaytrConfigurationSource $configurationSource,
         private PaytrCallbackParser $parser,
         private PaytrClientIp $clientIp,
         private LoggerInterface $logger,
@@ -76,8 +76,9 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
      */
     public function productionReady(): bool
     {
+        $configuration = $this->configurationSource->current();
         try {
-            $this->configuration->paymentUrl();
+            $configuration->paymentUrl();
 
             return true;
         } catch (\InvalidArgumentException) {
@@ -95,8 +96,9 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
      */
     public function initiate(GatewayInitiationInstruction $instruction): GatewayInitiationOutcome
     {
-        if (!$this->configuration->isConfigured()) {
-            return $this->refuse('provider_not_configured', 'Missing PayTR configuration: '.implode(', ', $this->configuration->missingCredentials()).'.');
+        $configuration = $this->configurationSource->current();
+        if (!$configuration->isConfigured()) {
+            return $this->refuse('provider_not_configured', 'Missing PayTR configuration: '.implode(', ', $configuration->missingCredentials()).'.');
         }
 
         // PayTR rejects a request signed with a private or local address, so this is read per
@@ -121,8 +123,8 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
         }
 
         try {
-            $paymentUrl = $this->configuration->paymentUrl();
-            $fields = $this->initiationFields($instruction);
+            $paymentUrl = $configuration->paymentUrl();
+            $fields = $this->initiationFields($instruction, $configuration);
         } catch (PaytrRefusal $refusal) {
             return $this->refuse($refusal->failureCode(), $refusal->getMessage());
         } catch (\InvalidArgumentException $exception) {
@@ -136,7 +138,7 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
             'order_reference' => $fields['merchant_oid'],
             'amount' => $fields['payment_amount'],
             'currency' => $fields['currency'],
-            'test_mode' => $this->configuration->testMode(),
+            'test_mode' => $configuration->testMode(),
         ]);
 
         // The reference is PayTR's own order id, which is also what its refund API is keyed on.
@@ -158,7 +160,7 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
      *
      * @return array<string, string>
      */
-    private function initiationFields(GatewayInitiationInstruction $instruction): array
+    private function initiationFields(GatewayInitiationInstruction $instruction, PaytrConfiguration $configuration): array
     {
         $customerIp = $this->clientIp->customerIp();
         if (null === $customerIp) {
@@ -184,14 +186,14 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
         $amount = PaytrAmount::decimal($instruction->amount());
         $currency = PaytrAmount::wireCurrency($instruction->amount()->currency());
         $basket = PaytrBasket::encode($instruction->basketLines(), $reference, $amount);
-        $testMode = $this->configuration->testModeFlag();
+        $testMode = $configuration->testModeFlag();
 
-        $hashString = $this->configuration->merchantId().$customerIp.$reference.$email
+        $hashString = $configuration->merchantId().$customerIp.$reference.$email
             .$amount.'card'.'0'.$currency.$testMode.self::NON_3D;
 
         return [
-            'merchant_id' => $this->configuration->merchantId(),
-            'paytr_token' => $this->configuration->signature()->initiationToken($hashString),
+            'merchant_id' => $configuration->merchantId(),
+            'paytr_token' => $configuration->signature()->initiationToken($hashString),
             'user_ip' => $customerIp,
             'merchant_oid' => $reference,
             'email' => $email,
@@ -218,18 +220,19 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
 
     public function authenticateCallback(IncomingPaymentCallback $callback): CallbackAuthentication
     {
+        $configuration = $this->configurationSource->current();
         $report = $this->parser->parse($callback->rawBody());
         if (null === $report) {
             return CallbackAuthentication::rejected('malformed_notification');
         }
 
-        if (!$this->configuration->isConfigured()) {
+        if (!$configuration->isConfigured()) {
             return CallbackAuthentication::rejected('provider_not_configured');
         }
 
         // Verified before anything in the body is believed, and over the values exactly as they
         // were sent: re-formatting an amount or re-casing a status would produce another hash.
-        if (!$this->configuration->signature()->callbackHashMatches(
+        if (!$configuration->signature()->callbackHashMatches(
             $report->merchantOid(),
             $report->status(),
             $report->totalAmountAsSent(),
@@ -255,12 +258,13 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
             return CallbackAuthentication::authentic($report->merchantOid(), 'failed', null);
         }
 
-        return $this->capturedAmount($report);
+        return $this->capturedAmount($report, $configuration);
     }
 
     public function refund(GatewayRefundInstruction $instruction): GatewayRefundOutcome
     {
-        if (!$this->configuration->isConfigured()) {
+        $configuration = $this->configurationSource->current();
+        if (!$configuration->isConfigured()) {
             return GatewayRefundOutcome::failed(SanitizedFailure::fromProvider(
                 'provider_not_configured',
                 'PayTR merchant credentials are not configured.',
@@ -283,18 +287,18 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
         }
 
         $fields = [
-            'merchant_id' => $this->configuration->merchantId(),
+            'merchant_id' => $configuration->merchantId(),
             'merchant_oid' => $reference,
             'return_amount' => $returnAmount,
-            'paytr_token' => $this->configuration->signature()->refundToken(
-                $this->configuration->merchantId(),
+            'paytr_token' => $configuration->signature()->refundToken(
+                $configuration->merchantId(),
                 $reference,
                 $returnAmount,
             ),
         ];
 
         try {
-            $payload = $this->post($this->configuration->refundUrl(), $fields);
+            $payload = $this->post($configuration->refundUrl(), $fields);
         } catch (PaytrUnavailable) {
             return GatewayRefundOutcome::failed(SanitizedFailure::fromProvider(
                 'timeout',
@@ -346,21 +350,21 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
      * the collected figure comes from the signed `total_amount`, and the currency is used only
      * to express it. An amount below the signed one is the inconsistent direction worth refusing.
      */
-    private function capturedAmount(PaytrCallbackReport $report): CallbackAuthentication
+    private function capturedAmount(PaytrCallbackReport $report, PaytrConfiguration $configuration): CallbackAuthentication
     {
         if (null === $report->currency()) {
             return CallbackAuthentication::rejected('unknown_currency');
         }
         // A simulated capture must never be allowed to mark a real order paid, so a notification
         // that says it is a test is refused unless this store is itself in test mode.
-        if ($report->isTestMode() && !$this->configuration->testMode()) {
+        if ($report->isTestMode() && !$configuration->testMode()) {
             $this->logger->warning('paytr.payment.callback.test_capture_refused', [
                 'order_reference' => $report->merchantOid(),
             ]);
 
             return CallbackAuthentication::rejected('test_capture_in_live_mode');
         }
-        if (!$report->isTestMode() && $this->configuration->testMode()) {
+        if (!$report->isTestMode() && $configuration->testMode()) {
             $this->logger->warning('paytr.payment.callback.live_capture_refused', [
                 'order_reference' => $report->merchantOid(),
             ]);

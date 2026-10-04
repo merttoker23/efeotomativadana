@@ -38,10 +38,6 @@ services:
       MAILER_DSN: ${MAILER_DSN:-smtp://mailer:1025}
       MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
       DEFAULT_URI: ${DEFAULT_URI:-https://efeotomotivadana.com.tr}
-      PAYTR_MERCHANT_ID: ${PAYTR_MERCHANT_ID:-}
-      PAYTR_MERCHANT_KEY: ${PAYTR_MERCHANT_KEY:-}
-      PAYTR_MERCHANT_SALT: ${PAYTR_MERCHANT_SALT:-}
-      PAYTR_TEST_MODE: ${PAYTR_TEST_MODE:-1}
       EFE_B2B_FEED_URL: ${EFE_B2B_FEED_URL:-https://b2b.efeotoyedekparca.com.tr/json-tum-gercek-stoklar.php}
       EFE_B2B_ALLOWED_HOSTS: ${EFE_B2B_ALLOWED_HOSTS:-b2b.efeotoyedekparca.com.tr}
       EFE_B2B_CA_BUNDLE: ${EFE_B2B_CA_BUNDLE:-}
@@ -75,10 +71,6 @@ services:
       DATABASE_URL: mysql://${MYSQL_USER:-app}:${MYSQL_PASSWORD:-!ChangeMe!}@database:3306/${MYSQL_DATABASE:-app}?serverVersion=8.4&charset=utf8mb4
       MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
       DEFAULT_URI: ${DEFAULT_URI:-https://efeotomotivadana.com.tr}
-      PAYTR_MERCHANT_ID: ${PAYTR_MERCHANT_ID:-}
-      PAYTR_MERCHANT_KEY: ${PAYTR_MERCHANT_KEY:-}
-      PAYTR_MERCHANT_SALT: ${PAYTR_MERCHANT_SALT:-}
-      PAYTR_TEST_MODE: ${PAYTR_TEST_MODE:-1}
       EFE_B2B_FEED_URL: ${EFE_B2B_FEED_URL:-https://b2b.efeotoyedekparca.com.tr/json-tum-gercek-stoklar.php}
       EFE_B2B_ALLOWED_HOSTS: ${EFE_B2B_ALLOWED_HOSTS:-b2b.efeotoyedekparca.com.tr}
       EFE_B2B_CA_BUNDLE: ${EFE_B2B_CA_BUNDLE:-}

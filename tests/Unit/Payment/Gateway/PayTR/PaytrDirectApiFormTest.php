@@ -274,7 +274,7 @@ final class PaytrDirectApiFormTest extends TestCase
         ?MockHttpClient $client = null,
         string $paymentUrl = self::PAYMENT_URL,
     ): PaytrPaymentGateway {
-        $configuration = \App\Module\Payment\Gateway\PayTR\PaytrConfiguration::fromEnvironment(
+        $configuration = \App\Module\Payment\Gateway\PayTR\PaytrConfiguration::fromValues(
             $configured ? self::MERCHANT_ID : '',
             $configured ? self::MERCHANT_KEY : '',
             $configured ? self::MERCHANT_SALT : '',

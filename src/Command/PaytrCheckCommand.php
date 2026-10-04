@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
-use App\Module\Payment\Gateway\PayTR\PaytrConfiguration;
+use App\Module\Payment\Gateway\PayTR\PaytrConfigurationSource;
 use App\Module\Payment\PaymentPublicUrlFactory;
 use App\Module\Settings\StoreConfiguration;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -17,7 +17,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class PaytrCheckCommand extends Command
 {
     public function __construct(
-        private readonly PaytrConfiguration $configuration,
+        private readonly PaytrConfigurationSource $configurationSource,
         private readonly StoreConfiguration $store,
         private readonly PaymentPublicUrlFactory $urls,
     ) {
@@ -27,21 +27,22 @@ final class PaytrCheckCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $io->writeln('PayTR mode: '.($this->configuration->testMode() ? 'SANDBOX (PAYTR_TEST_MODE=1)' : 'LIVE (PAYTR_TEST_MODE=0)'));
+        $configuration = $this->configurationSource->current();
+        $io->writeln('PayTR mode: '.($configuration->testMode() ? 'SANDBOX (Test)' : 'LIVE (Canlı)'));
         $io->writeln('Bildirim URL: '.$this->urls->absolute('storefront_paytr_notification'));
         $errors = [];
-        foreach ($this->configuration->missingCredentials() as $variable) {
+        foreach ($configuration->missingCredentials() as $variable) {
             $errors[] = 'Eksik yapılandırma: '.$variable;
         }
         if ('paytr' !== $this->store->paymentProvider()) {
-            $errors[] = 'Admin mağaza ayarlarında ödeme sağlayıcısını paytr olarak seçin.';
+            $errors[] = 'Admin > Ödeme Sağlayıcı ekranında PayTR seçin.';
         }
-        if ($this->configuration->isConfigured()) {
+        if ($configuration->isConfigured()) {
             try {
-                $this->configuration->paymentUrl();
-                $this->configuration->refundUrl();
+                $configuration->paymentUrl();
+                $configuration->refundUrl();
             } catch (\InvalidArgumentException) {
-                $errors[] = 'PAYTR_PAYMENT_URL ve PAYTR_REFUND_URL geçerli HTTPS adresleri olmalı.';
+                $errors[] = 'PayTR uygulama endpoint yapılandırması geçersiz.';
             }
         }
         if ([] !== $errors) {

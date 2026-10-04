@@ -47,6 +47,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
         $this->connection->beginTransaction();
+        \App\Tests\Fixtures\Payment\PaytrConfigurationFixture::configure($this->connection, $container->get(\App\Module\Payment\Gateway\PayTR\PaymentSecretCipher::class));
         $manager = $container->get('doctrine')->getManager();
         self::assertInstanceOf(EntityManagerInterface::class, $manager);
         $this->entityManager = $manager;
@@ -397,14 +398,66 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
 
     public function testSetupCheckNamesMissingCredentialsWithoutExposingSecrets(): void
     {
-        self::getContainer()->set(\App\Module\Payment\Gateway\PayTR\PaytrConfiguration::class,
-            \App\Module\Payment\Gateway\PayTR\PaytrConfiguration::fromEnvironment('', '', '', '1', 'https://www.paytr.com/odeme', 'https://www.paytr.com/odeme/iade'));
+        $this->connection->update('payment_configuration', ['merchant_id' => '', 'merchant_key_encrypted' => null, 'merchant_salt_encrypted' => null], ['id' => 1]);
         $application = new \Symfony\Bundle\FrameworkBundle\Console\Application(self::$kernel);
         $tester = new \Symfony\Component\Console\Tester\CommandTester($application->find('app:paytr:check'));
         self::assertSame(1, $tester->execute([]));
-        foreach (['PAYTR_MERCHANT_ID', 'PAYTR_MERCHANT_KEY', 'PAYTR_MERCHANT_SALT'] as $variable) {
+        foreach (['Merchant ID', 'Merchant Key', 'Merchant Salt'] as $variable) {
             self::assertStringContainsString($variable, $tester->getDisplay());
         }
+    }
+
+    public function testMissingDbCredentialsHidePaytrFromCheckoutEvenOutsideProduction(): void
+    {
+        $this->selectPaytrProvider();
+        $this->connection->update('payment_configuration', ['merchant_key_encrypted' => null], ['id' => 1]);
+        $option = new \App\Module\Checkout\GatewayCheckoutPaymentOption(
+            self::getContainer()->get(StoreConfiguration::class),
+            self::getContainer()->get(\App\Module\Payment\PaymentGatewayRegistry::class),
+        );
+        self::assertFalse($option->available());
+    }
+
+    public function testSameGatewayReadsCurrentDbCredentialsForCallbackAndRefund(): void
+    {
+        $source = self::getContainer()->get(\App\Module\Payment\Gateway\PayTR\StoredPaytrConfiguration::class);
+        $cipher = self::getContainer()->get(\App\Module\Payment\Gateway\PayTR\PaymentSecretCipher::class);
+        $reference = 'EOA20260925ABCDEF123456A1';
+        $body = [];
+        $http = new \Symfony\Component\HttpClient\MockHttpClient(function (string $method, string $url, array $options) use (&$body): \Symfony\Component\HttpClient\Response\MockResponse {
+            self::assertSame('POST', $method);
+            self::assertSame('https://www.paytr.com/odeme/iade', $url);
+            parse_str((string) $options['body'], $body);
+
+            return new \Symfony\Component\HttpClient\Response\MockResponse('{"status":"success"}');
+        });
+        $gateway = new \App\Module\Payment\Gateway\PayTR\PaytrPaymentGateway(
+            $http, $source,
+            new \App\Module\Payment\Gateway\PayTR\PaytrCallbackParser(),
+            new \App\Module\Payment\Gateway\PayTR\PaytrClientIp(new \Symfony\Component\HttpFoundation\RequestStack()),
+            new \Psr\Log\NullLogger(),
+        );
+        $fields = ['merchant_oid' => $reference, 'status' => 'success', 'total_amount' => '100', 'payment_amount' => '100', 'currency' => 'TL', 'test_mode' => '1'];
+        $fields['hash'] = base64_encode(hash_hmac('sha256', $reference.'test-merchant-salt'.'success100', 'test-merchant-key', true));
+        $callback = new \App\Module\Payment\Gateway\IncomingPaymentCallback(http_build_query($fields), [], []);
+        self::assertTrue($gateway->authenticateCallback($callback)->verified());
+
+        $this->connection->update('payment_configuration', [
+            'merchant_id' => '987654',
+            'merchant_key_encrypted' => $cipher->encrypt('current-db-key', 'key'),
+            'merchant_salt_encrypted' => $cipher->encrypt('current-db-salt', 'salt'),
+            'test_mode' => 0,
+        ], ['id' => 1]);
+        self::assertFalse($gateway->authenticateCallback($callback)->verified());
+        $fields['test_mode'] = '0';
+        $fields['hash'] = base64_encode(hash_hmac('sha256', $reference.'current-db-salt'.'success100', 'current-db-key', true));
+        self::assertTrue($gateway->authenticateCallback(new \App\Module\Payment\Gateway\IncomingPaymentCallback(http_build_query($fields), [], []))->verified());
+        $gateway->refund(new \App\Module\Payment\Gateway\GatewayRefundInstruction($reference, Money::ofMinor(100, 'TRY'), 'db-config-refund', 'Test'));
+        self::assertSame('987654', $body['merchant_id']);
+        self::assertSame(base64_encode(hash_hmac('sha256', '987654'.$reference.'1.00'.'current-db-salt', 'current-db-key', true)), $body['paytr_token']);
+
+        $this->connection->update('payment_configuration', ['merchant_key_encrypted' => 'v1:invalid'], ['id' => 1]);
+        self::assertFalse($gateway->productionReady());
     }
 
     public function testTheFormPageRefusesAnonymousVisitors(): void
@@ -504,12 +557,12 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
 
     private function merchantKey(): string
     {
-        return (string) ($_SERVER['PAYTR_MERCHANT_KEY'] ?? $_ENV['PAYTR_MERCHANT_KEY'] ?? '');
+        return \App\Tests\Fixtures\Payment\PaytrConfigurationFixture::KEY;
     }
 
     private function merchantSalt(): string
     {
-        return (string) ($_SERVER['PAYTR_MERCHANT_SALT'] ?? $_ENV['PAYTR_MERCHANT_SALT'] ?? '');
+        return \App\Tests\Fixtures\Payment\PaytrConfigurationFixture::SALT;
     }
 
     /** Selects the provider the way an administrator would, through the store setting. */

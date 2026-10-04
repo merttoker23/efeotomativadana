@@ -29,8 +29,8 @@ final class PaytrConfigurationTest extends TestCase
 
     public function testMissingCredentialsAreReportedByVariableNameWithoutValues(): void
     {
-        self::assertSame(['PAYTR_MERCHANT_ID', 'PAYTR_MERCHANT_KEY', 'PAYTR_MERCHANT_SALT'], $this->configuration('', '', '')->missingCredentials());
-        self::assertSame(['PAYTR_MERCHANT_SALT'], $this->configuration(self::ID, self::KEY, '')->missingCredentials());
+        self::assertSame(['Merchant ID', 'Merchant Key', 'Merchant Salt'], $this->configuration('', '', '')->missingCredentials());
+        self::assertSame(['Merchant Salt'], $this->configuration(self::ID, self::KEY, '')->missingCredentials());
         self::assertSame([], $this->configuration()->missingCredentials());
     }
 
@@ -87,7 +87,7 @@ final class PaytrConfigurationTest extends TestCase
 
     public function testTestModeIsIndependentOfWhetherCredentialsExist(): void
     {
-        $configuration = PaytrConfiguration::fromEnvironment('', '', '', '0', self::PAYMENT_URL, self::REFUND_URL);
+        $configuration = PaytrConfiguration::fromValues('', '', '', '0', self::PAYMENT_URL, self::REFUND_URL);
 
         self::assertFalse($configuration->testMode());
         self::assertFalse($configuration->isConfigured());
@@ -138,6 +138,6 @@ final class PaytrConfigurationTest extends TestCase
         string $paymentUrl = self::PAYMENT_URL,
         string $refundUrl = self::REFUND_URL,
     ): PaytrConfiguration {
-        return PaytrConfiguration::fromEnvironment($id, $key, $salt, $testMode, $paymentUrl, $refundUrl);
+        return PaytrConfiguration::fromValues($id, $key, $salt, $testMode, $paymentUrl, $refundUrl);
     }
 }

@@ -16,11 +16,11 @@ final class SettingsController extends AbstractController
     #[Route('/admin/settings', name: 'admin_settings', methods: ['GET', 'POST'])]
     public function edit(Request $request, StoreConfiguration $configuration): Response
     {
-        $form = $this->createForm(StoreSettingsType::class, $configuration->current());
+        $form = $this->createForm(StoreSettingsType::class, $configuration->currentGeneral());
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $configuration->save($form->getData());
+            $configuration->saveGeneral($form->getData());
             $this->addFlash('success', 'Mağaza ayarları kaydedildi.');
 
             return $this->redirectToRoute('admin_settings');

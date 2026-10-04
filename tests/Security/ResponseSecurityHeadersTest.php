@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Security;
 
 use App\EventListener\SecurityHeadersSubscriber;
-use App\Module\Payment\Gateway\PayTR\PaytrConfiguration;
+use App\Module\Payment\Gateway\PayTR\StoredPaytrConfiguration;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Yaml\Yaml;
 
@@ -85,11 +85,14 @@ final class ResponseSecurityHeadersTest extends WebTestCase
     public function testTheFormActionPolicyNamesTheConfiguredPaymentHost(): void
     {
         $client = static::createClient();
-        $configuration = self::getContainer()->get(PaytrConfiguration::class);
-        self::assertInstanceOf(PaytrConfiguration::class, $configuration);
+        $connection = self::getContainer()->get(\Doctrine\DBAL\Connection::class);
+        $connection->beginTransaction();
+        \App\Tests\Fixtures\Payment\PaytrConfigurationFixture::configure($connection, self::getContainer()->get(\App\Module\Payment\Gateway\PayTR\PaymentSecretCipher::class));
+        $configuration = self::getContainer()->get(StoredPaytrConfiguration::class)->current();
 
         $paymentUrl = $configuration->paymentUrl();
         $host = parse_url($paymentUrl, PHP_URL_HOST);
+        $connection->rollBack();
         self::assertIsString($host);
 
         $client->request('GET', '/yeni/giris');

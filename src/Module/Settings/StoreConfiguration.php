@@ -83,7 +83,74 @@ final class StoreConfiguration implements ResetInterface
         );
     }
 
-    public function save(StoreSettingsData $configuration): void
+    public function currentGeneral(): GeneralStoreSettingsData
+    {
+        $general = new GeneralStoreSettingsData();
+        $current = $this->current();
+        foreach (get_object_vars($general) as $property => $_) {
+            $general->$property = $current->$property;
+        }
+
+        return $general;
+    }
+
+    public function saveGeneral(GeneralStoreSettingsData $general): void
+    {
+        $current = $this->current();
+        foreach (get_object_vars($general) as $property => $value) {
+            $current->$property = $value;
+        }
+        $this->save($current, true);
+    }
+
+    public function currentSeo(): SeoSettingsData
+    {
+        return new SeoSettingsData($this->isSeoIndexingEnabled(), $this->seoDefaultDescription());
+    }
+
+    public function saveSeo(SeoSettingsData $data): void
+    {
+        $data->seoDefaultDescription = $this->normalizeText($data->seoDefaultDescription);
+        $this->validateSection($data);
+        $this->persistValues([
+            SettingKey::SeoIndexingEnabled->value => $data->seoIndexingEnabled,
+            SettingKey::SeoDefaultDescription->value => $data->seoDefaultDescription,
+        ]);
+    }
+
+    public function currentShipping(): ShippingSettingsData
+    {
+        return new ShippingSettingsData($this->shippingProvider(), $this->shippingFee(), $this->freeShippingThreshold());
+    }
+
+    public function saveShipping(ShippingSettingsData $data): void
+    {
+        $data->shippingProvider = $this->normalizeProvider($data->shippingProvider);
+        $this->validateSection($data);
+        $this->persistValues([
+            SettingKey::ShippingProvider->value => $data->shippingProvider,
+            SettingKey::ShippingFee->value => $data->shippingFee,
+            SettingKey::FreeShippingThreshold->value => $data->freeShippingThreshold,
+        ]);
+    }
+
+    public function savePaymentProvider(?string $provider): void
+    {
+        if (null !== $provider && '' !== $provider && 'paytr' !== $provider) {
+            throw new \InvalidArgumentException('Unsupported payment provider.');
+        }
+        $this->persistValues([SettingKey::PaymentProvider->value => $this->normalizeProvider($provider)]);
+    }
+
+    private function validateSection(SeoSettingsData|ShippingSettingsData $data): void
+    {
+        $violations = $this->validator->validate($data);
+        if (count($violations) > 0) {
+            throw new ValidationFailedException($data, $violations);
+        }
+    }
+
+    public function save(StoreSettingsData $configuration, bool $generalOnly = false): void
     {
         $configuration->b2bProvider = $this->normalizeProvider($configuration->b2bProvider);
         $configuration->paymentProvider = $this->normalizeProvider($configuration->paymentProvider);
@@ -139,6 +206,17 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::Ga4MeasurementId->value => $configuration->ga4MeasurementId,
         ];
 
+        if ($generalOnly) {
+            foreach ([SettingKey::PaymentProvider, SettingKey::ShippingProvider, SettingKey::ShippingFee, SettingKey::FreeShippingThreshold, SettingKey::SeoIndexingEnabled, SettingKey::SeoDefaultDescription] as $key) {
+                unset($values[$key->value]);
+            }
+        }
+        $this->persistValues($values);
+    }
+
+    /** @param array<string, bool|int|string|null> $values */
+    private function persistValues(array $values): void
+    {
         // The diff is taken from the store's own current values, before anything is written,
         // so the audit row says what actually changed rather than what the form contained. A
         // settings form posts every key every time; without this, "the tax rate changed" would

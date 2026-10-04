@@ -164,6 +164,13 @@ progress::-moz-progress-bar { background: var(--admin-accent); }
 .media-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); padding: 0; gap: 12px; list-style: none; }
 .media-list li { border: 1px solid var(--admin-border); border-radius: 10px; padding: 16px; overflow-wrap: anywhere; }
 .media-list span { display: block; color: var(--admin-muted); }
+.media-thumbnail { display: flex; align-items: center; justify-content: center; height: 180px; margin-bottom: 12px; border-radius: 7px; background: #f6f8fa; overflow: hidden; }
+.media-thumbnail img { display: block; width: 100%; height: 100%; object-fit: contain; font-size: .75rem; color: var(--admin-muted); }
+.media-list li { min-width: 0; }
+.media-list strong { display: block; margin-bottom: 4px; }
+.payment-config-status { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.payment-mode-test, .payment-test-warning { color: #854d0e; background: #fef9c3; border-color: #fde68a; }
+.payment-mode-live { color: #067647; background: #ecfdf3; }
 .admin-login-page { display: grid; place-items: center; padding: 24px; background: radial-gradient(ellipse at top, #21385b, #101c30); }
 .login-card { width: min(100%, 440px); padding: clamp(24px, 5vw, 40px); border: 1px solid #ffffff30; border-radius: 18px; background: #fff; box-shadow: 0 24px 70px #0003; }
 .login-card button { width: 100%; margin-top: 10px; }

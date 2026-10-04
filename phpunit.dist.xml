@@ -21,19 +21,12 @@
         <ini name="memory_limit" value="512M" />
         <env name="APP_ENV" value="test" force="true" />
         <server name="APP_ENV" value="test" force="true" />
+        <env name="APP_SECRET" value="test-only-payment-encryption-master-secret-64-characters-0123456789" force="true" />
+        <server name="APP_SECRET" value="test-only-payment-encryption-master-secret-64-characters-0123456789" force="true" />
         <!-- Payment providers are handed absolute return URLs built from this base. Tests use
              https so no test can pass on an address production would refuse. -->
         <env name="DEFAULT_URI" value="https://localhost" force="true" />
         <server name="DEFAULT_URI" value="https://localhost" force="true" />
-        <!-- Deterministic test credentials also override blank Docker environment values. -->
-        <env name="PAYTR_MERCHANT_ID" value="123456" force="true" />
-        <server name="PAYTR_MERCHANT_ID" value="123456" force="true" />
-        <env name="PAYTR_MERCHANT_KEY" value="test-merchant-key" force="true" />
-        <server name="PAYTR_MERCHANT_KEY" value="test-merchant-key" force="true" />
-        <env name="PAYTR_MERCHANT_SALT" value="test-merchant-salt" force="true" />
-        <server name="PAYTR_MERCHANT_SALT" value="test-merchant-salt" force="true" />
-        <env name="PAYTR_TEST_MODE" value="1" force="true" />
-        <server name="PAYTR_TEST_MODE" value="1" force="true" />
         <env name="DATABASE_URL" value="mysql://app:!ChangeMe!@database:3306/app?serverVersion=8.4&amp;charset=utf8mb4" force="true" />
         <server name="DATABASE_URL" value="mysql://app:!ChangeMe!@database:3306/app?serverVersion=8.4&amp;charset=utf8mb4" force="true" />
         <server name="SHELL_VERBOSITY" value="-1" />

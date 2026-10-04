@@ -7,7 +7,7 @@
     <section class="panel">
         <p class="eyebrow">Yapılandırma</p>
         <h1>Mağaza ayarları</h1>
-        <p>Mağazanın genel bilgilerini ve kullanacağı entegrasyonları düzenleyin.</p>
+        <p>Mağazanın genel bilgilerini, özelliklerini ve görünümünü düzenleyin.</p>
 
         <div class="form-errors">
             {{ form_start(form) }}
@@ -27,24 +27,6 @@
                     {{ form_row(form.b2bProvider) }}
                     {{ form_row(form.loyaltyEnabled) }}
                     {{ form_row(form.loyaltyEarnPercentage) }}
-                </fieldset>
-
-                <fieldset>
-                    <legend>Sağlayıcılar</legend>
-                    {{ form_row(form.paymentProvider) }}
-                    {{ form_row(form.shippingProvider) }}
-                </fieldset>
-
-                <fieldset>
-                    <legend>Kargo Ayarları</legend>
-                    {{ form_row(form.shippingFee) }}
-                    {{ form_row(form.freeShippingThreshold) }}
-                </fieldset>
-
-                <fieldset>
-                    <legend>SEO</legend>
-                    {{ form_row(form.seoIndexingEnabled) }}
-                    {{ form_row(form.seoDefaultDescription) }}
                 </fieldset>
 
                 <fieldset>

@@ -2,7 +2,7 @@
 
 namespace App\Form\Admin;
 
-use App\Module\Settings\StoreSettingsData;
+use App\Module\Settings\GeneralStoreSettingsData;
 use App\Module\Settings\Ga4MeasurementId;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\AbstractType;
@@ -10,7 +10,6 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -40,39 +39,6 @@ final class StoreSettingsType extends AbstractType
                 'required' => false,
             ])
             ->add('loyaltyEarnPercentage', IntegerType::class, ['label' => 'Puan kazanım yüzdesi'])
-            ->add('paymentProvider', TextType::class, [
-                'label' => 'Ödeme sağlayıcısı',
-                'required' => false,
-                'empty_data' => '',
-            ])
-            ->add('shippingProvider', TextType::class, [
-                'label' => 'Kargo sağlayıcısı',
-                'required' => false,
-                'empty_data' => '',
-            ])
-            ->add('shippingFee', MoneyType::class, [
-                'label' => 'Kargo ücreti (TL)',
-                'currency' => false, 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
-                'html5' => true, 'attr' => ['min' => '0', 'step' => '0.01'],
-            ])
-            ->add('freeShippingThreshold', MoneyType::class, [
-                'label' => 'Ücretsiz kargo alt limiti (TL)',
-                'currency' => false, 'input' => 'integer', 'divisor' => 100, 'scale' => 2,
-                'html5' => true, 'attr' => ['min' => '0', 'step' => '0.01'],
-            ])
-            ->add('seoIndexingEnabled', CheckboxType::class, [
-                'label' => 'Mağazanın arama motorlarında görünmesine izin ver',
-                'required' => false,
-                // Turning this off is how a store that is not launched yet stays out of results
-                // without a code change. It also closes the sitemap in robots.txt.
-                'help' => 'Kapalı olduğunda arama motorlarının mağaza sayfalarını indekslemesi engellenir.',
-            ])
-            ->add('seoDefaultDescription', TextType::class, [
-                'label' => 'Varsayılan arama açıklaması',
-                'required' => false,
-                'empty_data' => '',
-                'help' => 'Kendi açıklaması olmayan sayfalarda kullanılır. İsteğe bağlıdır.',
-            ])
             ->add('storefrontNotice', ColorType::class, ['label' => 'Duyuru', 'trim' => false, 'empty_data' => ''])
             ->add('storefrontNavy', ColorType::class, ['label' => 'Lacivert', 'trim' => false, 'empty_data' => ''])
             ->add('storefrontNavyLight', ColorType::class, ['label' => 'Açık lacivert', 'trim' => false, 'empty_data' => ''])
@@ -100,7 +66,7 @@ final class StoreSettingsType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => StoreSettingsData::class,
+            'data_class' => GeneralStoreSettingsData::class,
             'csrf_protection' => true,
             'csrf_token_id' => 'store_settings',
             'allow_extra_fields' => false,

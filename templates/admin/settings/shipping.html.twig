@@ -1,0 +1,19 @@
+{% extends 'admin/base.html.twig' %}
+{% form_theme form 'admin/_form_theme.html.twig' %}
+{% block title %}Kargo Ayarları{% endblock %}
+{% block body %}
+<section class="panel">
+    <p class="eyebrow">Sistem</p>
+    <h1>Kargo Ayarları</h1>
+    <p>Kargo sağlayıcısını, kargo ücretini ve ücretsiz kargo alt limitini düzenleyin.</p>
+    <div class="form-errors">
+        {{ form_start(form) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.shippingProvider) }}
+        {{ form_row(form.shippingFee) }}
+        {{ form_row(form.freeShippingThreshold) }}
+        {{ form_row(form.save) }}
+        {{ form_end(form) }}
+    </div>
+</section>
+{% endblock %}

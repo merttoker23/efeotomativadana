@@ -1,0 +1,39 @@
+{% extends 'admin/base.html.twig' %}
+{% form_theme form 'admin/_form_theme.html.twig' %}
+{% block title %}Ödeme Sağlayıcı{% endblock %}
+{% block body %}
+<section class="panel">
+    <p class="eyebrow">Sistem</p>
+    <h1>Ödeme Sağlayıcı</h1>
+    <div class="payment-config-status">
+        <span class="status-badge" data-paytr-status>PayTR: {{ configured ? 'Yapılandırıldı' : 'Eksik bilgi' }}</span>
+        <span class="status-badge{{ testMode ? ' payment-mode-test' : ' payment-mode-live' }}">{{ testMode ? 'Test' : 'Canlı' }}</span>
+    </div>
+    {% if testMode %}
+        <p class="alert payment-test-warning" role="status">Test modu açık. PayTR test işlemleri gerçek tahsilat yapmaz.</p>
+    {% else %}
+        <p class="alert" role="status">Canlı mod açık. PayTR işlemleri gerçek tahsilat yapar.</p>
+    {% endif %}
+    {% if not configured %}<p class="help-text">Merchant ID, Key ve Salt tamamlanmadan PayTR müşterilere sunulmaz.</p>{% endif %}
+    <div class="form-errors">
+        {{ form_start(form, {attr: {autocomplete: 'off'}}) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.paymentProvider) }}
+        <fieldset>
+            <legend>PayTR yapılandırması</legend>
+            {{ form_row(form.merchantId) }}
+            <p class="help-text">Merchant Key: {{ secretStatus.key ? 'Tanımlı ••••••••' : 'Tanımlı değil' }}</p>
+            {{ form_row(form.merchantKey) }}
+            <p class="help-text">Merchant Salt: {{ secretStatus.salt ? 'Tanımlı ••••••••' : 'Tanımlı değil' }}</p>
+            {{ form_row(form.merchantSalt) }}
+        </fieldset>
+        <fieldset>
+            <legend>Çalışma modu</legend>
+            {{ form_row(form.testMode) }}
+            {{ form_row(form.confirmLiveMode) }}
+        </fieldset>
+        {{ form_row(form.save) }}
+        {{ form_end(form) }}
+    </div>
+</section>
+{% endblock %}

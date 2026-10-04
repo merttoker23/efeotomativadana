@@ -19,6 +19,9 @@
     <ul class="media-list">
         {% for file in files %}
             <li>
+                <div class="media-thumbnail">
+                    <img src="{{ media_url(file.path) }}" alt="{{ file.filename }}" loading="lazy" decoding="async" width="240" height="180">
+                </div>
                 <strong>{{ file.filename }}</strong>
                 <span>{{ (file.bytes / 1024)|round(1) }} KB</span>
             </li>

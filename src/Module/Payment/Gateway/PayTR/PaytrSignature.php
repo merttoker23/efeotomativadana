@@ -15,8 +15,8 @@ namespace App\Module\Payment\Gateway\PayTR;
 final readonly class PaytrSignature
 {
     public function __construct(
-        private string $merchantKey,
-        private string $merchantSalt,
+        #[\SensitiveParameter] private string $merchantKey,
+        #[\SensitiveParameter] private string $merchantSalt,
     ) {
         if ('' === trim($this->merchantKey)) {
             throw new \InvalidArgumentException('PayTR merchant key must not be empty.');
@@ -24,6 +24,11 @@ final readonly class PaytrSignature
         if ('' === trim($this->merchantSalt)) {
             throw new \InvalidArgumentException('PayTR merchant salt must not be empty.');
         }
+    }
+
+    public function __debugInfo(): array
+    {
+        return [];
     }
 
     /**

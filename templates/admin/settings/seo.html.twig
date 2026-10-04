@@ -1,0 +1,18 @@
+{% extends 'admin/base.html.twig' %}
+{% form_theme form 'admin/_form_theme.html.twig' %}
+{% block title %}SEO{% endblock %}
+{% block body %}
+<section class="panel">
+    <p class="eyebrow">Sistem</p>
+    <h1>SEO</h1>
+    <p>Mağazanın arama motoru görünürlüğünü ve varsayılan açıklamasını düzenleyin.</p>
+    <div class="form-errors">
+        {{ form_start(form) }}
+        {{ form_errors(form) }}
+        {{ form_row(form.seoIndexingEnabled) }}
+        {{ form_row(form.seoDefaultDescription) }}
+        {{ form_row(form.save) }}
+        {{ form_end(form) }}
+    </div>
+</section>
+{% endblock %}

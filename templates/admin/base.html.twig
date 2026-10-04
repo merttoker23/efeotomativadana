@@ -38,6 +38,9 @@
             ]},
             {label: 'Sistem', items: [
                 {route: 'admin_integration_b2b', prefix: 'admin_integration_b2b', label: 'B2B senkronizasyon', icon: 'sync'},
+                {route: 'admin_settings_seo', prefix: 'admin_settings_seo', label: 'SEO', icon: 'settings'},
+                {route: 'admin_settings_shipping', prefix: 'admin_settings_shipping', label: 'Kargo Ayarları', icon: 'truck'},
+                {route: 'admin_settings_payment', prefix: 'admin_settings_payment', label: 'Ödeme Sağlayıcı', icon: 'wallet'},
                 {route: 'admin_settings', prefix: 'admin_settings', label: 'Mağaza ayarları', icon: 'settings'}
             ]}
         ] %}
@@ -50,7 +53,7 @@
                     <p class="nav-group-label">{{ group.label }}</p>
                     {% for item in group.items %}
                         {% set params = item.params|default({}) %}
-                        {% set active = (currentRoute starts with item.prefix and (params.kind is not defined or params.kind == currentKind))
+                        {% set active = ((item.route == 'admin_settings' ? currentRoute == 'admin_settings' : currentRoute starts with item.prefix) and (params.kind is not defined or params.kind == currentKind))
                             or (currentRoute == 'admin_seo_product' and item.route == 'admin_catalog_product_index')
                             or (currentRoute == 'admin_seo_category' and item.route == 'admin_catalog_category_index')
                             or (currentRoute == 'admin_seo_brand' and item.route == 'admin_catalog_brand_index')

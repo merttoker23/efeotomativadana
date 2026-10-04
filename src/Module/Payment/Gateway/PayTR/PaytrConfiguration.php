@@ -13,25 +13,25 @@ namespace App\Module\Payment\Gateway\PayTR;
  * offer a payment it could not take, and lets an administrator finish the setup later without a
  * code change.
  *
- * Credentials are never defaulted here: they come from the environment, and the adapter refuses
+ * Credentials are never defaulted here: they come from the configuration source, and the adapter refuses
  * to sign anything until all three are present.
  */
-final readonly class PaytrConfiguration
+final readonly class PaytrConfiguration implements PaytrConfigurationSource
 {
     public function __construct(
         private string $merchantId,
-        private string $merchantKey,
-        private string $merchantSalt,
+        #[\SensitiveParameter] private string $merchantKey,
+        #[\SensitiveParameter] private string $merchantSalt,
         private bool $testMode,
         private string $paymentUrl,
         private string $refundUrl,
     ) {
     }
 
-    public static function fromEnvironment(
+    public static function fromValues(
         string $merchantId,
-        string $merchantKey,
-        string $merchantSalt,
+        #[\SensitiveParameter] string $merchantKey,
+        #[\SensitiveParameter] string $merchantSalt,
         bool|string $testMode,
         string $paymentUrl,
         string $refundUrl,
@@ -46,19 +46,29 @@ final readonly class PaytrConfiguration
         );
     }
 
+    public function current(): self
+    {
+        return $this;
+    }
+
+    public function __debugInfo(): array
+    {
+        return ['configured' => $this->isConfigured(), 'testMode' => $this->testMode];
+    }
+
     /** False while any of the three panel credentials is missing, whatever the environment. */
     public function isConfigured(): bool
     {
         return [] === $this->missingCredentials();
     }
 
-    /** @return list<string> Environment variable names only; never expose credential values. */
+    /** @return list<string> Field names only; never expose credential values. */
     public function missingCredentials(): array
     {
         return array_keys(array_filter([
-            'PAYTR_MERCHANT_ID' => $this->merchantId,
-            'PAYTR_MERCHANT_KEY' => $this->merchantKey,
-            'PAYTR_MERCHANT_SALT' => $this->merchantSalt,
+            'Merchant ID' => $this->merchantId,
+            'Merchant Key' => $this->merchantKey,
+            'Merchant Salt' => $this->merchantSalt,
         ], static fn (string $value): bool => '' === trim($value)));
     }
 

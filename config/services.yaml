@@ -27,6 +27,7 @@ services:
             - '../src/Module/Payment/FakePaymentGateway.php'
             - '../src/Module/Shipping/FakeShippingProvider.php'
             - '../src/Module/Shipping/TestCarrierShippingMethod.php'
+            - '../src/Module/Payment/Gateway/PayTR/PaytrConfiguration.php'
 
     App\Module\Cms\CmsMediaStorage:
         arguments:
@@ -136,18 +137,13 @@ services:
         arguments:
             $environment: '%kernel.environment%'
 
-    # PayTR credentials come from the environment and are empty until the merchant enters them
-    # in the uncommitted .env.local. The adapter stays wired either way and reports itself as not
-    # production ready while they are missing, so a half-configured store never offers a payment
-    # it cannot take and the container still boots.
-    App\Module\Payment\Gateway\PayTR\PaytrConfiguration:
+    # Every payment operation reads the admin-managed encrypted database configuration.
+    App\Module\Payment\Gateway\PayTR\PaytrConfigurationSource:
+        alias: App\Module\Payment\Gateway\PayTR\StoredPaytrConfiguration
+
+    App\EventSubscriber\PaymentSettingsPrivacySubscriber:
         arguments:
-            $merchantId: '%env(PAYTR_MERCHANT_ID)%'
-            $merchantKey: '%env(PAYTR_MERCHANT_KEY)%'
-            $merchantSalt: '%env(PAYTR_MERCHANT_SALT)%'
-            $testMode: '%env(bool:PAYTR_TEST_MODE)%'
-            $paymentUrl: '%env(PAYTR_PAYMENT_URL)%'
-            $refundUrl: '%env(PAYTR_REFUND_URL)%'
+            $profiler: '@?profiler'
 
     # Override the default AssetMapper dev server subscriber to only intercept /yeni/assets/ requests.
     # The default public_prefix='/yeni' would cause the base subscriber to intercept ALL /yeni/

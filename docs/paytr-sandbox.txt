@@ -4,25 +4,23 @@ PayTR Direct API sandbox kurulumu
    Hesap için Direct API yetkisi açık olmalı; iFrame API hesabı tek başına yeterli değildir.
    Gizli değerleri Git'e veya sohbet/log kayıtlarına koymayın.
 
-2. Docker olmayan kurulumda projenin Git dışında tutulan .env.local dosyasına ekleyin:
-   PAYTR_MERCHANT_ID=<paneldeki ID>
-   PAYTR_MERCHANT_KEY=<paneldeki Key>
-   PAYTR_MERCHANT_SALT=<paneldeki Salt>
-   PAYTR_TEST_MODE=1
-   DEFAULT_URI=https://efeotomotivadana.com
-   DEFAULT_URI yalnız HTTPS origin olmalı; /yeni zaten router tarafından eklenir.
-   Uygulama /yeni altında kalır; alan adının kökündeki mevcut siteye dokunulmaz.
-   Mevcut doğru DEFAULT_URI değerini koruyun. Docker'da bu değerleri Compose'un
-   okuduğu host ortamına veya Git dışındaki --env-file dosyasına koyun;
-   .env.local tek başına Compose'un environment değerlerini değiştirmez.
-   App ve worker ortamını mevcut deploy yöntemiyle güncelleyin.
+2. Admin > Sistem > Ödeme Sağlayıcı ekranında Merchant ID, Key ve Salt girin.
+   Test modunu seçip kaydedin. Boş Key/Salt alanları mevcut değeri korur.
+   Merchant bilgileri ve çalışma modu yalnız veritabanından okunur; ENV fallback yoktur.
+   Eski PAYTR_MERCHANT_* / PAYTR_TEST_MODE değişkenlerini sunucu ortamından kaldırın.
+   Mevcut DEFAULT_URI HTTPS origin değerini koruyun; /yeni router tarafından eklenir.
+   Resmi ödeme/iade endpointleri uygulama içinde sabittir ve panelden değiştirilemez.
+   Key/Salt AES-256-GCM ile şifrelenir. Anahtar, en az 32 karakterlik güçlü APP_SECRET
+   server secret'ından HKDF ile ayrı amaçlar için türetilir. APP_SECRET'i Git dışında
+   saklayın ve yedekleyin. Bu secret değişirse mevcut merchant secret'larını panelden
+   yeniden girmeniz gerekir. Key/Salt panel HTML'inde veya loglarda gösterilmez.
 
-3. Admin mağaza ayarlarında ödeme sağlayıcısını paytr seçin.
+3. Aynı Ödeme Sağlayıcı ekranında aktif ödeme sağlayıcısını PayTR seçin.
    Sunucuda APP_ENV=prod php bin/console app:paytr:check --no-debug çalıştırın.
-   Komut eksik değişken adlarını, seçili modunu ve tam Bildirim URL'sini gösterir;
+   Komut eksik alan adlarını, seçili modunu ve tam Bildirim URL'sini gösterir;
    merchant değerlerini göstermez, ödeme yapmaz ve PayTR bağlantısını doğrulamaz.
    Yanlış/eksik DEFAULT_URI durumunda console yapılandırma hatasıyla durur.
-   Ortam değişikliğinden sonra production cache'ini mevcut deploy akışıyla yenileyin.
+   Paneldeki credential/mod değişiklikleri anında kullanılır; deploy veya cache temizliği gerekmez.
 
 4. Komutun gösterdiği Bildirim URL'sini PayTR mağaza paneline kaydedin:
    https://efeotomotivadana.com/yeni/odeme/paytr/bildirim
@@ -32,7 +30,7 @@ PayTR Direct API sandbox kurulumu
 
 5. Müşteri olarak sepete ürün ekleyin, teslimat/fatura adresini seçin ve
    Kredi kartı ile ödeme seçeneğiyle siparişi oluşturun. Açılan formda Test ödemesi
-   uyarısını ve PAYTR_TEST_MODE=1 modunu doğrulayın. Test kartı gerçek tahsilat yapmaz.
+   uyarısını ve paneldeki Test modunu doğrulayın. Test kartı gerçek tahsilat yapmaz.
    PayTR'ın güncel Direct API test kartı kaynağı:
    https://github.com/paytr/paytr-postman#test-kart-bilgileri
    Kart bilgileri yalnız tarayıcıdan PayTR'a gider; mağaza bunları almaz veya saklamaz.
@@ -48,7 +46,7 @@ PayTR Direct API sandbox kurulumu
    debug_on yalnız test modunda 1'dir; tanısal provider ekranını herkese paylaşmayın.
 
 7. Canlıya geçmeden test siparişlerini ve bekleyen bildirimleri çözümleyin.
-   PAYTR_TEST_MODE=0 yapıp mevcut deploy/cache akışını çalıştırın.
+   Ödeme Sağlayıcı ekranında Canlı modunu seçip gerçek tahsilat onayını işaretleyin ve kaydedin.
    Test ve canlı başarı bildirimleri birbirinin modunda kabul edilmez.
    Bildirimde test_mode alanı hash kapsamına girmez; asıl doğrulama merchant_oid,
    status ve total_amount üzerinde HMAC ile yapılır. Bekleyen ödeme varken modu

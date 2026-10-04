@@ -363,7 +363,7 @@ final class PaytrNotificationAndRefundTest extends TestCase
 
         return new PaytrPaymentGateway(
             $client ?? new MockHttpClient(new MockResponse('{}')),
-            PaytrConfiguration::fromEnvironment(
+            PaytrConfiguration::fromValues(
                 $configured ? self::MERCHANT_ID : '',
                 $configured ? self::MERCHANT_KEY : '',
                 $configured ? self::MERCHANT_SALT : '',

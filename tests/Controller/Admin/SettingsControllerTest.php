@@ -118,17 +118,18 @@ final class SettingsControllerTest extends WebTestCase
         self::assertSelectorNotExists('[name="store_settings[currency]"]');
         self::assertStringNotContainsString('TRY', $crawler->filter('main')->text());
         $formNode = $crawler->filter('form[name="store_settings"]');
-        self::assertSame(['Mağaza', 'Özellikler', 'Sağlayıcılar', 'Kargo Ayarları', 'SEO', 'Google Analytics', 'Storefront Renkleri'], $formNode->filter('fieldset legend')->each(static fn ($node) => $node->text()));
+        self::assertSame(['Mağaza', 'Özellikler', 'Google Analytics', 'Storefront Renkleri'], $formNode->filter('fieldset legend')->each(static fn ($node) => $node->text()));
         self::assertCount(1, $formNode->filter('button[type="submit"]'));
         self::assertSame(0, $formNode->filterXPath('.//button[@type="submit"]/following::fieldset')->count());
-        self::assertSame(2, $formNode->filterXPath('.//fieldset[legend="SEO"]//input')->count());
+        self::assertCount(0, $formNode->filter('[name*="shipping"], [name*="seo"], [name*="paymentProvider"]'));
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/shipping');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
-        self::assertSame('250.00', $form['store_settings[shippingFee]']->getValue());
-        self::assertSame('1500.00', $form['store_settings[freeShippingThreshold]']->getValue());
-        $form['store_settings[shippingFee]'] = '325.50';
-        $form['store_settings[freeShippingThreshold]'] = '2000';
+        self::assertSame('250.00', $form['shipping_settings[shippingFee]']->getValue());
+        self::assertSame('1500.00', $form['shipping_settings[freeShippingThreshold]']->getValue());
+        $form['shipping_settings[shippingFee]'] = '325.50';
+        $form['shipping_settings[freeShippingThreshold]'] = '2000';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/yeni/admin/settings/shipping');
         $configuration = self::getContainer()->get(StoreConfiguration::class);
         self::assertSame(32_550, $configuration->shippingFee());
         self::assertSame(200_000, $configuration->freeShippingThreshold());
@@ -137,9 +138,9 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testNegativeShippingAmountIsRejected(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/shipping');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
-        $form['store_settings[shippingFee]'] = '-1';
+        $form['shipping_settings[shippingFee]'] = '-1';
         $this->client->submit($form);
         self::assertResponseStatusCodeSame(422);
         self::assertSame(25_000, self::getContainer()->get(StoreConfiguration::class)->shippingFee());
@@ -233,8 +234,126 @@ final class SettingsControllerTest extends WebTestCase
         return $administrator;
     }
 
+    public function testSeoAndGeneralFormsOnlyWriteTheirOwnSettings(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/seo');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['seo_settings[seoIndexingEnabled]']->untick();
+        $form['seo_settings[seoDefaultDescription]'] = 'Mağazanın SEO açıklaması';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings/seo');
+        self::assertSame(25_000, self::getContainer()->get(StoreConfiguration::class)->shippingFee());
+
+        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        // A different administrator changes SEO after the general form was opened.
+        $this->connection->update('store_setting', ['value' => json_encode('Yeni açıklama')], ['setting_key' => 'seo.default_description']);
+        $form['store_settings[storeName]'] = 'Yeni mağaza adı';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertSame('Yeni açıklama', self::getContainer()->get(StoreConfiguration::class)->seoDefaultDescription());
+        self::assertFalse(self::getContainer()->get(StoreConfiguration::class)->isSeoIndexingEnabled());
+    }
+
+    public function testPaymentSecretsAreEncryptedHiddenPreservedAndUsedImmediately(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['payment_settings[paymentProvider]'] = 'paytr';
+        $form['payment_settings[merchantId]'] = '654321';
+        $form['payment_settings[merchantKey]'] = 'private-admin-key';
+        $form['payment_settings[merchantSalt]'] = 'private-admin-salt';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings/payment');
+        $stored = $this->connection->fetchAssociative('SELECT * FROM payment_configuration WHERE id = 1');
+        self::assertStringNotContainsString('private-admin-key', $stored['merchant_key_encrypted']);
+        self::assertStringNotContainsString('private-admin-salt', $stored['merchant_salt_encrypted']);
+        $source = self::getContainer()->get(\App\Module\Payment\Gateway\PayTR\StoredPaytrConfiguration::class);
+        self::assertTrue($source->current()->isConfigured());
+        self::assertSame('654321', $source->current()->merchantId());
+        self::assertTrue($source->current()->testMode());
+        self::assertSame(
+            (new \App\Module\Payment\Gateway\PayTR\PaytrSignature('private-admin-key', 'private-admin-salt'))->callbackHash('TEST', 'success', '100'),
+            $source->current()->signature()->callbackHash('TEST', 'success', '100'),
+        );
+
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        self::assertStringNotContainsString('private-admin-key', $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString('private-admin-salt', $this->client->getResponse()->getContent());
+        self::assertSelectorTextContains('[data-paytr-status]', 'Yapılandırıldı');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        self::assertSame('', $form['payment_settings[merchantKey]']->getValue());
+        $form['payment_settings[testMode]'] = '0';
+        $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422); // live mode requires explicit acknowledgement
+        self::assertTrue($source->current()->testMode());
+        $form['payment_settings[confirmLiveMode]']->tick();
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings/payment');
+        self::assertFalse($source->current()->testMode());
+        self::assertSame($stored['merchant_key_encrypted'], $this->connection->fetchOne('SELECT merchant_key_encrypted FROM payment_configuration WHERE id = 1'));
+        self::assertSame($stored['merchant_salt_encrypted'], $this->connection->fetchOne('SELECT merchant_salt_encrypted FROM payment_configuration WHERE id = 1'));
+
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['payment_settings[confirmLiveMode]']->tick();
+        $form['payment_settings[merchantKey]'] = 'replacement-admin-key';
+        $this->client->submit($form);
+        self::assertResponseRedirects('/yeni/admin/settings/payment');
+        self::assertSame(
+            (new \App\Module\Payment\Gateway\PayTR\PaytrSignature('replacement-admin-key', 'private-admin-salt'))->refundToken('654321', 'TEST', '1.00'),
+            $source->current()->signature()->refundToken('654321', 'TEST', '1.00'),
+        );
+        $audit = implode('', $this->connection->fetchFirstColumn('SELECT payload FROM commerce_audit_log WHERE action = ?', ['settings.updated']));
+        self::assertStringNotContainsString('private-admin-key', $audit);
+        self::assertStringNotContainsString('replacement-admin-key', $audit);
+    }
+
+    public function testDedicatedSettingsFormsRejectInvalidCsrfWithoutWriting(): void
+    {
+        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        self::assertSame(['Mağaza ayarları'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
+        foreach (['seo' => 'SEO', 'shipping' => 'Kargo Ayarları', 'payment' => 'Ödeme Sağlayıcı'] as $page => $label) {
+            $crawler = $this->client->request('GET', '/yeni/admin/settings/'.$page);
+            self::assertSame([$label], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
+            $form = $crawler->selectButton('Ayarları kaydet')->form();
+            $form[$page.'_settings[_token]'] = 'invalid';
+            $this->client->submit($form);
+            self::assertResponseStatusCodeSame(422);
+        }
+        self::assertTrue(self::getContainer()->get(StoreConfiguration::class)->isSeoIndexingEnabled());
+        self::assertSame(25_000, self::getContainer()->get(StoreConfiguration::class)->shippingFee());
+    }
+
+    public function testPaymentRequestsNeverPersistSecretsInProfilerEvenWithoutAuthentication(): void
+    {
+        $this->client->enableProfiler();
+        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        self::assertResponseIsSuccessful();
+        self::assertNull($this->client->getProfile());
+        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['payment_settings[merchantKey]'] = 'profiler-private-key';
+        $form['payment_settings[merchantSalt]'] = 'profiler-private-salt';
+        $form['payment_settings[_token]'] = 'invalid-token';
+        $this->client->enableProfiler();
+        $this->client->submit($form);
+        self::assertResponseStatusCodeSame(422);
+        self::assertNull($this->client->getProfile());
+        self::assertStringNotContainsString('profiler-private-key', $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString('profiler-private-salt', $this->client->getResponse()->getContent());
+
+        $this->client->getCookieJar()->clear();
+        $this->client->enableProfiler();
+        $this->client->request('POST', '/yeni/admin/settings/payment', ['payment_settings' => ['merchantKey' => 'unauthenticated-private-key']]);
+        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertNull($this->client->getProfile());
+    }
+
     private function resetDatabaseState(): void
     {
+        $this->connection->executeStatement("UPDATE payment_configuration SET merchant_id = '', merchant_key_encrypted = NULL, merchant_salt_encrypted = NULL, test_mode = 1 WHERE id = 1");
         $this->connection->executeStatement('DELETE FROM admin_user');
         $this->connection->executeStatement('DELETE FROM store_setting');
 
