@@ -190,6 +190,6 @@ final class PaytrCallbackParserTest extends TestCase
      */
     private function body(array $fields): string
     {
-        return http_build_query($fields, '', '&', \PHP_QUERY_RFC1738);
+        return http_build_query($fields + ['test_mode' => '0'], '', '&', \PHP_QUERY_RFC1738);
     }
 }

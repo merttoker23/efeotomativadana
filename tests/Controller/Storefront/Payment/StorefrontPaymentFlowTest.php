@@ -21,6 +21,7 @@ use App\Module\Pricing\TaxRate;
 use App\Module\Settings\StoreConfiguration;
 use App\Repository\Commerce\PaymentRepository;
 use App\Shared\Money\Money;
+use App\Tests\ResetsRateLimits;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -28,6 +29,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class StorefrontPaymentFlowTest extends WebTestCase
 {
+    use ResetsRateLimits;
     private KernelBrowser $client;
     private Connection $connection;
     private EntityManagerInterface $entityManager;
@@ -37,6 +39,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
+        $this->resetRateLimits();
         $container = self::getContainer();
         $connection = $container->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
@@ -201,7 +204,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $order = $this->onlyOrder();
         $token = $this->tokenFor($order);
 
-        $this->postCallback($token, 'FAKE-CB', 'succeeded', 30_000, 'valid');
+        $this->postCallback($token, 'FAKE-CB', 'succeeded', $order->grandTotal()->minorAmount(), 'valid');
 
         self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/yeni/odeme/%s', $order->orderNumber())));
         $this->client->followRedirect();
@@ -231,12 +234,12 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $token = $this->tokenFor($order);
 
         for ($replay = 0; $replay < 3; ++$replay) {
-            $this->postCallback($token, 'FAKE-RP', 'succeeded', 30_000, 'valid');
+            $this->postCallback($token, 'FAKE-RP', 'succeeded', $order->grandTotal()->minorAmount(), 'valid');
         }
 
         self::assertSame('confirmed', $this->reload($order)->state()->value);
         self::assertSame(1, $this->orderStatusChangeCount($order));
-        self::assertSame(30_000, $this->paymentFor($this->reload($order))->capturedAmount()->minorAmount());
+        self::assertSame($order->grandTotal()->minorAmount(), $this->paymentFor($this->reload($order))->capturedAmount()->minorAmount());
     }
 
     public function testAForgedCallbackIsRejectedAndTheOrderStaysPlaced(): void
@@ -338,11 +341,11 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         // callback route demanded a customer login, a charged order would stay unconfirmed
         // forever and staff would have no in-app way to reconcile it.
         $this->client->restart();
-        $this->postCallback($token, 'FAKE-HOOK', 'succeeded', 30_000, 'valid');
+        $this->postCallback($token, 'FAKE-HOOK', 'succeeded', $order->grandTotal()->minorAmount(), 'valid');
 
         self::assertResponseStatusCodeSame(302);
         self::assertSame('confirmed', $this->reload($order)->state()->value);
-        self::assertSame(30_000, $this->paymentFor($this->reload($order))->capturedAmount()->minorAmount());
+        self::assertSame($order->grandTotal()->minorAmount(), $this->paymentFor($this->reload($order))->capturedAmount()->minorAmount());
     }
 
     public function testACustomerCannotSeeAnotherCustomersPaymentPage(): void

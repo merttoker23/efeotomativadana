@@ -49,7 +49,17 @@ final readonly class PaytrConfiguration
     /** False while any of the three panel credentials is missing, whatever the environment. */
     public function isConfigured(): bool
     {
-        return '' !== $this->merchantId && '' !== $this->merchantKey && '' !== $this->merchantSalt;
+        return [] === $this->missingCredentials();
+    }
+
+    /** @return list<string> Environment variable names only; never expose credential values. */
+    public function missingCredentials(): array
+    {
+        return array_keys(array_filter([
+            'PAYTR_MERCHANT_ID' => $this->merchantId,
+            'PAYTR_MERCHANT_KEY' => $this->merchantKey,
+            'PAYTR_MERCHANT_SALT' => $this->merchantSalt,
+        ], static fn (string $value): bool => '' === trim($value)));
     }
 
     /**

@@ -55,7 +55,7 @@ final class CheckoutController extends AbstractController
 
                 // The order is committed before any external payment call. A gateway that is
                 // unreachable therefore costs a retry on the payment page, never the order.
-                return $this->startPayment($order, $payments);
+                return $this->startPayment($order, $payments, $context);
             } catch (CheckoutViolation $exception) {
                 $this->addFlash('error', $exception->getMessage());
 
@@ -102,7 +102,7 @@ final class CheckoutController extends AbstractController
      * A locally verified order has nothing to start; a gateway-backed one is handed to the
      * configured provider. Any failure here leaves the order intact and retryable.
      */
-    private function startPayment(CustomerOrder $order, PaymentInitiationService $payments): Response
+    private function startPayment(CustomerOrder $order, PaymentInitiationService $payments, StorefrontPageContext $context): Response
     {
         if (GatewayPaymentOptionInterface::CHECKOUT_KEY !== $order->paymentOptionKey()) {
             return $this->redirectToRoute('storefront_order_success', ['orderNumber' => $order->orderNumber()]);
@@ -120,8 +120,15 @@ final class CheckoutController extends AbstractController
             return $this->redirectToRoute('storefront_payment_show', ['orderNumber' => $order->orderNumber()]);
         }
 
-        if ($start->requiresRedirect() && null !== $start->redirectUrl()) {
+        if ($start->isRedirect() && null !== $start->redirectUrl()) {
             return $this->redirect($start->redirectUrl());
+        }
+        if ($start->isHostedForm()) {
+            return $this->render('storefront/payment/gateway_form.html.twig', $context->withLayout([
+                'order' => $order,
+                'action_url' => $start->redirectUrl(),
+                'fields' => $start->hostedFormFields(),
+            ]), new Response(headers: ['Cache-Control' => 'no-store, private']));
         }
         if ($start->isFailed()) {
             $this->addFlash('error', 'Ödeme başlatılamadı. Lütfen tekrar deneyin.');

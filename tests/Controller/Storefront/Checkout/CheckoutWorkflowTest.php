@@ -13,6 +13,7 @@ use App\Entity\Customer\CustomerUser;
 use App\Module\Pricing\TaxCategory;
 use App\Module\Pricing\TaxRate;
 use App\Shared\Money\Money;
+use App\Tests\ResetsRateLimits;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -20,6 +21,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class CheckoutWorkflowTest extends WebTestCase
 {
+    use ResetsRateLimits;
     private KernelBrowser $client;
     private Connection $connection;
     private EntityManagerInterface $entityManager;
@@ -28,6 +30,7 @@ final class CheckoutWorkflowTest extends WebTestCase
     {
         $this->client = static::createClient();
         $this->client->disableReboot();
+        $this->resetRateLimits();
         $this->connection = self::getContainer()->get(Connection::class);
         $this->connection->beginTransaction();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);

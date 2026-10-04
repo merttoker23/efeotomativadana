@@ -2,6 +2,7 @@
 
 {# The card inputs share no page with the storefront's JavaScript or importmap. #}
 {% block javascripts %}{% endblock %}
+{% block analytics %}{% endblock %}
 
 {% block title %}Ödeme | {{ store.name }}{% endblock %}
 
@@ -22,6 +23,10 @@
 
         <p class="order-number">Sipariş numarası: <strong>{{ order.orderNumber }}</strong></p>
         <p class="order-totals grand"><span>Toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></p>
+
+        {% if fields.test_mode|default('0') == '1' %}
+            <p class="alert" role="status">Test ödemesi: Bu işlemde gerçek tahsilat yapılmaz.</p>
+        {% endif %}
 
         <form method="post" action="{{ action_url }}" class="payment-card-form" id="gateway-payment-form">
             {% for name, value in fields %}

@@ -36,8 +36,12 @@ final class PaytrCallbackParser
         $status = $this->text($fields, 'status');
         $totalAmount = $this->text($fields, 'total_amount');
         $hash = $this->text($fields, 'hash');
+        $testMode = $this->text($fields, 'test_mode');
 
         if (null === $orderReference || null === $status || null === $totalAmount || null === $hash) {
+            return null;
+        }
+        if (!in_array($testMode, ['0', '1'], true)) {
             return null;
         }
         if (1 !== preg_match('/^[A-Za-z0-9]{1,'.self::MAX_ORDER_REFERENCE_LENGTH.'}$/', $orderReference)) {
@@ -61,7 +65,7 @@ final class PaytrCallbackParser
             $this->currency($fields),
             $this->text($fields, 'failed_reason_code'),
             $this->text($fields, 'failed_reason_msg'),
-            $this->isTestMode($fields),
+            '1' === $testMode,
             $hash,
         );
     }
@@ -129,13 +133,5 @@ final class PaytrCallbackParser
             // downstream still refuses a capture it cannot reconcile.
             return null;
         }
-    }
-
-    /**
-     * @param array<mixed> $fields
-     */
-    private function isTestMode(array $fields): bool
-    {
-        return '1' === $this->text($fields, 'test_mode');
     }
 }

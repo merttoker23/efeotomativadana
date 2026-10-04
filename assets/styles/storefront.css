@@ -1742,10 +1742,13 @@ select:focus-visible {
 
 .footer-bottom {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     justify-content: space-between;
+    gap: 0.6rem 1rem;
     padding-block: 0.95rem;
     border-top: 1px solid #24405f;
-    font-size: 0.65rem;
+    font-size: 0.8rem;
 }
 
 .payments {
@@ -1758,7 +1761,7 @@ select:focus-visible {
 
 .payments img {
     display: block;
-    height: 24px;
+    height: 20px;
     width: auto;
     max-width: 100%;
     object-fit: contain;
@@ -2095,6 +2098,7 @@ select:focus-visible {
 
     .footer-bottom {
         flex-direction: column;
+        align-items: flex-start;
         gap: 0.6rem;
     }
 }

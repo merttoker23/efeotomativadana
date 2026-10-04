@@ -174,6 +174,29 @@ final class PaytrNotificationAndRefundTest extends TestCase
         self::assertSame('test_capture_in_live_mode', $authentication->reason());
     }
 
+    public function testALiveCaptureIsRefusedWhileTheStoreIsInTestMode(): void
+    {
+        $authentication = $this->gateway()->authenticateCallback($this->notification(['test_mode' => '0']));
+        self::assertFalse($authentication->verified());
+        self::assertSame('live_capture_in_test_mode', $authentication->reason());
+    }
+
+    #[DataProvider('invalidModes')]
+    public function testANotificationWithoutAnExplicitValidModeIsRefused(?string $mode): void
+    {
+        $authentication = $this->gateway()->authenticateCallback($this->notification(['test_mode' => $mode]));
+        self::assertFalse($authentication->verified());
+        self::assertSame('malformed_notification', $authentication->reason());
+    }
+
+    /** @return iterable<string, array{?string}> */
+    public static function invalidModes(): iterable
+    {
+        yield 'missing' => [null];
+        yield 'empty' => [''];
+        yield 'invalid' => ['yes'];
+    }
+
     public function testASimulatedCaptureIsAcceptedWhileTheStoreIsInTestMode(): void
     {
         $authentication = $this->gateway(testMode: true)->authenticateCallback($this->notification([
@@ -211,7 +234,7 @@ final class PaytrNotificationAndRefundTest extends TestCase
         // into a warning-as-exception on a public endpoint. Dropping just that optional field
         // keeps the endpoint answering, and the signature still decides the outcome on its own.
         $report = (new PaytrCallbackParser())->parse('merchant_oid='.self::ORDER_REFERENCE
-            .'&status=success&total_amount=159990&failed_reason_msg=%FF%FE&hash=abc');
+            .'&status=success&test_mode=1&total_amount=159990&failed_reason_msg=%FF%FE&hash=abc');
 
         self::assertNotNull($report);
         self::assertNull($report->failedReasonMessage());

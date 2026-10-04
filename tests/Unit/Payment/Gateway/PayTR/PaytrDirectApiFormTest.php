@@ -141,6 +141,20 @@ final class PaytrDirectApiFormTest extends TestCase
         self::assertSame('0', $this->fields(testMode: false)['test_mode']);
     }
 
+    public function testDiagnosticsAreOnlyEnabledInTestMode(): void
+    {
+        self::assertSame('1', $this->fields(testMode: true)['debug_on']);
+        self::assertSame('0', $this->fields(testMode: false)['debug_on']);
+    }
+
+    public function testAnInvalidPaymentEndpointIsRefusedWithoutThrowing(): void
+    {
+        $gateway = $this->gateway(paymentUrl: 'http://www.paytr.com/odeme');
+        self::assertFalse($gateway->productionReady());
+        $outcome = $gateway->initiate($this->instruction());
+        self::assertTrue($outcome->isFailed());
+    }
+
     public function testThreeDSecureStaysOnSoTheProviderKeepsItsFraudChecks(): void
     {
         // non_3d=1 would skip 3-D Secure, and PayTR treats it as a separate entitlement. Leaving
@@ -258,13 +272,14 @@ final class PaytrDirectApiFormTest extends TestCase
         bool $testMode = true,
         ?RequestStack $requestStack = null,
         ?MockHttpClient $client = null,
+        string $paymentUrl = self::PAYMENT_URL,
     ): PaytrPaymentGateway {
         $configuration = \App\Module\Payment\Gateway\PayTR\PaytrConfiguration::fromEnvironment(
             $configured ? self::MERCHANT_ID : '',
             $configured ? self::MERCHANT_KEY : '',
             $configured ? self::MERCHANT_SALT : '',
             $testMode ? '1' : '0',
-            self::PAYMENT_URL,
+            $paymentUrl,
             'https://www.paytr.com/odeme/iade',
         );
 

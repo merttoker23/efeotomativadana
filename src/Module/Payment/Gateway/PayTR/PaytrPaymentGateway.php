@@ -76,7 +76,13 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
      */
     public function productionReady(): bool
     {
-        return $this->configuration->isConfigured();
+        try {
+            $this->configuration->paymentUrl();
+
+            return true;
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
     }
 
     /**
@@ -90,7 +96,7 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
     public function initiate(GatewayInitiationInstruction $instruction): GatewayInitiationOutcome
     {
         if (!$this->configuration->isConfigured()) {
-            return $this->refuse('provider_not_configured', 'PayTR merchant credentials are not configured.');
+            return $this->refuse('provider_not_configured', 'Missing PayTR configuration: '.implode(', ', $this->configuration->missingCredentials()).'.');
         }
 
         // PayTR rejects a request signed with a private or local address, so this is read per
@@ -115,6 +121,7 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
         }
 
         try {
+            $paymentUrl = $this->configuration->paymentUrl();
             $fields = $this->initiationFields($instruction);
         } catch (PaytrRefusal $refusal) {
             return $this->refuse($refusal->failureCode(), $refusal->getMessage());
@@ -134,7 +141,7 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
 
         // The reference is PayTR's own order id, which is also what its refund API is keyed on.
         return GatewayInitiationOutcome::hostedForm(
-            $this->configuration->paymentUrl(),
+            $paymentUrl,
             $fields,
             $fields['merchant_oid'],
         );
@@ -201,7 +208,7 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
             'user_address' => mb_substr($address, 0, self::MAX_ADDRESS_LENGTH),
             'user_phone' => mb_substr($phone, 0, self::MAX_PHONE_LENGTH),
             'user_basket' => $basket,
-            'debug_on' => '0',
+            'debug_on' => $testMode,
             'merchant_ok_url' => $instruction->returnUrl(),
             // The provider's failure redirect is not an authenticated customer cancellation.
             // It may be a GET or an unsigned POST and must only show the order status.
@@ -352,6 +359,13 @@ final readonly class PaytrPaymentGateway implements PaymentGatewayInterface
             ]);
 
             return CallbackAuthentication::rejected('test_capture_in_live_mode');
+        }
+        if (!$report->isTestMode() && $this->configuration->testMode()) {
+            $this->logger->warning('paytr.payment.callback.live_capture_refused', [
+                'order_reference' => $report->merchantOid(),
+            ]);
+
+            return CallbackAuthentication::rejected('live_capture_in_test_mode');
         }
 
         $captured = Money::ofMinor($report->totalAmountMinor(), $report->currency());

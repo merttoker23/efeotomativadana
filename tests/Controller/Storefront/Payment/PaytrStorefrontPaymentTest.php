@@ -14,6 +14,7 @@ use App\Module\Payment\Gateway\PayTR\PaytrSignature;
 use App\Module\Payment\PaymentState;
 use App\Module\Settings\StoreConfiguration;
 use App\Shared\Money\Money;
+use App\Tests\ResetsRateLimits;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -29,6 +30,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class PaytrStorefrontPaymentTest extends WebTestCase
 {
+    use ResetsRateLimits;
     private const string NOTIFICATION_PATH = '/yeni/odeme/paytr/bildirim';
 
     private KernelBrowser $client;
@@ -39,6 +41,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
     {
         $this->client = self::createClient();
         $this->client->disableReboot();
+        $this->resetRateLimits();
         $container = self::getContainer();
         $connection = $container->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
@@ -236,6 +239,37 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         self::assertSame(405, $this->client->getResponse()->getStatusCode());
     }
 
+    public function testAnInternalNotificationFailureIsNotAcknowledgedAndRollsBackConfirmation(): void
+    {
+        $order = $this->orderWithPaytrAttempt();
+        self::getContainer()->get('event_dispatcher')->addListener(\App\Module\Notification\Event\PaymentCaptured::class, static function (): never {
+            throw new \RuntimeException('Simulated notification processing failure.');
+        });
+        $this->client->request('POST', self::NOTIFICATION_PATH, [], [], [], $this->notificationBody($order));
+        self::assertResponseStatusCodeSame(500);
+        self::assertNotSame('OK', $this->client->getResponse()->getContent());
+        self::assertSame('placed', $this->connection->fetchOne('SELECT state FROM commerce_customer_order WHERE id = ?', [$order->id()]));
+        self::assertSame('requires_action', $this->connection->fetchOne('SELECT state FROM commerce_payment WHERE order_id = ?', [$order->id()]));
+    }
+
+    public function testCustomerCancellationRequiresCsrfAndDoesNotConfirmTheOrder(): void
+    {
+        $order = $this->orderWithPaytrAttempt();
+        $this->client->loginUser($order->customer());
+        $token = $this->paymentFor($order)->latestAttempt()?->returnToken();
+        $this->client->request('POST', '/yeni/odeme/iptal/'.$token);
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(PaymentState::RequiresAction, $this->paymentFor($order)->state());
+        $crawler = $this->client->request('GET', '/yeni/odeme/'.$order->orderNumber());
+        $csrf = $crawler->filter('input[name="payment_cancel[_token]"]')->attr('value');
+        $this->client->request('POST', '/yeni/odeme/iptal/'.$token, ['payment_cancel' => ['_token' => $csrf]]);
+        self::assertResponseRedirects();
+        [$payment, $reloaded] = $this->reload($order);
+        self::assertSame(PaymentState::Cancelled, $payment->state());
+        self::assertSame(OrderState::Placed, $reloaded->state());
+        self::assertSame(0, $payment->capturedAmount()->minorAmount());
+    }
+
     public function testTheFormPageRendersACardFormThatPostsStraightToPaytr(): void
     {
         $order = $this->orderWithPaytrAttempt();
@@ -255,6 +289,124 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         self::assertStringNotContainsString('<script', $content, 'The page with card fields must not load the storefront JavaScript.');
     }
 
+    public function testCheckoutThroughSandboxNotificationAndBrowserReturnConfirmsTheOrder(): void
+    {
+        // The delivery address has a phone even when the customer profile does not.
+        $customer = new CustomerUser('paytr-checkout@example.com', 'Efe', 'Yilmaz');
+        $customer->setPassword('test-password-hash');
+        $address = new \App\Entity\Customer\CustomerAddress($customer);
+        $address->update('Ev', 'Efe Yilmaz', '05000000000', 'Ataturk Cad. 1', null, 'Seyhan', 'Adana', '01000', true);
+        $product = new \App\Entity\Catalog\Product('PAYTR-CHECKOUT', 'Sandbox urunu', 'paytr-checkout');
+        $product->publish();
+        $cart = new \App\Entity\Commerce\Cart($customer);
+        $cart->add($product, 1);
+        foreach ([$customer, $address, $product, $cart,
+            new \App\Entity\Commerce\ProductPrice($product, Money::ofMinor(30_000, 'TRY'), \App\Module\Pricing\TaxCategory::of('replacement-part'), \App\Module\Pricing\TaxRate::fromBasisPoints(2_000)),
+            new \App\Entity\Commerce\ProductInventory($product, 2),
+        ] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+        $this->entityManager->flush();
+        $this->selectPaytrProvider();
+        $this->client->loginUser($customer);
+        $this->client->request('GET', '/yeni/sepet');
+        self::assertResponseIsSuccessful();
+        $crawler = $this->client->request('GET', '/yeni/odeme');
+        self::assertSelectorExists('input[value="gateway_checkout"]');
+        $crawler = $this->client->request('POST', '/yeni/odeme', [
+            '_token' => $crawler->filter('input[name="_token"]')->attr('value'),
+            'shipping_address' => $address->id(),
+            'billing_address' => $address->id(),
+            'shipping_option' => 'local_standard',
+            'payment_option' => 'gateway_checkout',
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[action="https://www.paytr.com/odeme"]');
+        self::assertSelectorExists('input[name="test_mode"][value="1"]');
+        self::assertSelectorExists('input[name="non_3d"][value="0"]');
+        self::assertSelectorExists('input[name="user_phone"][value="05000000000"]');
+        self::assertSelectorTextContains('main [role="status"]', 'Test ödemesi');
+        self::assertSelectorNotExists('script');
+        $returnUrl = $crawler->filter('input[name="merchant_ok_url"]')->attr('value');
+        self::assertIsString($returnUrl);
+        $order = $this->entityManager->getRepository(CustomerOrder::class)->findOneBy(['customer' => $customer]);
+        self::assertInstanceOf(CustomerOrder::class, $order);
+        self::assertCount(1, $this->paymentFor($order)->attempts());
+        self::assertSame(OrderState::Placed, $order->state());
+        self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
+
+        $this->post($order, $this->notificationBody($order));
+        [$payment, $reloaded] = $this->reload($order);
+        self::assertSame(PaymentState::Succeeded, $payment->state());
+        self::assertSame(OrderState::Confirmed, $reloaded->state());
+        $this->client->request('GET', (string) parse_url($returnUrl, PHP_URL_PATH));
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'succeeded');
+    }
+
+    public function testPaytrBrowserPostIsInformationalEvenWithASignedBody(): void
+    {
+        $order = $this->orderWithPaytrAttempt();
+        $this->client->loginUser($order->customer());
+        $token = $this->paymentFor($order)->latestAttempt()?->returnToken();
+        $this->client->request('POST', '/yeni/odeme/sonuc/'.$token, [], [], [], $this->notificationBody($order));
+        self::assertSame(PaymentState::RequiresAction, $this->paymentFor($order)->state());
+        $this->client->followRedirect();
+        self::assertStringNotContainsString('Ödeme doğrulanamadı', (string) $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString('Ödemeniz alındı', (string) $this->client->getResponse()->getContent());
+    }
+
+    public function testAnUnsignedPaytrBrowserPostDoesNotShowAVerificationError(): void
+    {
+        $order = $this->orderWithPaytrAttempt();
+        $this->client->loginUser($order->customer());
+        $token = $this->paymentFor($order)->latestAttempt()?->returnToken();
+        $this->client->request('POST', '/yeni/odeme/sonuc/'.$token);
+        $this->client->followRedirect();
+        self::assertStringNotContainsString('Ödeme doğrulanamadı', (string) $this->client->getResponse()->getContent());
+        self::assertSame(PaymentState::RequiresAction, $this->paymentFor($order)->state());
+    }
+
+    public function testTheCardFormLoadsNoAnalyticsEvenWhenGa4IsConfigured(): void
+    {
+        $order = $this->orderWithPaytrAttempt();
+        $this->client->loginUser($order->customer());
+        $configuration = self::getContainer()->get(StoreConfiguration::class);
+        $settings = $configuration->current();
+        $settings->paymentProvider = 'paytr';
+        $settings->ga4MeasurementId = 'G-ABC1234567';
+        $configuration->save($settings);
+        $this->submitFormPage($order);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('script');
+        self::assertTrue($this->client->getResponse()->headers->hasCacheControlDirective('no-store'));
+    }
+
+    public function testSetupCheckReportsSandboxAndThePublicNotificationUrl(): void
+    {
+        $this->selectPaytrProvider();
+        $application = new \Symfony\Bundle\FrameworkBundle\Console\Application(self::$kernel);
+        $tester = new \Symfony\Component\Console\Tester\CommandTester($application->find('app:paytr:check'));
+        self::assertSame(0, $tester->execute([]));
+        self::assertStringContainsString('SANDBOX', $tester->getDisplay());
+        self::assertStringContainsString('https://localhost/yeni/odeme/paytr/bildirim', $tester->getDisplay());
+        self::assertStringNotContainsString($this->merchantKey(), $tester->getDisplay());
+        self::assertStringNotContainsString($this->merchantSalt(), $tester->getDisplay());
+    }
+
+    public function testSetupCheckNamesMissingCredentialsWithoutExposingSecrets(): void
+    {
+        self::getContainer()->set(\App\Module\Payment\Gateway\PayTR\PaytrConfiguration::class,
+            \App\Module\Payment\Gateway\PayTR\PaytrConfiguration::fromEnvironment('', '', '', '1', 'https://www.paytr.com/odeme', 'https://www.paytr.com/odeme/iade'));
+        $application = new \Symfony\Bundle\FrameworkBundle\Console\Application(self::$kernel);
+        $tester = new \Symfony\Component\Console\Tester\CommandTester($application->find('app:paytr:check'));
+        self::assertSame(1, $tester->execute([]));
+        foreach (['PAYTR_MERCHANT_ID', 'PAYTR_MERCHANT_KEY', 'PAYTR_MERCHANT_SALT'] as $variable) {
+            self::assertStringContainsString($variable, $tester->getDisplay());
+        }
+    }
+
     public function testTheFormPageRefusesAnonymousVisitors(): void
     {
         $order = $this->orderWithPaytrAttempt();
@@ -262,6 +414,19 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $this->client->request('POST', sprintf('/yeni/odeme/%s/odeme-formu', $order->orderNumber()), ['_token' => 'x']);
 
         self::assertContains($this->client->getResponse()->getStatusCode(), [302, 401, 403]);
+    }
+
+    public function testRetryRendersTheHostedFormInsteadOfRedirectingWithoutItsFields(): void
+    {
+        $order = $this->orderWithPaytrAttempt();
+        $this->client->loginUser($order->customer());
+        $this->selectPaytrProvider();
+        $crawler = $this->client->request('GET', '/yeni/odeme/'.$order->orderNumber());
+        $token = $crawler->filter('form[action$="/yeniden-dene"] input[name="_token"]')->attr('value');
+        $this->client->request('POST', '/yeni/odeme/'.$order->orderNumber().'/yeniden-dene', ['_token' => $token]);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[action="https://www.paytr.com/odeme"] input[name="paytr_token"]');
+        self::assertSelectorNotExists('script');
     }
 
     public function testTheFormPageRejectsAGetBecauseItStartsAnAttempt(): void

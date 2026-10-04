@@ -244,7 +244,7 @@ final readonly class PaymentInitiationService
             $order->customerEmail(),
             'tr',
             $order->customerName(),
-            $order->customerPhone(),
+            $order->customerPhone() ?? $address?->phone(),
             null === $address ? null : $this->addressLine($address),
             $lines,
         );

@@ -27,6 +27,13 @@ final class PaytrConfigurationTest extends TestCase
         self::assertFalse($this->configuration('', '', '')->isConfigured());
     }
 
+    public function testMissingCredentialsAreReportedByVariableNameWithoutValues(): void
+    {
+        self::assertSame(['PAYTR_MERCHANT_ID', 'PAYTR_MERCHANT_KEY', 'PAYTR_MERCHANT_SALT'], $this->configuration('', '', '')->missingCredentials());
+        self::assertSame(['PAYTR_MERCHANT_SALT'], $this->configuration(self::ID, self::KEY, '')->missingCredentials());
+        self::assertSame([], $this->configuration()->missingCredentials());
+    }
+
     #[DataProvider('partiallyFilledConfigurations')]
     public function testOneMissingCredentialIsEnoughToBeUnconfigured(string $id, string $key, string $salt): void
     {

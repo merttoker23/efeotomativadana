@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Storefront\Payment;
 
+use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Customer\CustomerUser;
 use App\Module\Order\OrderRepositoryInterface;
 use App\Module\Payment\Gateway\IncomingPaymentCallback;
@@ -45,7 +46,7 @@ final class PaymentController extends AbstractController
 
     #[Route('/odeme/{orderNumber}/yeniden-dene', name: 'storefront_payment_retry', requirements: ['orderNumber' => 'EOA-\d{8}-[0-9A-F]{12}'], methods: ['POST'])]
     #[IsGranted('ROLE_CUSTOMER')]
-    public function retry(string $orderNumber, Request $request, OrderRepositoryInterface $orders, PaymentInitiationService $initiation): Response
+    public function retry(string $orderNumber, Request $request, OrderRepositoryInterface $orders, PaymentInitiationService $initiation, StorefrontPageContext $context): Response
     {
         $order = $orders->findOneByNumberForCustomer($orderNumber, $this->customer());
         if (null === $order) {
@@ -65,7 +66,7 @@ final class PaymentController extends AbstractController
             return $this->redirectToRoute('storefront_payment_show', ['orderNumber' => $order->orderNumber()]);
         }
 
-        return $this->respondToStart($start, $order->orderNumber());
+        return $this->respondToStart($start, $order, $context);
     }
 
     /**
@@ -106,7 +107,7 @@ final class PaymentController extends AbstractController
             'order' => $order,
             'action_url' => $actionUrl,
             'fields' => $start->hostedFormFields(),
-        ]));
+        ]), new Response(headers: ['Cache-Control' => 'no-store, private']));
     }
 
     /**
@@ -129,10 +130,12 @@ final class PaymentController extends AbstractController
     #[Route('/odeme/sonuc/{token}', name: 'storefront_payment_callback', requirements: ['token' => '[0-9a-f]{64}'], methods: ['GET', 'POST'])]
     public function callback(string $token, Request $request, PaymentCallbackHandler $handler): Response
     {
-        if (!$request->isMethod('POST')) {
+        $attempt = $handler->attemptFor($token);
+        if (!$request->isMethod('POST') || 'paytr' === $attempt?->payment()->providerKey()) {
             // No claim either way about the payment: the browser simply gets back to the order,
             // which shows the state the store actually holds. Saying "payment failed" here would
-            // be a lie whenever the provider's notification is still in flight.
+            // be a lie whenever the provider's notification is still in flight. PayTR may also
+            // return the browser by POST; only its separate notification URL settles payments.
             return $this->redirectToOrder($handler, $token);
         }
 
@@ -239,10 +242,18 @@ final class PaymentController extends AbstractController
         return $query;
     }
 
-    private function respondToStart(PaymentStartResult $start, string $orderNumber): Response
+    private function respondToStart(PaymentStartResult $start, CustomerOrder $order, StorefrontPageContext $context): Response
     {
-        if ($start->requiresRedirect() && null !== $start->redirectUrl()) {
+        $orderNumber = $order->orderNumber();
+        if ($start->isRedirect() && null !== $start->redirectUrl()) {
             return $this->redirect($start->redirectUrl());
+        }
+        if ($start->isHostedForm()) {
+            return $this->render('storefront/payment/gateway_form.html.twig', $context->withLayout([
+                'order' => $order,
+                'action_url' => $start->redirectUrl(),
+                'fields' => $start->hostedFormFields(),
+            ]), new Response(headers: ['Cache-Control' => 'no-store, private']));
         }
         if ($start->isFailed()) {
             $this->addFlash('error', 'Ödeme başlatılamadı. Lütfen tekrar deneyin.');
