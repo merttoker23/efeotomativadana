@@ -10,9 +10,11 @@ use App\Module\Cart\CartManager;
 use App\Module\Checkout\CheckoutManager;
 use App\Module\Checkout\CheckoutSelection;
 use App\Module\Checkout\CheckoutViolation;
+use App\Module\Checkout\FreeShippingProgress;
 use App\Module\Checkout\GatewayPaymentOptionInterface;
 use App\Module\Order\OrderRepositoryInterface;
 use App\Module\Payment\PaymentInitiationService;
+use App\Module\Settings\StoreConfiguration;
 use App\Shared\StorefrontPageContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,7 +38,7 @@ final class CheckoutController extends AbstractController
      */
     #[Route('/odeme', name: 'storefront_checkout', methods: ['GET', 'POST'])]
     #[RateLimit('checkout', methods: ['POST'])]
-    public function checkout(Request $request, StorefrontPageContext $context, CheckoutManager $checkout, CartManager $carts, PaymentInitiationService $payments): Response
+    public function checkout(Request $request, StorefrontPageContext $context, CheckoutManager $checkout, CartManager $carts, PaymentInitiationService $payments, StoreConfiguration $settings): Response
     {
         $customer = $this->customer();
         if ($request->isMethod('POST')) {
@@ -72,6 +74,7 @@ final class CheckoutController extends AbstractController
             'cart' => $cart,
             'shippingCost' => $shippingCost,
             'grandTotal' => null !== $cart->total && null !== $shippingCost ? $cart->total->add($shippingCost) : null,
+            'freeShippingProgress' => FreeShippingProgress::forCart($cart, $settings->freeShippingThreshold()),
         ]));
     }
 

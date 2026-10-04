@@ -5,7 +5,9 @@ namespace App\Controller\Storefront\Cart;
 use App\Entity\Catalog\Product;
 use App\Module\Cart\CartManager;
 use App\Module\Cart\CartViolation;
+use App\Module\Checkout\FreeShippingProgress;
 use App\Module\Checkout\LocalStandardShippingOption;
+use App\Module\Settings\StoreConfiguration;
 use App\Shared\StorefrontPageContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,7 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class CartController extends AbstractController
 {
     #[Route('/sepet', name: 'storefront_cart_index', methods: ['GET'])]
-    public function index(StorefrontPageContext $context, CartManager $carts, LocalStandardShippingOption $shipping): Response
+    public function index(StorefrontPageContext $context, CartManager $carts, LocalStandardShippingOption $shipping, StoreConfiguration $settings): Response
     {
         $cart = $carts->view();
         $shippingCost = null !== $cart->total ? $shipping->cost($cart->total) : null;
@@ -25,6 +27,7 @@ final class CartController extends AbstractController
             'cart' => $cart,
             'shippingCost' => $shippingCost,
             'grandTotal' => null !== $cart->total && null !== $shippingCost ? $cart->total->add($shippingCost) : null,
+            'freeShippingProgress' => FreeShippingProgress::forCart($cart, $settings->freeShippingThreshold()),
         ]));
     }
 

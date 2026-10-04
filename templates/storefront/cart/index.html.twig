@@ -6,6 +6,7 @@
 <main id="main-content" class="page-shell" tabindex="-1">
     <section class="container cart-page-card">
         <h1>Sepetim</h1>
+        {% include 'storefront/cart/_free_shipping_notice.html.twig' %}
         {% if cart.items is empty %}
             <div class="cart-empty">
                 <p>Sepetiniz boş.</p>

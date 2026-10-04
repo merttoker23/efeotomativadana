@@ -1,0 +1,12 @@
+<ul class="order-products">
+    {% for line in lines %}
+        <li class="order-product">
+            <img class="order-product-image" src="{{ product_image_url(line.imagePath) }}" alt="" width="64" height="64" loading="lazy" decoding="async">
+            <div class="order-product-info">
+                <strong>{{ line.productName }}</strong>
+                <small>SKU: {{ line.sku }} · {{ line.quantity }} adet</small>
+            </div>
+            <strong class="order-product-price">{{ line.lineGross|storefront_money }}</strong>
+        </li>
+    {% endfor %}
+</ul>

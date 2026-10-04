@@ -22,10 +22,11 @@ final readonly class OrderItemLine
         private Money $unitGross,
         private int $taxRateBasisPoints,
         private Money $lineGross,
+        private ?string $imagePath,
     ) {
     }
 
-    public static function fromItem(OrderItem $item): self
+    public static function fromItem(OrderItem $item, ?string $imagePath = null): self
     {
         return new self(
             $item->sku(),
@@ -34,6 +35,7 @@ final readonly class OrderItemLine
             $item->unitGross(),
             $item->taxRateBasisPoints(),
             $item->lineGross(),
+            $imagePath,
         );
     }
 
@@ -43,4 +45,5 @@ final readonly class OrderItemLine
     public function unitGross(): Money { return $this->unitGross; }
     public function taxRateBasisPoints(): int { return $this->taxRateBasisPoints; }
     public function lineGross(): Money { return $this->lineGross; }
+    public function imagePath(): ?string { return $this->imagePath; }
 }

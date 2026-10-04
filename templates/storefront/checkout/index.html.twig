@@ -4,7 +4,9 @@
 
 {% block body %}
 <main id="main-content" class="page-shell" tabindex="-1">
-    <div class="container checkout-grid">
+    <div class="container">
+        {% include 'storefront/cart/_free_shipping_notice.html.twig' %}
+        <div class="checkout-grid">
         <section class="checkout-card">
             <p class="checkout-kicker">Güvenli sipariş</p>
             <h1>Ödeme ve sipariş</h1>
@@ -22,24 +24,31 @@
             {% else %}
                 <form class="checkout-form" method="post" action="{{ path('storefront_checkout') }}">
                     <input type="hidden" name="_token" value="{{ csrf_token('checkout_place') }}">
-                    <fieldset>
-                        <legend>Adresler</legend>
-                        <label for="shipping-address">Teslimat adresi</label>
-                        <select id="shipping-address" name="shipping_address" required>
-                            {% for address in checkout.addresses %}
-                                <option value="{{ address.id }}">{{ address.label }} — {{ address.addressLine1 }}, {{ address.district }}/{{ address.city }}</option>
-                            {% endfor %}
-                        </select>
-                        <label for="billing-address">Fatura adresi</label>
-                        <select id="billing-address" name="billing_address" required>
-                            {% for address in checkout.addresses %}
-                                <option value="{{ address.id }}">{{ address.label }} — {{ address.addressLine1 }}, {{ address.district }}/{{ address.city }}</option>
-                            {% endfor %}
-                        </select>
+                    <fieldset class="checkout-step">
+                        <legend><span class="checkout-step-number" aria-hidden="true">1</span> Adresler</legend>
+                        <div class="checkout-address-grid">
+                            <div class="checkout-address-field">
+                                <label for="shipping-address">Teslimat adresi</label>
+                                <select id="shipping-address" name="shipping_address" required>
+                                    {% for address in checkout.addresses %}
+                                        <option value="{{ address.id }}">{{ address.label }} — {{ address.addressLine1 }}, {{ address.district }}/{{ address.city }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="checkout-address-field">
+                                <label for="billing-address">Fatura adresi</label>
+                                <select id="billing-address" name="billing_address" required>
+                                    {% for address in checkout.addresses %}
+                                        <option value="{{ address.id }}">{{ address.label }} — {{ address.addressLine1 }}, {{ address.district }}/{{ address.city }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <a class="checkout-address-link" href="{{ path('customer_account_address_new') }}">Yeni adres ekle</a>
                     </fieldset>
 
-                    <fieldset>
-                        <legend>Teslimat yöntemi</legend>
+                    <fieldset class="checkout-step">
+                        <legend><span class="checkout-step-number" aria-hidden="true">2</span> Teslimat yöntemi</legend>
                         {% for option in checkout.shippingOptions %}
                             <label class="checkout-choice"><input type="radio" name="shipping_option" value="{{ option.key }}"{{ loop.first ? ' checked' : '' }}> <span>{{ option.label }}</span></label>
                         {% else %}
@@ -47,8 +56,8 @@
                         {% endfor %}
                     </fieldset>
 
-                    <fieldset>
-                        <legend>Ödeme yöntemi</legend>
+                    <fieldset class="checkout-step">
+                        <legend><span class="checkout-step-number" aria-hidden="true">3</span> Ödeme yöntemi</legend>
                         {% for option in checkout.paymentOptions %}
                             <label class="checkout-choice"><input type="radio" name="payment_option" value="{{ option.key }}"{{ loop.first ? ' checked' : '' }}> <span>{{ option.label }}</span></label>
                             {% if not option.productionReady %}<p class="checkout-payment-warning">Bu yöntem yalnızca yerel doğrulama içindir; üretim dışı bir ödeme yoludur.</p>{% endif %}
@@ -64,14 +73,20 @@
 
         <aside class="checkout-summary" aria-label="Sipariş özeti">
             <h2>Sipariş özeti</h2>
-            {% for item in cart.items %}
-                <div class="checkout-summary-line"><span>{{ item.name }} × {{ item.quantity }}</span><strong>{{ item.lineTotal ? item.lineTotal|storefront_money : '—' }}</strong></div>
-            {% endfor %}
+            <ul class="checkout-summary-products">
+                {% for item in cart.items %}
+                    <li class="checkout-summary-product">
+                        <img src="{{ product_image_url(item.imagePath) }}" alt="" width="48" height="48" loading="lazy" decoding="async">
+                        <span class="checkout-summary-product-info"><span>{{ item.name }}</span><small>{{ item.quantity }} adet</small></span>
+                        <strong>{{ item.lineTotal ? item.lineTotal|storefront_money : '—' }}</strong>
+                    </li>
+                {% endfor %}
+            </ul>
             <div class="checkout-summary-line"><span>Ara Toplam</span><strong>{{ cart.total ? cart.total|storefront_money : 'Hesaplanamıyor' }}</strong></div>
             <div class="checkout-summary-line"><span>Kargo</span><strong>{{ shippingCost ? (shippingCost.isZero ? 'Ücretsiz' : shippingCost|storefront_money) : 'Hesaplanamıyor' }}</strong></div>
             <div class="checkout-summary-total"><span>Genel Toplam</span><strong>{{ grandTotal ? grandTotal|storefront_money : 'Hesaplanamıyor' }}</strong></div>
-            <small>Fiyat ve vergiler sipariş oluşturulurken sunucuda yeniden hesaplanır.</small>
         </aside>
+        </div>
     </div>
 </main>
 {% endblock %}

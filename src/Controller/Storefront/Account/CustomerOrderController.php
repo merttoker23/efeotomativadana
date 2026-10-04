@@ -18,6 +18,7 @@ use App\Module\Returns\ReturnRequestData;
 use App\Module\Returns\ReturnService;
 use App\Form\Customer\ReturnRequestType;
 use App\Repository\Commerce\CustomerOrderRepository;
+use App\Repository\Commerce\OrderThumbnailRepository;
 use App\Repository\Commerce\PaymentRepository;
 use App\Repository\Commerce\ShipmentRepository;
 use App\Shared\StorefrontPageContext;
@@ -45,17 +46,19 @@ final class CustomerOrderController extends AbstractController
     private const string RETURN_NUMBER = 'RET-[0-9]{8}-[0-9A-F]{12}';
 
     #[Route('/hesabim/siparisler', name: 'customer_account_orders', methods: ['GET'])]
-    public function index(Request $request, CustomerOrderRepository $orders, PaymentRepository $payments, ShipmentRepository $shipments, StorefrontPageContext $context): Response
+    public function index(Request $request, CustomerOrderRepository $orders, PaymentRepository $payments, ShipmentRepository $shipments, StorefrontPageContext $context, OrderThumbnailRepository $thumbnails): Response
     {
         $page = $orders->customerPage($this->customer(), $request->query->getInt('page', 1));
         $paymentByOrder = $payments->findForOrders($page->items);
         $shipmentByOrder = $shipments->findForOrders($page->items);
+        $imagePaths = $thumbnails->forOrders($page->items);
         $summaries = [];
         foreach ($page->items as $order) {
             $summaries[] = OrderSummary::build(
                 $order,
                 $paymentByOrder[$order->id()] ?? null,
                 $shipmentByOrder[$order->id()] ?? null,
+                $imagePaths,
             );
         }
 
@@ -66,14 +69,14 @@ final class CustomerOrderController extends AbstractController
     }
 
     #[Route('/hesabim/siparisler/{orderNumber}', name: 'customer_account_order_show', requirements: ['orderNumber' => self::ORDER_NUMBER], methods: ['GET'])]
-    public function show(string $orderNumber, CustomerOrderRepository $orders, PaymentRepository $payments, ShipmentRepository $shipments, ReturnService $returns, StorefrontPageContext $context): Response
+    public function show(string $orderNumber, CustomerOrderRepository $orders, PaymentRepository $payments, ShipmentRepository $shipments, ReturnService $returns, StorefrontPageContext $context, OrderThumbnailRepository $thumbnails): Response
     {
         $order = $this->order($orders, $orderNumber);
         [$eligible, $reason] = $returns->eligibilityOf($order);
 
         return $this->render('storefront/account/order.html.twig', $context->withLayout([
             'order' => $order,
-            'summary' => OrderSummary::build($order, $payments->findOneForOrder($order), $shipments->findOneForOrder($order)),
+            'summary' => OrderSummary::build($order, $payments->findOneForOrder($order), $shipments->findOneForOrder($order), $thumbnails->forOrders([$order])),
             'stateLabel' => OrderStateLabel::for($order->state()),
             'shippingAddress' => $order->address(\App\Module\Order\OrderAddressRole::Shipping),
             'billingAddress' => $order->address(\App\Module\Order\OrderAddressRole::Billing),

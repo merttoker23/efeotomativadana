@@ -116,7 +116,7 @@ final class CustomerOrdersTest extends WebTestCase
      * the query count grow with the page size, so the count is compared across two page fills
      * (five orders and ten orders) as well as against a documented ceiling.
      *
-     * The ceiling is 10, measured rather than guessed. A fetch-joined collection makes
+     * The ceiling is 11, including one batched thumbnail read. A fetch-joined collection makes
      * Paginator issue a root-id query before the count and the rows, so the list costs three
      * queries instead of two — and buys back the one-items query per order it replaced. The
      * rest is one batched payment lookup, one batched shipment lookup, and a small fixed set for
@@ -158,7 +158,7 @@ final class CustomerOrdersTest extends WebTestCase
         $withTenOrders = $this->profileOrderList($customerId);
 
         self::assertSame($withFiveOrders, $withTenOrders, 'The order list must not query per order for payments and shipments.');
-        self::assertLessThanOrEqual(10, $withFiveOrders);
+        self::assertLessThanOrEqual(11, $withFiveOrders);
     }
 
     /**
@@ -198,6 +198,84 @@ final class CustomerOrdersTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Henüz siparişiniz yok');
     }
 
+    public function testOrderCardsCollapseAndUseCurrentImagesWithHistoricalLineValues(): void
+    {
+        $customer = $this->createCustomer('order-images@example.com');
+        $order = $this->visualOrder($customer, 'EOA-20261004-AAAA00000001');
+        $this->entityManager->clear();
+        $this->client->loginUser($this->reloadCustomer($customer->id()), 'main');
+        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('details[data-testid="order-row"]:not([open]) > summary');
+        self::assertSelectorTextContains('summary', '3 ürün · 4 adet');
+        self::assertSelectorTextNotContains('summary', 'Tarihsel filtre');
+        self::assertCount(3, $crawler->filter('.order-products .order-product'));
+        self::assertSelectorTextContains('.order-products', 'Tarihsel filtre');
+        self::assertSelectorTextContains('.order-products', 'HISTORICAL-SKU');
+        self::assertSelectorTextNotContains('.order-products', 'Güncel katalog adı');
+        self::assertStringContainsString('/uploads/products/order-primary.jpg', (string) $crawler->filter('.order-products img')->first()->attr('src'));
+        self::assertStringContainsString('product-placeholder', (string) $crawler->filter('.order-products img')->eq(1)->attr('src'));
+        self::assertStringContainsString('product-placeholder', (string) $crawler->filter('.order-products img')->eq(2)->attr('src'));
+        self::assertSelectorTextContains('.order-products', '200,00 TL');
+
+        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('/uploads/products/order-primary.jpg', (string) $crawler->filter('.order-products img')->first()->attr('src'));
+        self::assertSelectorTextContains('.order-products', 'HISTORICAL-SKU');
+        self::assertSelectorTextContains('[data-testid="order-total"]', '400,00 TL');
+        self::assertCount(2, $crawler->filter('.order-address-card'));
+    }
+
+    public function testOrderImagesDoNotAddQueriesAsProductAndOrderCountsGrow(): void
+    {
+        $customer = $this->createCustomer('visual-nplus1@example.com');
+        $this->client->loginUser($customer, 'main');
+        $id = $customer->id();
+        self::assertNotNull($id);
+        for ($i = 1; $i <= 5; ++$i) {
+            $this->visualOrder($customer, sprintf('EOA-20261004-BBBB%08d', $i));
+        }
+        $this->profileOrderList($id);
+        $five = $this->profileOrderList($id);
+        $customer = $this->reloadCustomer($id);
+        for ($i = 6; $i <= 10; ++$i) {
+            $this->visualOrder($customer, sprintf('EOA-20261004-BBBB%08d', $i));
+        }
+        self::assertSame($five, $this->profileOrderList($id), 'Image reads must stay constant with distinct products across multiple orders.');
+        self::assertLessThanOrEqual(11, $five);
+    }
+
+    private function visualOrder(CustomerUser $customer, string $number): CustomerOrder
+    {
+        $customer = $this->reloadCustomer($customer->id());
+        $product = new \App\Entity\Catalog\Product('UI-ORDER-'.$number, 'Güncel katalog adı', 'ui-order-'.strtolower($number));
+        $product->addImage('/uploads/products/order-secondary.jpg', null, 10);
+        $product->addImage('/uploads/products/order-primary.jpg', null, 0);
+        $product->addImage('/uploads/products/order-tied.jpg', null, 0);
+        $imageless = new \App\Entity\Catalog\Product('UI-ORDER-EMPTY-'.$number, 'Görselsiz ürün', 'ui-order-empty-'.strtolower($number));
+        $deleted = new \App\Entity\Catalog\Product('UI-ORDER-DELETED-'.$number, 'Silinecek ürün', 'ui-order-deleted-'.strtolower($number));
+        foreach ([$product, $imageless, $deleted] as $entity) {
+            $this->entityManager->persist($entity);
+        }
+        $order = new CustomerOrder($number, $customer, Money::ofMinor(40_000, 'TRY'), Money::ofMinor(0, 'TRY'), Money::ofMinor(0, 'TRY'), Money::ofMinor(40_000, 'TRY'), 'local_standard', 'Standart teslimat', 'gateway_checkout', 'Kredi kartı', new \DateTimeImmutable());
+        foreach ([[$product, 'HISTORICAL-SKU', 'Tarihsel filtre', 2], [$imageless, 'EMPTY-SKU', 'Görselsiz ürün', 1], [$deleted, 'DELETED-SKU', 'Silinmiş ürün', 1]] as [$catalogProduct, $sku, $name, $quantity]) {
+            $order->addItem($catalogProduct, $sku, $name, $quantity, Money::ofMinor(10_000, 'TRY'), 0, Money::ofMinor(10_000 * $quantity, 'TRY'), Money::ofMinor(0, 'TRY'), Money::ofMinor(10_000 * $quantity, 'TRY'));
+        }
+        foreach ([OrderAddressRole::Shipping, OrderAddressRole::Billing] as $role) {
+            $order->addAddress($role, 'Efe Yılmaz', '05320000000', 'Atatürk Caddesi 1', null, 'Çukurova', 'Adana', '01170', 'TR');
+        }
+        $order->sealSnapshots();
+        $this->entityManager->persist($order);
+        $this->entityManager->flush();
+        $this->entityManager->remove($deleted);
+        $this->entityManager->flush();
+        // Drop the in-memory relation to the removed product; the next read must observe SET NULL.
+        $this->entityManager->clear();
+
+        return $order;
+    }
+
     public function testTheOrderDetailShowsTheItemsTotalsAndAddressesFromTheSealedSnapshot(): void
     {
         $customer = $this->createCustomer('detail@example.com');
@@ -211,7 +289,7 @@ final class CustomerOrdersTest extends WebTestCase
         self::assertSelectorTextContains('main', 'Filtre');
         self::assertSelectorTextContains('main', 'SKU-1');
         self::assertSelectorTextContains('main', 'Atatürk Caddesi 1');
-        self::assertSelectorTextContains('main', 'Teslim Adresi');
+        self::assertSelectorTextContains('main', 'Teslimat Adresi');
         self::assertSelectorTextContains('main', 'Fatura Adresi');
         self::assertSelectorTextContains('main', '3.703,68');
         self::assertSelectorExists('[data-testid="order-total"]');
@@ -697,5 +775,6 @@ private function settlePayment(CustomerOrder $order): void
         $this->connection->executeStatement('DELETE FROM customer_address');
         $this->connection->executeStatement('DELETE FROM customer_password_reset_token');
         $this->connection->executeStatement('DELETE FROM customer_user');
+        $this->connection->executeStatement("DELETE FROM catalog_product WHERE sku LIKE 'UI-ORDER-%'");
     }
 }

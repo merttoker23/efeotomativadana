@@ -170,6 +170,51 @@ final class CheckoutWorkflowTest extends WebTestCase
         yield 'new settings' => [150_000, true, '325,50 TL', '1.825,50 TL', 32_550, 182_550];
     }
 
+    #[\PHPUnit\Framework\Attributes\DataProvider('freeShippingMessages')]
+    public function testFreeShippingMessageUsesConfiguredThresholdWithoutChangingTotals(int $subtotal, int $threshold, ?string $message): void
+    {
+        $customer = $this->customer('free-shipping@example.com');
+        $this->address($customer, 'Ev', 'Özet Cad. 1');
+        $this->cartLine($customer, $subtotal, 1, 1);
+        $configuration = self::getContainer()->get(\App\Module\Settings\StoreConfiguration::class);
+        $settings = $configuration->current();
+        $settings->freeShippingThreshold = $threshold;
+        $configuration->save($settings);
+        $this->client->loginUser($customer, 'main');
+
+        $cost = self::getContainer()->get(\App\Module\Checkout\LocalStandardShippingOption::class)->cost(Money::ofMinor($subtotal, 'TRY'));
+        $formatter = self::getContainer()->get(\App\Twig\StorefrontMoneyExtension::class);
+        foreach (['/yeni/sepet' => 'cart', '/yeni/odeme' => 'checkout'] as $url => $page) {
+            $crawler = $this->client->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertStringNotContainsString('kazandınız', $crawler->filter('main')->text());
+            self::assertStringNotContainsString('TRY', $crawler->filter('main')->text());
+            if (null === $message) {
+                self::assertSelectorNotExists('[data-testid="free-shipping-message"]');
+            } else {
+                self::assertSelectorTextContains('[data-testid="free-shipping-message"]', $message);
+                self::assertSelectorExists('.free-shipping-notice + .'.$page.'-'.('cart' === $page ? 'layout' : 'grid'));
+                self::assertSelectorTextContains('[data-testid="free-shipping-message"] strong', $formatter->format(Money::ofMinor($threshold - $subtotal, 'TRY')));
+                $progress = $crawler->filter('.free-shipping-notice progress');
+                self::assertSame('100', $progress->attr('max'));
+                self::assertSame((string) (int) floor($subtotal / $threshold * 100), $progress->attr('value'));
+            }
+            self::assertSelectorTextContains('.'.$page.'-summary-total', $formatter->format(Money::ofMinor($subtotal, 'TRY')->add($cost)));
+        }
+    }
+
+    /** @return iterable<string, array{int, int, ?string}> */
+    public static function freeShippingMessages(): iterable
+    {
+        yield '300 TL remaining' => [120_000, 150_000, 'Ücretsiz kargo için 300,00 TL daha ürün ekleyin.'];
+        yield '817.03 TL remaining' => [68_297, 150_000, 'Ücretsiz kargo için 817,03 TL daha ürün ekleyin.'];
+        yield 'one kurus remaining' => [149_999, 150_000, 'Ücretsiz kargo için 0,01 TL daha ürün ekleyin.'];
+        yield 'at threshold' => [150_000, 150_000, null];
+        yield 'above threshold' => [180_000, 150_000, null];
+        yield 'custom admin threshold' => [120_000, 200_000, 'Ücretsiz kargo için 800,00 TL daha ürün ekleyin.'];
+        yield 'zero threshold' => [120_000, 0, null];
+    }
+
     private function customer(string $email): CustomerUser
     {
         $customer = new CustomerUser($email, 'Efe', 'Yılmaz');

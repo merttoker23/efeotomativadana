@@ -45,11 +45,12 @@ final readonly class OrderSummary
     ) {
     }
 
-    public static function build(CustomerOrder $order, ?Payment $payment, ?Shipment $shipment): self
+    /** @param array<int, string|null> $imagePaths Current images only; all other values use the sealed snapshot. */
+    public static function build(CustomerOrder $order, ?Payment $payment, ?Shipment $shipment, array $imagePaths = []): self
     {
         $lines = [];
         foreach ($order->items() as $item) {
-            $lines[] = OrderItemLine::fromItem($item);
+            $lines[] = OrderItemLine::fromItem($item, $imagePaths[$item->id()] ?? null);
         }
 
         return new self(
@@ -101,6 +102,11 @@ final readonly class OrderSummary
 
     /** @return list<OrderItemLine> */
     public function lines(): array { return $this->lines; }
+
+    public function quantity(): int
+    {
+        return array_sum(array_map(static fn (OrderItemLine $line): int => $line->quantity(), $this->lines));
+    }
 
     public function hasPayment(): bool { return null !== $this->paymentState; }
     public function paymentState(): ?string { return $this->paymentState; }

@@ -1,0 +1,11 @@
+{% if freeShippingProgress is not null %}
+    <div class="free-shipping-notice" data-testid="free-shipping-message">
+        <span class="free-shipping-notice-icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h11v13H3zM14 9h4l3 4v4h-7M3 17H2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+        </span>
+        <div class="free-shipping-notice-content">
+            <p>Ücretsiz kargo için <strong>{{ freeShippingProgress.remaining|storefront_money }}</strong> daha ürün ekleyin.</p>
+            <progress max="100" value="{{ freeShippingProgress.percentage }}" aria-label="Ücretsiz kargo limitine ilerleme">%{{ freeShippingProgress.percentage }}</progress>
+        </div>
+    </div>
+{% endif %}

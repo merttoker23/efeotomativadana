@@ -54,6 +54,7 @@ final class CartWorkflowTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Sepetim');
         self::assertSelectorTextContains('.cart-empty', 'Sepetiniz boş');
+        self::assertSelectorNotExists('[data-testid="free-shipping-message"]');
         self::assertSelectorExists('a.header-action[href="/yeni/sepet"]');
     }
 
