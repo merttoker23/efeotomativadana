@@ -20,6 +20,66 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CatalogQueryTest extends KernelTestCase
 {
+    public function testSearchTokensMatchInAnyOrderAcrossNamesAndIdentifiers(): void
+    {
+        $lamp = $this->product('TOKEN-LAMP', 'LAMBA SİS ACCENT 98-99 RH (BEYAZ)', 'token-lamp', true);
+        $this->product('TOKEN-MISSING', 'LAMBA SİS CIVIC', 'token-missing', true);
+        $mixed = $this->product('TOKEN-MIXED', 'LAMBA SİS', 'token-mixed', true);
+        $mixed->addIdentifier(ProductIdentifierType::Reference, 'ACCENT-REF');
+        $lamp->addIdentifier(ProductIdentifierType::Oem, 'OEM%_!42');
+        $this->entityManager->flush();
+        foreach (['lamba accent', 'accent lamba', " lamba\t accent "] as $query) {
+            self::assertSame(['TOKEN-LAMP', 'TOKEN-MIXED'], array_column($this->catalog->search(new CatalogCriteria(query: $query))->items, 'sku'));
+        }
+        self::assertSame(['TOKEN-LAMP'], array_column($this->catalog->search(new CatalogCriteria(query: 'OEM%_!42'))->items, 'sku'));
+        self::assertSame([], $this->catalog->search(new CatalogCriteria(query: 'lamba nonexistent'))->items);
+    }
+
+    public function testRelevanceKeepsStockFirstThenExactCodesNamesAndTokenMatches(): void
+    {
+        $this->product('ACCENT', 'Unrelated', 'rank-sku', true);
+        $oem = $this->product('RANK-OEM', 'Unrelated', 'rank-oem', true);
+        $oem->addIdentifier(ProductIdentifierType::Oem, 'ACCENT');
+        $this->product('RANK-EXACT', 'Accent', 'rank-exact', true);
+        $this->product('RANK-PREFIX', 'Accent lamp', 'rank-prefix', true);
+        $this->product('RANK-NAME', 'Lamp Accent', 'rank-name', true);
+        $identifier = $this->product('RANK-ID', 'Unrelated', 'rank-id', true);
+        $identifier->addIdentifier(ProductIdentifierType::Manufacturer, 'X-ACCENT-123');
+        $this->product('RANK-UNAVAILABLE', 'Accent', 'rank-unavailable', true, quantity: 0);
+        $this->entityManager->flush();
+        self::assertSame(['ACCENT', 'RANK-OEM', 'RANK-EXACT', 'RANK-PREFIX', 'RANK-NAME', 'RANK-ID', 'RANK-UNAVAILABLE'], array_column($this->catalog->search(new CatalogCriteria(query: 'accent', sort: CatalogSort::NameAscending))->items, 'sku'));
+    }
+
+    public function testPriceRangeUsesEffectiveSaleAndContextBoundsIgnoreSelectedRange(): void
+    {
+        $brand = new Brand('Range Brand', 'range-brand');
+        $brand->publish();
+        $category = new Category('Range Category', 'range-category');
+        $category->publish();
+        $sale = $this->product('RANGE-SALE', 'Range lamp', 'range-sale', true, $brand, $category, 300_000);
+        $expired = $this->product('RANGE-EXPIRED', 'Range lamp', 'range-expired', true, $brand, $category, 220_000);
+        $future = $this->product('RANGE-FUTURE', 'Range lamp', 'range-future', true, $brand, $category, 230_000);
+        $this->product('RANGE-LOW', 'Range lamp', 'range-low', true, $brand, $category, 49_999);
+        $missing = $this->product('RANGE-MISSING', 'Range lamp', 'range-missing', true, $brand, $category);
+        $this->product('RANGE-OTHER', 'Range lamp', 'range-other', true, price: 999_999);
+        $this->entityManager->flush();
+        $this->connection->update('commerce_product_price', ['sale_minor_amount' => 50_000], ['product_id' => $sale->id()]);
+        $this->connection->update('commerce_product_price', ['sale_minor_amount' => 10_000, 'sale_ends_at' => '2000-01-01 00:00:00'], ['product_id' => $expired->id()]);
+        $this->connection->update('commerce_product_price', ['sale_minor_amount' => 10_000, 'sale_starts_at' => '2099-01-01 00:00:00'], ['product_id' => $future->id()]);
+        $this->connection->delete('commerce_product_price', ['product_id' => $missing->id()]);
+        $criteria = new CatalogCriteria(query: 'range', categorySlug: 'range-category', brandSlug: 'range-brand', inStockOnly: true, sort: CatalogSort::PriceAscending, minPriceMinor: 50_000, maxPriceMinor: 220_000);
+        self::assertSame(['RANGE-SALE', 'RANGE-EXPIRED'], array_column($this->catalog->search($criteria)->items, 'sku'));
+        $debugData = self::getContainer()->get('doctrine.debug_data_holder');
+        $debugData->reset();
+        self::assertSame(['min' => 49_999, 'max' => 230_000], $this->catalog->priceBounds($criteria));
+        self::assertSame(1, array_sum(array_map(count(...), $debugData->getData())));
+        self::assertSame(['RANGE-SALE'], array_column($this->catalog->search(new CatalogCriteria(query: 'range', onSaleOnly: true, maxPriceMinor: 50_000))->items, 'sku'));
+        self::assertSame([], $this->catalog->search(new CatalogCriteria(query: 'range', maxPriceMinor: 0))->items);
+        self::assertSame(['RANGE-SALE'], array_column($this->catalog->search(new CatalogCriteria(query: 'range-sale', minPriceMinor: 50_000))->items, 'sku'));
+        self::assertSame([], $this->catalog->search(new CatalogCriteria(query: 'range-sale', minPriceMinor: 50_001))->items);
+        self::assertSame(['min' => null, 'max' => null], $this->catalog->priceBounds(new CatalogCriteria(query: 'nonexistent')));
+    }
+
     private Connection $connection;
     private EntityManagerInterface $entityManager;
     private CatalogQuery $catalog;

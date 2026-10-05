@@ -62,13 +62,25 @@ final readonly class CatalogReadRepository
                 'brand',
                 'brand.id = product.brand_id AND brand.publication_status = :published',
             )
-            ->leftJoin('product', 'commerce_product_price', 'price', 'price.product_id = product.id')
             ->leftJoin('product', 'commerce_product_inventory', 'inventory', 'inventory.product_id = product.id')
             ->setParameter('now', $now)
             ->setFirstResult(($page - 1) * $criteria->perPage)
             ->setMaxResults($criteria->perPage);
 
         $query->orderBy($this->stockPriorityExpression(), 'ASC');
+        if (null !== $criteria->query) {
+            $nameTokens = array_map(static fn (int $index): string => "product.name LIKE :token_$index ESCAPE '!'", array_keys($criteria->searchTokens()));
+            $query->addOrderBy(
+                "CASE WHEN product.sku = :search_exact_code OR EXISTS (SELECT 1 FROM catalog_product_identifier exact_identifier WHERE exact_identifier.product_id = product.id AND exact_identifier.identifier_type IN (:oem_type, :reference_type) AND exact_identifier.code = :search_exact_code) THEN 0
+                    WHEN product.name = :search_exact THEN 1
+                    WHEN product.name LIKE :search_prefix ESCAPE '!' THEN 2
+                    WHEN ".implode(' AND ', $nameTokens).' THEN 3 ELSE 4 END',
+                'ASC',
+            )
+                ->setParameter('search_exact', $criteria->query)
+                ->setParameter('search_exact_code', mb_strtoupper($criteria->query))
+                ->setParameter('search_prefix', $this->escapeLike($criteria->query).'%');
+        }
         match ($criteria->sort) {
             CatalogSort::Newest => $query->addOrderBy('product.created_at', 'DESC')->addOrderBy('product.id', 'DESC'),
             CatalogSort::NameAscending => $query->addOrderBy('product.name', 'ASC')->addOrderBy('product.id', 'ASC'),
@@ -88,6 +100,21 @@ final readonly class CatalogReadRepository
         );
 
         return new CatalogPage($items, $totalItems, $page, $criteria->perPage);
+    }
+
+    /** @return array{min: int|null, max: int|null} Effective minor-unit bounds before the price range. */
+    public function priceBounds(CatalogCriteria $criteria): array
+    {
+        $effectivePrice = $this->effectivePriceExpression();
+        $row = $this->filteredProducts($criteria, applyPriceRange: false)
+            ->select('MIN('.$effectivePrice.') AS min_price', 'MAX('.$effectivePrice.') AS max_price')
+            ->setParameter('now', $this->databaseTime($this->clock->now()))
+            ->executeQuery()->fetchAssociative();
+
+        return [
+            'min' => false === $row || null === $row['min_price'] ? null : (int) $row['min_price'],
+            'max' => false === $row || null === $row['max_price'] ? null : (int) $row['max_price'],
+        ];
     }
 
     /** @return list<CatalogProductView> */
@@ -662,44 +689,42 @@ final readonly class CatalogReadRepository
         return $this->findOption('catalog_brand', 'brand', 'product.brand_id = option_record.id', $slug);
     }
 
-    private function filteredProducts(CatalogCriteria $criteria): QueryBuilder
+    private function filteredProducts(CatalogCriteria $criteria, bool $applyPriceRange = true): QueryBuilder
     {
         $query = $this->connection->createQueryBuilder()
             ->from('catalog_product', 'product')
+            ->leftJoin('product', 'commerce_product_price', 'price', 'price.product_id = product.id')
             ->where('product.publication_status = :published')
             ->setParameter('published', PublicationStatus::Published->value);
 
         if (null !== $criteria->query) {
-            $searchPrefix = $this->escapeLike($criteria->query).'%';
-            $searchUpperPrefix = $this->escapeLike(mb_strtoupper($criteria->query)).'%';
             $query
-                ->innerJoin(
-                    'product',
-                    <<<'SQL'
-                        (
-                            SELECT named_product.id AS product_id
-                            FROM catalog_product named_product
-                            WHERE named_product.publication_status = :published
-                              AND named_product.name LIKE :search_prefix ESCAPE '!'
-                            UNION
-                            SELECT sku_product.id
-                            FROM catalog_product sku_product
-                            WHERE sku_product.sku LIKE :search_upper_prefix ESCAPE '!'
-                            UNION
-                            SELECT identifier.product_id
-                            FROM catalog_product_identifier identifier
-                            WHERE identifier.identifier_type IN (:manufacturer_type, :oem_type, :reference_type)
-                              AND identifier.code LIKE :search_upper_prefix ESCAPE '!'
-                        )
-                        SQL,
-                    'search_match',
-                    'search_match.product_id = product.id',
-                    )
-                ->setParameter('search_prefix', $searchPrefix)
-                ->setParameter('search_upper_prefix', $searchUpperPrefix)
                 ->setParameter('manufacturer_type', ProductIdentifierType::Manufacturer->value)
                 ->setParameter('oem_type', ProductIdentifierType::Oem->value)
                 ->setParameter('reference_type', ProductIdentifierType::Reference->value);
+            foreach ($criteria->searchTokens() as $index => $token) {
+                // Each token must match; OR spans the fields of that same published product.
+                // Let the database collation decide case/accent equivalence, especially for Turkish.
+                $query->andWhere("(product.name LIKE :token_$index ESCAPE '!'
+                    OR product.sku LIKE :code_token_$index ESCAPE '!'
+                    OR EXISTS (SELECT 1 FROM catalog_product_identifier token_identifier
+                        WHERE token_identifier.product_id = product.id
+                        AND token_identifier.identifier_type IN (:manufacturer_type, :oem_type, :reference_type)
+                        AND token_identifier.code LIKE :code_token_$index ESCAPE '!'))")
+                    ->setParameter('token_'.$index, '%'.$this->escapeLike($token).'%')
+                    ->setParameter('code_token_'.$index, '%'.$this->escapeLike(mb_strtoupper($token)).'%');
+            }
+        }
+
+        if ($applyPriceRange && (null !== $criteria->minPriceMinor || null !== $criteria->maxPriceMinor)) {
+            $effectivePrice = $this->effectivePriceExpression();
+            $query->setParameter('now', $this->databaseTime($this->clock->now()));
+            if (null !== $criteria->minPriceMinor) {
+                $query->andWhere('('.$effectivePrice.') >= :min_price')->setParameter('min_price', $criteria->minPriceMinor);
+            }
+            if (null !== $criteria->maxPriceMinor) {
+                $query->andWhere('('.$effectivePrice.') <= :max_price')->setParameter('max_price', $criteria->maxPriceMinor);
+            }
         }
 
         if (null !== $criteria->categorySlug) {

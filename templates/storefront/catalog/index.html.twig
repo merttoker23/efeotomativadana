@@ -8,34 +8,60 @@
     </nav>
 
     <div class="container catalog-layout">
-        <aside class="catalog-filters" aria-labelledby="catalog-filter-title">
-            <p class="catalog-filter-heading" id="catalog-filter-title">Kategoriler</p>
-            <a href="{{ path('storefront_catalog_index', criteria.queryParameters(null, 'category')|merge({_fragment: 'catalog-results'})) }}"{% if criteria.categorySlug is null %} aria-current="page"{% endif %}>Tüm Ürünler</a>
-            {% for category in categories %}
-                <a href="{{ path('storefront_catalog_category', criteria.queryParameters(null, 'category')|merge({slug: category.slug, _fragment: 'catalog-results'})) }}"{% if criteria.categorySlug == category.slug %} aria-current="page"{% endif %}>
-                    <span>{{ category.name }}</span><small>{{ category.productCount }}</small>
-                </a>
-            {% endfor %}
-            <a class="catalog-filter-more" href="{{ path('storefront_catalog_categories') }}">Tüm kategoriler</a>
-
-            <p class="catalog-filter-heading">Filtrele</p>
-            <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="catalog-filter-form">
+        <aside class="catalog-filters" aria-label="Katalog filtreleri">
+            <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="catalog-filter-form" data-controller="catalog-filters">
                 <input type="hidden" name="sort" value="{{ criteria.sort.value }}">
                 {% if criteria.query %}<input type="hidden" name="q" value="{{ criteria.query }}">{% endif %}
                 {% if criteria.categorySlug and app.request.attributes.get('_route') != 'storefront_catalog_category' %}<input type="hidden" name="category" value="{{ criteria.categorySlug }}">{% endif %}
-                {% if app.request.attributes.get('_route') != 'storefront_catalog_brand' %}
-                    <label for="catalog-brand">Marka</label>
-                    <select id="catalog-brand" name="brand">
-                        <option value="">Tüm markalar</option>
-                        {% for brand in brands %}
-                            <option value="{{ brand.slug }}"{% if criteria.brandSlug == brand.slug %} selected{% endif %}>{{ brand.name }} ({{ brand.productCount }})</option>
-                        {% endfor %}
-                    </select>
-                {% endif %}
+                {% if criteria.brandSlug and app.request.attributes.get('_route') != 'storefront_catalog_brand' %}<input type="hidden" name="brand" value="{{ criteria.brandSlug }}">{% endif %}
+                {% set price_min = criteria.minPriceMinor is not null ? criteria.minPriceMinor / 100 : null %}
+                {% set price_max = criteria.maxPriceMinor is not null ? criteria.maxPriceMinor / 100 : null %}
+                <fieldset class="catalog-price-range" data-controller="catalog-price-range">
+                    <legend>Fiyat Aralığı</legend>
+                    <div class="catalog-price-inputs">
+                        <label>Min (TL)
+                            <input type="number" name="min_price" min="0" step="0.01" inputmode="decimal" value="{{ price_min }}" placeholder="{{ price_bounds.min is not null ? (price_bounds.min / 100)|number_format(2, '.', '') : '0' }}" data-catalog-price-range-target="minInput" data-action="input->catalog-price-range#inputsChanged">
+                        </label>
+                        <label>Max (TL)
+                            <input type="number" name="max_price" min="0" step="0.01" inputmode="decimal" value="{{ price_max }}" placeholder="{{ price_bounds.max is not null ? (price_bounds.max / 100)|number_format(2, '.', '') : '—' }}" data-catalog-price-range-target="maxInput" data-action="input->catalog-price-range#inputsChanged">
+                        </label>
+                    </div>
+                    {% if price_bounds.min is not null and price_bounds.max is not null %}
+                        {% set selectable_min = price_bounds.min / 100 %}
+                        {% set selectable_max = price_bounds.max / 100 %}
+                        <div class="catalog-price-sliders" data-catalog-price-range-target="track">
+                            <input type="range" min="{{ selectable_min }}" max="{{ selectable_max }}" step="0.01" value="{{ price_min ?? selectable_min }}" aria-label="Minimum fiyat (TL)" data-catalog-price-range-target="minRange" data-action="input->catalog-price-range#rangeChanged"{% if selectable_min == selectable_max %} disabled{% endif %}>
+                            <input type="range" min="{{ selectable_min }}" max="{{ selectable_max }}" step="0.01" value="{{ price_max ?? selectable_max }}" aria-label="Maksimum fiyat (TL)" data-catalog-price-range-target="maxRange" data-action="input->catalog-price-range#rangeChanged"{% if selectable_min == selectable_max %} disabled{% endif %}>
+                        </div>
+                    {% endif %}
+                    <output class="catalog-price-values" data-catalog-price-range-target="output" aria-live="polite">{{ price_min is not null ? price_min|number_format(2, ',', '.') : (price_bounds.min is not null ? (price_bounds.min / 100)|number_format(2, ',', '.') : '0') }} TL — {{ price_max is not null ? price_max|number_format(2, ',', '.') : (price_bounds.max is not null ? (price_bounds.max / 100)|number_format(2, ',', '.') : '∞') }} TL</output>
+                    <button type="button" class="catalog-price-reset" data-action="catalog-price-range#reset" hidden data-catalog-price-range-target="reset">Aralığı temizle</button>
+                </fieldset>
+                <p class="catalog-filter-heading" id="catalog-filter-title">Kategoriler</p>
+                <div class="catalog-filter-list catalog-category-list" role="region" aria-labelledby="catalog-filter-title" tabindex="0">
+                    {% for category in categories %}
+                        {% set category_selected = criteria.categorySlug == category.slug %}
+                        {% set category_route = criteria.onSaleOnly ? 'storefront_collections_index' : (category_selected ? 'storefront_catalog_index' : 'storefront_catalog_category') %}
+                        {% set category_params = category_selected ? {} : (criteria.onSaleOnly ? {category: category.slug} : {slug: category.slug}) %}
+                        <a href="{{ path(category_route, criteria.queryParameters(null, 'category')|merge(category_params)|merge({_fragment: 'catalog-results'})) }}" data-action="click->catalog-filters#navigate"{% if category_selected %} aria-current="page" aria-label="{{ category.name }} filtresini kaldır"{% endif %}>
+                            <span>{{ category.name }}</span><small>{{ category.productCount }}</small>
+                        </a>
+                    {% endfor %}
+                </div>
+                <p class="catalog-filter-heading" id="catalog-brand-title">Markalar</p>
+                <div class="catalog-filter-list catalog-brand-list" role="region" aria-labelledby="catalog-brand-title" tabindex="0">
+                    {% for brand in brands %}
+                        {% set brand_selected = criteria.brandSlug == brand.slug %}
+                        {% set brand_route = criteria.onSaleOnly ? 'storefront_collections_index' : (brand_selected ? 'storefront_catalog_index' : 'storefront_catalog_brand') %}
+                        {% set brand_params = brand_selected ? {} : (criteria.onSaleOnly ? {brand: brand.slug} : {slug: brand.slug}) %}
+                        <a href="{{ path(brand_route, criteria.queryParameters(null, 'brand')|merge(brand_params)|merge({_fragment: 'catalog-results'})) }}" data-action="click->catalog-filters#navigate"{% if brand_selected %} aria-current="page" aria-label="{{ brand.name }} filtresini kaldır"{% endif %}>
+                            <span>{{ brand.name }}</span><small>{{ brand.productCount }}</small>
+                        </a>
+                    {% endfor %}
+                </div>
                 <label class="checkbox-field"><input type="checkbox" name="availability" value="in-stock"{% if criteria.inStockOnly %} checked{% endif %}> Yalnızca stoktakiler</label>
                 <button type="submit">Filtreleri uygula</button>
             </form>
-            <a class="catalog-filter-more" href="{{ path('storefront_catalog_brands') }}">Tüm markalar</a>
         </aside>
 
         <section id="catalog-results" class="catalog-results" aria-labelledby="catalog-heading" tabindex="-1">

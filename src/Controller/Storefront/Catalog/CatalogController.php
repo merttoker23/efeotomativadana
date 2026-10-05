@@ -14,7 +14,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class CatalogController extends AbstractController
 {
-    /** How many categories/brands the catalogue's own sidebar offers before deferring to the index. */
+    /** Number of popular sidebar options, plus the selected option if it falls outside this slice. */
     private const FILTER_OPTIONS = 24;
 
     /** Page size of the paged category and brand indexes. */
@@ -146,17 +146,28 @@ final class CatalogController extends AbstractController
         ?SeoMetadata $seo = null,
     ): Response {
         $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug, self::LISTING_PAGE_SIZE, $onSaleOnly);
-        // The sidebar is a filter, not an index: it renders a bounded, most-popular slice and
-        // links to the paged index for the full set, which is where the unbounded read used to
-        // happen. Every category and brand stays reachable through that index.
+        // Keep the sidebar bounded and always expose the selected option so it can be removed.
         $categories = $this->catalog->categoriesByPopularity(self::FILTER_OPTIONS);
         $brands = $this->catalog->brandsByPopularity(self::FILTER_OPTIONS);
+        if (null !== $criteria->categorySlug && !in_array($criteria->categorySlug, array_column($categories, 'slug'), true)) {
+            $selectedCategory = $this->catalog->category($criteria->categorySlug);
+            if (null !== $selectedCategory) {
+                $categories[] = $selectedCategory;
+            }
+        }
+        if (null !== $criteria->brandSlug && !in_array($criteria->brandSlug, array_column($brands, 'slug'), true)) {
+            $selectedBrand = $this->catalog->brand($criteria->brandSlug);
+            if (null !== $selectedBrand) {
+                $brands[] = $selectedBrand;
+            }
+        }
         $page = $this->catalog->search($criteria);
 
         return $this->render('storefront/catalog/index.html.twig', $this->context(
             [
                 'heading' => $heading,
                 'criteria' => $criteria,
+                'price_bounds' => $this->catalog->priceBounds($criteria),
                 'page' => $page,
                 'categories' => $categories,
                 'brands' => $brands,

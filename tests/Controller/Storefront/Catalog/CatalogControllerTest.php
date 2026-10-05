@@ -21,6 +21,71 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class CatalogControllerTest extends WebTestCase
 {
+    public function testSelectedOptionsOutsidePopularSliceRemainVisibleAndRemovable(): void
+    {
+        for ($i = 0; $i < 25; ++$i) {
+            $brand = new Brand(sprintf('Brand %02d', $i), 'brand-'.$i);
+            $brand->publish();
+            $category = new Category(sprintf('Category %02d', $i), 'category-'.$i);
+            $category->publish();
+            $this->product('OPTION-'.$i, 'Option '.$i, 'option-'.$i, true, $brand, $category);
+        }
+        $this->entityManager->flush();
+
+        $crawler = $this->client->request('GET', '/yeni/kategori/category-24?brand=brand-24&min_price=10&sort=price-desc');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(25, '.catalog-category-list a');
+        self::assertSelectorCount(25, '.catalog-brand-list a');
+        self::assertSelectorTextContains('.catalog-category-list a[aria-current]', 'Category 24');
+        self::assertSelectorTextContains('.catalog-brand-list a[aria-current]', 'Brand 24');
+
+        $crawler = $this->client->request('GET', $crawler->filter('.catalog-brand-list a[aria-current]')->attr('href'));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('.catalog-brand-list a[aria-current]');
+        self::assertSelectorTextContains('.catalog-category-list a[aria-current]', 'Category 24');
+        self::assertSame(10.0, (float) $crawler->filter('.catalog-filter-form input[name="min_price"]')->attr('value'));
+        $this->client->request('GET', $crawler->filter('.catalog-category-list a[aria-current]')->attr('href'));
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('.catalog-category-list a[aria-current]');
+        self::assertSelectorNotExists('.catalog-brand-list a[aria-current]');
+    }
+
+    public function testPriceRangeTravelsWithSortCategoryPaginationAndInfiniteScroll(): void
+    {
+        $brand = new Brand('Price Brand', 'price-brand');
+        $brand->publish();
+        $category = new Category('Price Category', 'price-category');
+        $category->publish();
+        $this->entityManager->persist($brand);
+        $this->entityManager->persist($category);
+        for ($i = 1; $i <= 35; ++$i) {
+            $product = $this->product('PRICE-'.$i, 'Lamba Sis Accent '.$i, 'price-'.$i, true);
+            $product->changeBrand($brand);
+            $product->addCategory($category);
+        }
+        $this->entityManager->flush();
+        $crawler = $this->client->request('GET', '/yeni/kategori/price-category?q=lamba+accent&brand=price-brand&availability=in-stock&sort=price-asc&min_price=10&max_price=1000');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(30, '.product-card');
+        self::assertSame('10.00', $crawler->filter('.sort-form input[name="min_price"]')->attr('value'));
+        self::assertSame('1000.00', $crawler->filter('.sort-form input[name="max_price"]')->attr('value'));
+        self::assertSelectorExists('[data-controller="catalog-price-range"] input[type="range"]');
+        $next = $crawler->filter('[data-catalog-infinite-scroll-next-url-value]')->attr('data-catalog-infinite-scroll-next-url-value');
+        $paginationNext = $crawler->filter('.pagination a[rel="next"]')->attr('href');
+        self::assertSame($paginationNext, $next);
+        parse_str((string) parse_url($next, PHP_URL_QUERY), $parameters);
+        self::assertSame(['q' => 'lamba accent', 'brand' => 'price-brand', 'availability' => 'in-stock', 'min_price' => '10.00', 'max_price' => '1000.00', 'sort' => 'price-asc', 'page' => '2'], $parameters);
+        self::assertStringContainsString('min_price=10.00', $crawler->filter('.catalog-category-list a')->first()->attr('href'));
+        $this->client->request('GET', $next);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(5, '.product-card');
+        $sortForm = $this->client->getCrawler()->filter('.sort-form')->form(['sort' => 'price-desc']);
+        $this->client->submit($sortForm);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorCount(30, '.product-card');
+        self::assertSelectorExists('.sort-form input[name="min_price"][value="10.00"]');
+    }
+
     private KernelBrowser $client;
     private Connection $connection;
     private EntityManagerInterface $entityManager;
@@ -188,8 +253,31 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSame('price-desc', $crawler->filter('.catalog-filter-form input[name="sort"]')->attr('value'));
         self::assertSame('/yeni/kategori/focus-category#catalog-results', $crawler->filter('.sort-form')->attr('action'));
 
+        $crawler = $this->client->request('GET', '/yeni/kategori/focus-category?q=Focus&availability=in-stock&sort=price-desc&min_price=10&max_price=1000');
+        $brandLink = $crawler->filter('.catalog-brand-list a[href*="/marka/focus-brand"]')->attr('href');
+        self::assertSame('/yeni/marka/focus-brand?q=Focus&category=focus-category&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $brandLink);
+        $crawler = $this->client->request('GET', $brandLink);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.product-grid', 'Focus Product');
+        self::assertSelectorExists('.catalog-brand-list a[aria-current="page"]');
+        self::assertSame(['catalog-price-range', 'catalog-filter-heading', 'catalog-filter-list catalog-category-list', 'catalog-filter-heading', 'catalog-filter-list catalog-brand-list', 'checkbox-field'], $crawler->filter('.catalog-filter-form > fieldset, .catalog-filter-form > p, .catalog-filter-form > div, .catalog-filter-form > label')->each(static fn ($node): string => $node->attr('class')));
+        self::assertStringNotContainsString('Tüm Ürünler', $crawler->filter('.catalog-filters')->text());
+        self::assertStringNotContainsString('Tüm kategoriler', $crawler->filter('.catalog-filters')->text());
+        self::assertStringNotContainsString('Tüm markalar', $crawler->filter('.catalog-filters')->text());
+        $clearBrand = $crawler->filter('.catalog-brand-list a[aria-current="page"]')->attr('href');
+        self::assertSame('/yeni/katalog?q=Focus&category=focus-category&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $clearBrand);
+        $clearCategory = $crawler->filter('.catalog-category-list a[aria-current="page"]')->attr('href');
+        self::assertSame('/yeni/katalog?q=Focus&brand=focus-brand&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $clearCategory);
+        $this->client->request('GET', $clearBrand);
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.product-grid', 'Focus Product');
+        self::assertSelectorNotExists('.catalog-brand-list a[aria-current="page"]');
+
         $crawler = $this->client->request('GET', '/yeni/marka/focus-brand?category=focus-category&sort=price-desc');
         self::assertSame('focus-category', $crawler->filter('.catalog-filter-form input[name="category"]')->attr('value'));
+
+        $crawler = $this->client->request('GET', '/yeni/kategori/focus-category?brand=focus-brand');
+        self::assertSame('focus-brand', $crawler->filter('.catalog-filter-form input[name="brand"]')->attr('value'));
     }
 
     public function testBrandCardsUseTheLocalBrandIdAndOfferAPlaceholderForMissingLogos(): void
@@ -235,8 +323,8 @@ final class CatalogControllerTest extends WebTestCase
      * would let an N+1 through by being raised, so the count is compared across two catalogue
      * sizes as well as against a documented absolute limit.
      *
-     * The limit is 8, and it is larger than the 6 this page used before SEO because the page
-     * now resolves its own metadata, which reads two more store settings (the default
+     * The limit is 9: the price bounds add one aggregate query to the 8 reads used after SEO.
+     * The page resolves its own metadata, which reads two more store settings (the default
      * description and the indexing switch). Those are memoised per request, so they are a
      * fixed cost and not a per-product one.
      */
@@ -260,7 +348,7 @@ final class CatalogControllerTest extends WebTestCase
         $withTwentyFour = $this->profileListing(12);
 
         self::assertSame($withEight, $withTwentyFour, 'The listing must not query per product.');
-        self::assertLessThanOrEqual(8, $withEight);
+        self::assertLessThanOrEqual(9, $withEight);
     }
 
     private function profileListing(int $expectedCards): int

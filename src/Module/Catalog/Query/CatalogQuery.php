@@ -16,6 +16,12 @@ final readonly class CatalogQuery
         return $this->repository->search($criteria);
     }
 
+    /** @return array{min: int|null, max: int|null} */
+    public function priceBounds(CatalogCriteria $criteria): array
+    {
+        return $this->repository->priceBounds($criteria);
+    }
+
     public function product(string $slug): ?CatalogProductDetail
     {
         return $this->repository->findPublishedProduct($slug);

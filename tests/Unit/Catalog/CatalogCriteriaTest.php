@@ -9,6 +9,34 @@ use Symfony\Component\HttpFoundation\InputBag;
 
 final class CatalogCriteriaTest extends TestCase
 {
+    public function testPriceInputsBecomeMinorUnitsAndSurvivePageAndSortLinks(): void
+    {
+        $criteria = CatalogCriteria::fromQuery(new InputBag([
+            'q' => " lamba\t  accent ", 'min_price' => '2500.25', 'max_price' => '500',
+            'category' => 'lamps', 'brand' => 'bosch', 'sort' => 'price-asc',
+        ]));
+        self::assertSame('lamba accent', $criteria->query);
+        self::assertSame(['lamba', 'accent'], $criteria->searchTokens());
+        self::assertSame(50_000, $criteria->minPriceMinor);
+        self::assertSame(250_025, $criteria->maxPriceMinor);
+        self::assertSame([
+            'q' => 'lamba accent', 'category' => 'lamps', 'brand' => 'bosch',
+            'min_price' => '500.00', 'max_price' => '2500.25', 'sort' => 'price-asc', 'page' => 2,
+        ], $criteria->queryParameters(2));
+    }
+
+    public function testInvalidAndNegativePricesAreIgnoredWithoutOverflow(): void
+    {
+        foreach (['-1', 'NaN', '1e20', '99999999999999999999', '12.345', 'abc', ['500']] as $invalid) {
+            $criteria = CatalogCriteria::fromQuery(new InputBag(['min_price' => $invalid, 'max_price' => $invalid]));
+            self::assertNull($criteria->minPriceMinor);
+            self::assertNull($criteria->maxPriceMinor);
+        }
+        $criteria = CatalogCriteria::fromQuery(new InputBag(['min_price' => '0', 'max_price' => '12,50']));
+        self::assertSame(0, $criteria->minPriceMinor);
+        self::assertSame(1250, $criteria->maxPriceMinor);
+    }
+
     public function testUntrustedQueryParametersAreNormalizedBeforeTheyReachPersistence(): void
     {
         /** @var InputBag<string> $query */

@@ -116,6 +116,7 @@ final class CollectionsControllerTest extends WebTestCase
         $brand->publish();
         $this->entityManager->persist($brand);
         $this->discounted('COL-BRAND', 'Markalı İndirimli Ürün', 'markali-indirimli-urun', '2020-01-01', '2999-01-01', $brand);
+        $this->discounted('COL-BRAND-FUTURE', 'Gelecekte İndirimli Ürün', 'gelecekte-indirimli-urun', '2999-01-01', '3000-01-01', $brand);
         for ($i = 1; $i <= 30; ++$i) {
             $this->discounted(
                 sprintf('COL-PAGE-%02d', $i),
@@ -144,7 +145,12 @@ final class CollectionsControllerTest extends WebTestCase
         // The filter form posts back to this page, so choosing a brand stays inside the collection.
         self::assertSame(self::COLLECTIONS.'#catalog-results', $crawler->filter('form.catalog-filter-form')->attr('action'));
 
-        $this->client->request('GET', self::COLLECTIONS.'?brand=bosch');
+        $brandLink = $crawler->filter('.catalog-brand-list a')->attr('href');
+        self::assertSame(self::COLLECTIONS, parse_url($brandLink, PHP_URL_PATH));
+        parse_str((string) parse_url($brandLink, PHP_URL_QUERY), $brandParameters);
+        self::assertEquals(['brand' => 'bosch', 'sort' => 'newest'], $brandParameters);
+        self::assertSame('catalog-results', parse_url($brandLink, PHP_URL_FRAGMENT));
+        $this->client->request('GET', $brandLink);
 
         self::assertSelectorTextContains('.product-grid', 'Markalı İndirimli Ürün');
         self::assertSelectorTextContains('.catalog-summary', '1 üründen 1 - 1');

@@ -29,6 +29,8 @@ final readonly class CatalogCriteria
     public CatalogSort $sort;
     public int $page;
     public int $perPage;
+    public ?int $minPriceMinor;
+    public ?int $maxPriceMinor;
 
     public function __construct(
         ?string $query = null,
@@ -39,8 +41,10 @@ final readonly class CatalogCriteria
         int $page = 1,
         int $perPage = 12,
         bool $onSaleOnly = false,
+        ?int $minPriceMinor = null,
+        ?int $maxPriceMinor = null,
     ) {
-        $this->query = self::text($query, 120);
+        $this->query = self::text(null === $query ? null : preg_replace('/\s+/u', ' ', $query), 120);
         $this->categorySlug = self::slug($categorySlug);
         $this->brandSlug = self::slug($brandSlug);
         $this->inStockOnly = $inStockOnly;
@@ -48,6 +52,13 @@ final readonly class CatalogCriteria
         $this->sort = $sort;
         $this->page = max(1, $page);
         $this->perPage = min(48, max(1, $perPage));
+        $minPriceMinor = null !== $minPriceMinor && $minPriceMinor >= 0 ? $minPriceMinor : null;
+        $maxPriceMinor = null !== $maxPriceMinor && $maxPriceMinor >= 0 ? $maxPriceMinor : null;
+        if (null !== $minPriceMinor && null !== $maxPriceMinor && $minPriceMinor > $maxPriceMinor) {
+            [$minPriceMinor, $maxPriceMinor] = [$maxPriceMinor, $minPriceMinor];
+        }
+        $this->minPriceMinor = $minPriceMinor;
+        $this->maxPriceMinor = $maxPriceMinor;
     }
 
     /**
@@ -71,6 +82,8 @@ final readonly class CatalogCriteria
             page: $query->getInt('page', 1),
             perPage: $perPage ?? 12,
             onSaleOnly: $onSaleOnly,
+            minPriceMinor: self::priceMinor($query->all()['min_price'] ?? null),
+            maxPriceMinor: self::priceMinor($query->all()['max_price'] ?? null),
         );
     }
 
@@ -90,6 +103,12 @@ final readonly class CatalogCriteria
         if ($this->inStockOnly) {
             $parameters['availability'] = 'in-stock';
         }
+        if (null !== $this->minPriceMinor) {
+            $parameters['min_price'] = self::priceDecimal($this->minPriceMinor);
+        }
+        if (null !== $this->maxPriceMinor) {
+            $parameters['max_price'] = self::priceDecimal($this->maxPriceMinor);
+        }
 
         return $parameters;
     }
@@ -102,6 +121,35 @@ final readonly class CatalogCriteria
             'sort' => $this->sort->value,
             ...null === $page ? [] : ['page' => max(1, $page)],
         ];
+    }
+
+    /** @return list<string> */
+    public function searchTokens(): array
+    {
+        // Keep punctuation inside automotive codes and literal LIKE metacharacters intact.
+        return null === $this->query ? [] : array_values(array_unique(explode(' ', $this->query)));
+    }
+
+    private static function priceMinor(mixed $value): ?int
+    {
+        if (!is_string($value) && !is_int($value)) {
+            return null;
+        }
+        if (1 !== preg_match('/^([0-9]+)(?:[.,]([0-9]{1,2}))?$/D', trim((string) $value), $matches)) {
+            return null;
+        }
+        $minor = ltrim($matches[1].str_pad($matches[2] ?? '', 2, '0'), '0');
+        $limit = (string) PHP_INT_MAX;
+        if (strlen($minor) > strlen($limit) || (strlen($minor) === strlen($limit) && strcmp($minor, $limit) > 0)) {
+            return null;
+        }
+
+        return (int) $minor;
+    }
+
+    private static function priceDecimal(int $minor): string
+    {
+        return intdiv($minor, 100).'.'.str_pad((string) ($minor % 100), 2, '0', STR_PAD_LEFT);
     }
 
     private static function text(?string $value, int $maxLength): ?string
