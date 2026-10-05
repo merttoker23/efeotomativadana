@@ -4,9 +4,11 @@ namespace App\Form\Admin;
 
 use App\Module\Settings\GeneralStoreSettingsData;
 use App\Module\Settings\Ga4MeasurementId;
+use App\Module\Settings\TurkishGeography;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -23,6 +25,35 @@ final class StoreSettingsType extends AbstractType
         $builder
             ->add('storeName', TextType::class, ['label' => 'Mağaza adı'])
             ->add('contactEmail', EmailType::class, ['label' => 'İletişim e-posta adresi', 'required' => false])
+            ->add('phone', TextType::class, [
+                'label' => 'Mağaza telefonu',
+                'required' => false,
+                'empty_data' => '',
+                'help' => 'Boş bırakılabilir. Örnek: +90 322 123 45 67. 0, +90 veya alan kodu yazılmadan da kabul edilir.',
+                'attr' => ['inputmode' => 'tel', 'placeholder' => '+90 322 123 45 67'],
+            ])
+            // İl serbest metin olsaydı "Adanaa" da bir il olarak saklanırdı. Seçim kutusu
+            // katalogdan beslenir; sunucu yine de gönderilen değeri katalogla karşılaştırır,
+            // çünkü bu form tarayıcının gönderdiği tek gerçek doğrulamadır.
+            ->add('city', ChoiceType::class, [
+                'label' => 'İl',
+                'required' => false,
+                'placeholder' => 'İl seçin',
+                'choices' => TurkishGeography::provinces(),
+                'empty_data' => '',
+                'attr' => ['data-store-address-target' => 'city'],
+            ])
+            // İlçe kutusu il seçilmeden önce de tüm ilçeleri taşır; seçilen ile ait olmayanlar
+            // JavaScript ile gizlenir. Böylece JavaScript olmadan da form eksiksiz gönderilebilir
+            // ve reddedilen bir eşleşmenin sorumlusu tarayıcı değil, sunucu olur.
+            ->add('district', ChoiceType::class, [
+                'label' => 'İlçe',
+                'required' => false,
+                'placeholder' => 'İlçe seçin',
+                'choices' => TurkishGeography::allDistricts(),
+                'empty_data' => '',
+                'attr' => ['data-store-address-target' => 'district'],
+            ])
             ->add('defaultLocale', TextType::class, ['label' => 'Mağazanın varsayılan dili'])
             ->add('defaultTaxRate', IntegerType::class, ['label' => 'Varsayılan vergi oranı (%)'])
             ->add('b2bEnabled', CheckboxType::class, [
@@ -48,6 +79,14 @@ final class StoreSettingsType extends AbstractType
             ->add('storefrontInk', ColorType::class, ['label' => 'Metin', 'trim' => false, 'empty_data' => ''])
             ->add('storefrontMuted', ColorType::class, ['label' => 'İkincil metin', 'trim' => false, 'empty_data' => ''])
             ->add('storefrontLine', ColorType::class, ['label' => 'Çizgi', 'trim' => false, 'empty_data' => '']);
+
+        // Yalnızca kırpar: normalizasyon StoreConfiguration'da, hata mesajıyla birlikte yapılır.
+        // Burada geçersiz bir girişi sessizce düzeltmek, hata mesajının kaybolduğu bir form
+        // bırakırdı.
+        $builder->get('phone')->addModelTransformer(new CallbackTransformer(
+            static fn (?string $value): string => trim($value ?? ''),
+            static fn (?string $value): string => trim($value ?? ''),
+        ));
 
         $builder->add('ga4MeasurementId', TextareaType::class, [
             'label' => 'GA4 Measurement ID',

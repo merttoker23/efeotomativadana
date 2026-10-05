@@ -315,7 +315,7 @@ final class SettingsControllerTest extends WebTestCase
     {
         $crawler = $this->client->request('GET', '/yeni/admin/settings');
         self::assertSame(['Mağaza Ayarları'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
-        foreach (['seo' => 'SEO', 'shipping' => 'Kargo Ayarları', 'payment' => 'Ödeme Ayarları', 'cookies' => 'Çerez Ayarları'] as $page => $label) {
+        foreach (['seo' => 'SEO', 'shipping' => 'Kargo Ayarları', 'payment' => 'Ödeme Ayarları', 'cookies' => 'Çerez Politikası'] as $page => $label) {
             $crawler = $this->client->request('GET', '/yeni/admin/settings/'.$page);
             self::assertSame([$label], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
             $form = $crawler->selectButton('Ayarları kaydet')->form();
@@ -356,8 +356,8 @@ final class SettingsControllerTest extends WebTestCase
         $snippet = '<script src="https://consent.example.com/embed.js" data-cookie-test="external"></script><script data-cookie-test="inline">window.cookieConsent = true;</script>';
         $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Çerez Ayarları');
-        self::assertSame(['Çerez Ayarları'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
+        self::assertSelectorTextContains('h1', 'Çerez Politikası');
+        self::assertSame(['Çerez Politikası'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['cookie_settings[script]'] = '  '.$snippet.'  ';
         $this->client->submit($form);

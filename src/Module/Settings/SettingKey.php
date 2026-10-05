@@ -8,6 +8,9 @@ enum SettingKey: string
     case B2bProvider = 'commerce.b2b_provider';
     case StoreName = 'store.name';
     case ContactEmail = 'store.contact_email';
+    case StorePhone = 'store.phone';
+    case StoreCity = 'store.city';
+    case StoreDistrict = 'store.district';
     case StoreCurrency = 'store.currency';
     case Ga4MeasurementId = 'analytics.ga4_measurement_id';
     case CookieScript = 'cookies.script';
@@ -37,7 +40,7 @@ enum SettingKey: string
     {
         return match ($this) {
             self::B2bEnabled, self::LoyaltyEnabled => false,
-            self::B2bProvider, self::PaymentProvider, self::ShippingProvider, self::SeoDefaultDescription, self::Ga4MeasurementId, self::ContactEmail, self::CookieScript => null,
+            self::B2bProvider, self::PaymentProvider, self::ShippingProvider, self::SeoDefaultDescription, self::Ga4MeasurementId, self::ContactEmail, self::CookieScript, self::StorePhone, self::StoreCity, self::StoreDistrict => null,
             self::SeoIndexingEnabled => true,
             self::StoreName => 'Efe Otomotiv Adana',
             self::StoreCurrency => 'TRY',

@@ -158,7 +158,10 @@ final class CustomerOrdersTest extends WebTestCase
         $withTenOrders = $this->profileOrderList($customerId);
 
         self::assertSame($withFiveOrders, $withTenOrders, 'The order list must not query per order for payments and shipments.');
-        self::assertLessThanOrEqual(11, $withFiveOrders);
+        // Twelve: the page as it was at eleven, plus the footer's single bounded read of the
+        // published information pages. The footer is on this page like on every other, so its cost
+        // is here once rather than per order — which is what the assertion above already proves.
+        self::assertLessThanOrEqual(12, $withFiveOrders);
     }
 
     /**
@@ -243,7 +246,7 @@ final class CustomerOrdersTest extends WebTestCase
             $this->visualOrder($customer, sprintf('EOA-20261004-BBBB%08d', $i));
         }
         self::assertSame($five, $this->profileOrderList($id), 'Image reads must stay constant with distinct products across multiple orders.');
-        self::assertLessThanOrEqual(11, $five);
+        self::assertLessThanOrEqual(12, $five);
     }
 
     private function visualOrder(CustomerUser $customer, string $number): CustomerOrder

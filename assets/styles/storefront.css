@@ -1859,6 +1859,36 @@ select:focus-visible {
     color: #fff;
 }
 
+/* The store column's contact block: the column's own type and colour, one fact per line.
+
+   `address` is the semantic element for exactly this and is what a screen reader announces as
+   the store's contact information, so it is used rather than a styled div. Browsers render it
+   italic, which would make these lines look like the store's prose instead of its details, so
+   the slant is taken back off and the address keeps the footer's own small type. The rules below
+   only govern this block; the column's grid track, the other columns and the bottom bar are
+   untouched, so the payment marks and the alignment of the four columns stay as they were. */
+.footer-address {
+    display: block;
+    margin: 0.75rem 0 0;
+    color: #b9c6d3;
+    font-size: 1em;
+    font-style: normal;
+    letter-spacing: normal;
+}
+
+.footer-address-line {
+    display: block;
+    margin: 0.2rem 0;
+    color: inherit;
+    overflow-wrap: anywhere;
+}
+
+/* Same rule for the address's links, which `.site-footer a` would otherwise space like the
+   column's own links and leave a gap above the address for no reason. */
+.site-footer a.footer-address-line {
+    margin: 0.2rem 0;
+}
+
 .footer-bottom {
     display: flex;
     flex-wrap: wrap;
@@ -2213,6 +2243,13 @@ select:focus-visible {
     .footer-main {
         gap: 1.6rem;
         padding-block: 2rem;
+    }
+
+    /* The stacked footer gives every column the full width, so the address can sit on the same
+       line spacing as the paragraphs above it instead of the tighter desktop rhythm. */
+    .footer-address-line,
+    .site-footer a.footer-address-line {
+        margin: 0.35rem 0;
     }
 
     .footer-bottom {

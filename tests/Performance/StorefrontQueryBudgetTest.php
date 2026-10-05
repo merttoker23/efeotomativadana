@@ -33,7 +33,7 @@ final class StorefrontQueryBudgetTest extends WebTestCase
      * fixtures completely: everything is created and removed around each test rather than being
      * left for the next run to collide with.
      */
-    private const PREFIXES = ['budget-home-', 'budget-cart-', 'budget-cart-budget-', 'budget-catalogue-'];
+    private const PREFIXES = ['budget-home-', 'budget-cart-', 'budget-cart-budget-', 'budget-catalogue-', 'budget-footer-'];
 
     /**
      * Carts that existed before this test ran.
@@ -104,6 +104,11 @@ final class StorefrontQueryBudgetTest extends WebTestCase
             $connection->executeStatement('DELETE FROM commerce_product_inventory WHERE product_id IN ('.$list.')');
             $connection->executeStatement('DELETE FROM catalog_product WHERE sku LIKE :prefix', ['prefix' => $prefix.'%']);
         }
+        // Published information pages are content like any other: leaving them behind would make
+        // the footers of unrelated tests grow, and the CMS tests assert on that listing.
+        foreach (self::PREFIXES as $prefix) {
+            $connection->executeStatement('DELETE FROM cms_information_page WHERE slug LIKE :prefix', ['prefix' => $prefix.'%']);
+        }
     }
 
     public function testTheHomepageCostsTheSameWithSixProductsAsWithTwelve(): void
@@ -143,6 +148,11 @@ final class StorefrontQueryBudgetTest extends WebTestCase
      * measured 8 queries before, and 5 after, with the difference being exactly the four
      * per-key setting reads it no longer makes.
      *
+     * The sixth query is the footer's own read of the published information pages. It is one
+     * bounded query per request and it is not optional — the footer lists the pages an
+     * administrator published — so the ceiling moves rather than the footer being read twice.
+     * {@see testTheFooterCostsTheSameWithTwoPublishedPagesAsWithTwelve} is what keeps it there.
+     *
      * This is a whole-page budget rather than a statement-by-statement assertion on purpose. The
      * profiler's per-statement list is not populated once the kernel has been rebooted between
      * requests, so a statement-level assertion here would see nothing and pass for the wrong
@@ -155,11 +165,47 @@ final class StorefrontQueryBudgetTest extends WebTestCase
         $queries = $this->budget('/yeni/katalog');
 
         self::assertLessThanOrEqual(
-            5,
+            6,
             $queries,
             'The catalogue page used 8 queries before store settings were read in one pass.',
         );
     }
+
+    /**
+     * The footer is on every storefront page and its content comes from the CMS, so this is the
+     * one query that could quietly become a loop: a page per information page, re-read per
+     * controller. Two pages and twelve pages must cost the same.
+     */
+    public function testTheFooterCostsTheSameWithTwoPublishedPagesAsWithTwelve(): void
+    {
+        $this->seedInformationPages('budget-footer-', 2);
+        $this->warmUp('/yeni/katalog');
+        $withTwo = $this->budget('/yeni/katalog');
+        $this->seedInformationPages('budget-footer-', 10, 2);
+        $withTwelve = $this->budget('/yeni/katalog');
+
+        self::assertSame(
+            $withTwo,
+            $withTwelve,
+            sprintf('The footer must not query per published page. Measured %d queries for 12 pages.', $withTwelve),
+        );
+    }
+
+    private function seedInformationPages(string $prefix, int $count, int $offset = 0): void
+    {
+        $manager = self::getContainer()->get('doctrine')->getManager();
+        for ($i = $offset; $i < $offset + $count; ++$i) {
+            $page = new \App\Entity\Cms\InformationPage(
+                sprintf('Budget Sayfa %s%02d', $prefix, $i),
+                sprintf('%s%02d', $prefix, $i),
+                'Bütçe testi içeriği',
+            );
+            $page->setPublished(true);
+            $manager->persist($page);
+        }
+        $manager->flush();
+    }
+
     /**
      * A basket line used to cost a price read, a stock read and an image read of its own. The
      * budget below is the ceiling with room to spare; the equality tests above are the ones that

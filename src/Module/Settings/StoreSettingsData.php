@@ -71,6 +71,16 @@ final class StoreSettingsData
         #[Assert\Email]
         #[Assert\Length(max: 254)]
         public ?string $contactEmail = null,
+        // Optional because a store may genuinely have no landline published yet; what is not
+        // optional is that a stored number is a real one, which StorePhone decides.
+        #[Assert\Length(max: StorePhone::MAX_INPUT_LENGTH)]
+        public ?string $phone = null,
+        // İl and ilçe are validated against the local Türkiye catalog rather than by shape:
+        // "Adaa" is a perfectly well-formed string and a province that does not exist.
+        #[Assert\Length(max: 100)]
+        public ?string $city = null,
+        #[Assert\Length(max: 100)]
+        public ?string $district = null,
     ) {
     }
 }

@@ -35,4 +35,34 @@ final class InformationPageRepository extends ServiceEntityRepository
 
         return new PagedResult(array_values($items), $page, $perPage, $count);
     }
+
+    /**
+     * Yayınlanmış sayfaların başlık ve slug'ları, footer'ın kullanacağı sınırlı liste.
+     *
+     * Footer her sayfada göründüğü için bu, uygulamanın en sık çalışan sorgularından biridir;
+     * iki şey onun ucuz kalmasını sağlar. Bir: yalnızca yayınlanmış sayfalar okunur, taslaklar
+     * hiçbir zaman listeye girmez. İki: gövde sütunu (`TEXT`) hiç seçilmez — footer başlığı ve
+     * adresi gösterir, sayfa metnini değil — ve sonuç sayıyla sınırlıdır, yani footer'ın
+     * maliyeti içerik arşivi büyüdükçe değil, sabit kalır.
+     *
+     * Sıralama başlığa göredir ve aynı başlıkta id ile ayrılır: başlıklar benzersiz olmadığı
+     * için ikinci anahtar olmadan iki sayfa hangisinin önce geldiğine bağlı olarak yer değiştirir.
+     *
+     * @return list<array{title: string, slug: string}>
+     */
+    public function publishedForNavigation(int $limit = 20): array
+    {
+        if ($limit < 1) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('page')
+            ->select('page.title', 'page.slug')
+            ->andWhere('page.published = true')
+            ->orderBy('page.title', 'ASC')
+            ->addOrderBy('page.id', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }

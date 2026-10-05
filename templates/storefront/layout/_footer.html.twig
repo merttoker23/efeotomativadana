@@ -4,12 +4,32 @@
    and My Account, and closes with a copyright line on the left and the card marks on the right.
    Only the content is this store's — the geometry, the stacking and the type sizes are the
    reference's, which is why each column carries its own heading and every entry sits on a line of
-   its own instead of the whole set running together in a paragraph. #}
+   its own instead of the whole set running together in a paragraph.
+
+   The store column and the information column read one read-model, not a repository each: the
+   footer is included by every storefront page, so a query here is a query on every page. #}
+{% set footer = storefront_footer() %}
+{% set contact = footer.contact %}
 <footer class="site-footer">
     <div class="container footer-main">
         <section aria-labelledby="footer-store-title">
             <div class="footer-logo" id="footer-store-title">{{ store.name }}</div>
             <p>Otomotiv yedek parçada doğru ürünü güvenle bulmanız için yanınızdayız.</p>
+            {# Only what the administrator filled in. An empty line, a dash or a lone icon for a
+               value nobody entered is noise in a column this narrow. #}
+            {% if contact.city or contact.district or contact.phone or contact.email %}
+                <address class="footer-address">
+                    {% if contact.city or contact.district %}
+                        <span class="footer-address-line">{{ [contact.city, contact.district]|filter(v => v is not empty)|join(' / ') }}</span>
+                    {% endif %}
+                    {% if contact.phoneLink %}
+                        <a class="footer-address-line" href="{{ contact.phoneLink }}">{{ contact.phone }}</a>
+                    {% endif %}
+                    {% if contact.email %}
+                        <a class="footer-address-line" href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                    {% endif %}
+                </address>
+            {% endif %}
         </section>
         <section aria-labelledby="footer-service-title">
             <h4 id="footer-service-title">Müşteri Hizmetleri</h4>
@@ -24,8 +44,15 @@
             <span>Sık sorulan sorular</span>
         </section>
         <section aria-labelledby="footer-info-title">
-            <h4 id="footer-info-title">Bilgilendirme</h4>
-            <a href="{{ path('storefront_information_index') }}">Bilgi sayfaları</a>
+            <h4 id="footer-info-title">Bilgi Sayfaları</h4>
+            {# Each published page gets its own line and its own address. One "Bilgi sayfaları"
+               link that hides the pages behind a second click is a navigation the administrator
+               cannot see or verify; the draft pages are not here because they are not published. #}
+            {% for page in footer.informationPages %}
+                <a href="{{ path('storefront_information_show', {slug: page.slug}) }}">{{ page.title }}</a>
+            {% endfor %}
+            {# The blog is its own content type with its own archive, so it keeps its own line
+               rather than joining the information pages as one more page. #}
             <a href="{{ path('storefront_blog_index') }}">Blog</a>
         </section>
         <section aria-labelledby="footer-account-title">

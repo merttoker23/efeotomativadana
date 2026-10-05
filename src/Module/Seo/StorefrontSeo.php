@@ -153,7 +153,9 @@ final readonly class StorefrontSeo
     {
         return $this->metadata->for(new SeoPage(
             route: 'storefront_information_index',
-            label: 'Bilgi',
+            // The same wording the page itself and the footer use, so the search result a customer
+            // clicks through to it is not called something else than the page is.
+            label: 'Bilgi Sayfaları',
             breadcrumbs: $this->trail(),
         ));
     }

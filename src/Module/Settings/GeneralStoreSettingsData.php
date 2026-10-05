@@ -55,6 +55,12 @@ final class GeneralStoreSettingsData
         #[Assert\Email]
         #[Assert\Length(max: 254)]
         public ?string $contactEmail = null,
+        #[Assert\Length(max: StorePhone::MAX_INPUT_LENGTH)]
+        public ?string $phone = null,
+        #[Assert\Length(max: 100)]
+        public ?string $city = null,
+        #[Assert\Length(max: 100)]
+        public ?string $district = null,
     ) {
     }
 }

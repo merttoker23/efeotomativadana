@@ -8,6 +8,7 @@ use App\Module\Integration\B2b\B2bProviderRegistry;
 use App\Repository\Commerce\StoreSettingRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Validator\ConstraintViolation;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Exception\ValidationFailedException;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -80,6 +81,9 @@ final class StoreConfiguration implements ResetInterface
             storefrontLine: $this->colorValue(SettingKey::StorefrontLine),
             ga4MeasurementId: $this->ga4MeasurementId(),
             contactEmail: $this->contactEmail(),
+            phone: $this->phone(),
+            city: $this->city(),
+            district: $this->district(),
         );
     }
 
@@ -191,6 +195,7 @@ final class StoreConfiguration implements ResetInterface
                 constraint: new NotBlank(),
             ));
         }
+        $this->validateContactDetails($configuration, $violations);
         if (count($violations) > 0) {
             throw new ValidationFailedException($configuration, $violations);
         }
@@ -221,6 +226,9 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::StorefrontMuted->value => $configuration->storefrontMuted,
             SettingKey::StorefrontLine->value => $configuration->storefrontLine,
             SettingKey::Ga4MeasurementId->value => $configuration->ga4MeasurementId,
+            SettingKey::StorePhone->value => $configuration->phone,
+            SettingKey::StoreCity->value => $configuration->city,
+            SettingKey::StoreDistrict->value => $configuration->district,
         ];
 
         if ($generalOnly) {
@@ -229,6 +237,53 @@ final class StoreConfiguration implements ResetInterface
             }
         }
         $this->persistValues($values);
+    }
+
+    /**
+     * Telefon, il ve ilçe; hepsi isteğe bağlı ama üçü de katalogdan geçer.
+     *
+     * Doğrulama formun gönderdiği değere değil, kataloğa bakar. İlçenin ait olup olmadığı
+     * iki alan arasındaki ilişki olduğu için tek bir alana bakarak anlaşılmaz, ama burada
+     * anlaşılır: seçilen ile ait olmayan bir ilçe hiçbir koşulda saklanmaz.
+     *
+     * Geçersiz bir alan reddedilir, düzeltilmez. Bir "Adana" yazım hatasını sessizce
+     * yakındaki ilçeye çevirmek, yöneticinin nereye yazdığını bilmediği bir adres bırakırdı.
+     *
+     * @param ConstraintViolationListInterface $violations
+     */
+    private function validateContactDetails(StoreSettingsData $configuration, ConstraintViolationListInterface $violations): void
+    {
+        try {
+            $configuration->phone = StorePhone::normalize($configuration->phone);
+        } catch (\InvalidArgumentException $exception) {
+            $violations->add($this->contactViolation($configuration, 'phone', $configuration->phone, $exception->getMessage()));
+        }
+
+        $city = TurkishGeography::normalizeProvince($configuration->city);
+        if (null !== $configuration->city && null === $city) {
+            $violations->add($this->contactViolation($configuration, 'city', $configuration->city, 'Türkiye illerinden bir il seçin.'));
+        }
+
+        $district = null === $city ? null : TurkishGeography::normalizeDistrict($city, $configuration->district);
+        if (null !== $configuration->district && null === $district) {
+            $violations->add($this->contactViolation($configuration, 'district', $configuration->district, 'Seçilen ilçe seçilen ile ait değil.'));
+        }
+
+        $configuration->city = $city;
+        $configuration->district = $district;
+    }
+
+    private function contactViolation(StoreSettingsData $configuration, string $property, ?string $value, string $message): ConstraintViolation
+    {
+        return new ConstraintViolation(
+            message: $message,
+            messageTemplate: null,
+            parameters: [],
+            root: $configuration,
+            propertyPath: $property,
+            invalidValue: $value,
+            constraint: new NotBlank(),
+        );
     }
 
     /** @param array<string, bool|int|string|null> $values */
@@ -269,6 +324,34 @@ final class StoreConfiguration implements ResetInterface
     public function contactEmail(): ?string
     {
         return $this->nullableStringValue(SettingKey::ContactEmail);
+    }
+
+    /**
+     * The published phone number in its canonical form, or null.
+     *
+     * A row that was never written through this door — a hand-edited database, a restored
+     * backup, a half-applied import — is re-checked on the way out rather than printed. The
+     * footer would otherwise render a number no dialer can use, and a `tel:` link to it.
+     */
+    public function phone(): ?string
+    {
+        try {
+            return StorePhone::normalize($this->nullableStringValue(SettingKey::StorePhone));
+        } catch (\InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /** Only a province the catalog knows; anything else reads as unset. */
+    public function city(): ?string
+    {
+        return TurkishGeography::normalizeProvince($this->nullableStringValue(SettingKey::StoreCity));
+    }
+
+    /** Only a district of {@see city()}, so the pair can never contradict itself on the way out. */
+    public function district(): ?string
+    {
+        return TurkishGeography::normalizeDistrict($this->city(), $this->nullableStringValue(SettingKey::StoreDistrict));
     }
 
     public function isB2bEnabled(): bool
