@@ -1,9 +1,17 @@
-{# The theme's scrolling band. Each word is separated by a dot, exactly as in the reference. #}
+{# Equal groups make the -50% CSS loop seamless. Only the first CMS set is announced. #}
 {% if section.data.items %}
     <div class="marquee" aria-label="{{ section.title }}">
-        {% for item in section.data.items %}
-            <span class="marquee-item">{{ item }}</span>
-            {% if not loop.last %}<span class="dot" aria-hidden="true">●</span>{% endif %}
-        {% endfor %}
+        <div class="marquee-track">
+            {% for copy in 0..1 %}
+                <div class="marquee-group"{% if copy > 0 %} aria-hidden="true"{% endif %}>
+                    {% for repeat in 0..3 %}
+                        {% for item in section.data.items %}
+                            <span class="marquee-item"{% if repeat > 0 %} aria-hidden="true"{% endif %}>{{ item }}</span>
+                            <span class="dot" aria-hidden="true">●</span>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
     </div>
 {% endif %}

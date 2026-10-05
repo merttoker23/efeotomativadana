@@ -14,6 +14,8 @@
 <header class="site-header">
     {# The route this page is, so the account menu can mark the entry the visitor is already on. #}
     {% set route = app.request.attributes.get('_route') %}
+    {% set route_parameters = app.request.attributes.get('_route_params') %}
+    {% set native_navigation = script_free_navigation|default(false) %}
     <div class="header-topbar">
         <div class="container topbar">
             <div class="topbar-left">
@@ -56,8 +58,8 @@
             {% set signed_in = is_granted('ROLE_CUSTOMER') %}
             {% set header_cart = storefront_cart() %}
             <div class="header-actions" aria-label="Mağaza kısayolları">
-                <div class="account-menu" data-controller="header-account">
-                    <button
+                {% if native_navigation %}<details class="account-menu script-free-account-menu">{% else %}<div class="account-menu" data-controller="header-account">{% endif %}
+                    {% if native_navigation %}<summary class="header-action action-btn account">{% else %}<button
                         class="header-action action-btn account"
                         type="button"
                         aria-haspopup="true"
@@ -66,9 +68,9 @@
                         aria-label="{{ signed_in ? 'Hesabım menüsü' : 'Hesabım (Giriş ve kayıt)' }}"
                         data-header-account-target="trigger"
                         data-action="header-account#toggle"
-                    ><span class="action-icon" aria-hidden="true">♙</span>Hesabım<svg class="action-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.25 6 7.75 9.5 4.25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    >{% endif %}<span class="action-icon" aria-hidden="true">♙</span>Hesabım<svg class="action-caret" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.25 6 7.75 9.5 4.25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>{% if native_navigation %}</summary>{% else %}</button>{% endif %}
 
-                    <div class="account-menu-panel" id="header-account-menu" data-header-account-target="menu" hidden>
+                    <div class="account-menu-panel" id="header-account-menu"{% if not native_navigation %} data-header-account-target="menu" hidden{% endif %}>
                         {% if signed_in %}
                             <p class="account-menu-heading">Hesabım</p>
                             <a href="{{ path('customer_account_dashboard') }}"{% if route == 'customer_account_dashboard' %} aria-current="page"{% endif %}>Hesabım</a>
@@ -91,10 +93,17 @@
                             <a href="{{ path('customer_registration') }}">Kayıt Ol</a>
                         {% endif %}
                     </div>
-                </div>
+                {% if native_navigation %}</details>{% else %}</div>{% endif %}
                 <a class="header-action action-btn contact" href="{{ path('storefront_contact') }}"><span class="action-icon" aria-hidden="true">✉</span>İletişim</a>
                 <a class="header-action action-btn blog" href="{{ path('storefront_blog_index') }}"><span class="action-icon" aria-hidden="true">▤</span>Blog</a>
-                <button
+                {% if native_navigation %}
+                    <details class="script-free-mobile-menu">
+                        <summary class="mobile-menu-toggle" aria-label="Menüyü aç veya kapat"><span aria-hidden="true">☰</span></summary>
+                        <nav id="mobile-navigation" class="mobile-navigation" aria-label="Mobil navigasyon">
+                            {% include 'storefront/layout/_mobile_navigation_links.html.twig' %}
+                        </nav>
+                    </details>
+                {% else %}<button
                     class="mobile-menu-toggle"
                     type="button"
                     aria-controls="mobile-navigation"
@@ -102,7 +111,7 @@
                     aria-label="Menüyü aç"
                     data-storefront-shell-target="toggle"
                     data-action="storefront-shell#toggleMenu"
-                ><span aria-hidden="true">☰</span></button>
+                ><span aria-hidden="true">☰</span></button>{% endif %}
             </div>
         </div>
     </div>

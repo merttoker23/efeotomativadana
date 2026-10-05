@@ -1,8 +1,11 @@
 {% extends 'storefront/base.html.twig' %}
 
+{% set script_free_navigation = true %}
+
 {# The card inputs share no page with the storefront's JavaScript or importmap. #}
 {% block javascripts %}{% endblock %}
 {% block analytics %}{% endblock %}
+{% block cookie_consent %}{% endblock %}
 
 {% block title %}Ödeme | {{ store.name }}{% endblock %}
 

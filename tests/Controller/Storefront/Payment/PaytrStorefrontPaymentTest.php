@@ -288,7 +288,13 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         self::assertStringContainsString('name="paytr_token"', $content);
         self::assertStringNotContainsString('name="_token"', $content);
         self::assertStringNotContainsString('<script', $content, 'The page with card fields must not load the storefront JavaScript.');
+        self::assertSelectorExists('details.account-menu > summary');
+        self::assertSelectorNotExists('.account-menu-panel[hidden]');
+        self::assertSelectorExists('details.script-free-mobile-menu > summary');
+        self::assertSelectorExists('details.script-free-mobile-menu nav a[href="/yeni/hesabim"]');
+        self::assertSelectorNotExists('.notice-close');
         self::assertSelectorTextContains('main h1', 'Güvenli Ödeme');
+        self::assertSelectorExists(sprintf('a.payment-back-link[href="/yeni/odeme/%s"]', $order->orderNumber()));
         self::assertSelectorExists('.payment-card-expiry input[autocomplete="cc-exp-month"][inputmode="numeric"][maxlength="2"][pattern="[0-9]{1,2}"]');
         self::assertSelectorExists('.payment-card-expiry input[autocomplete="cc-exp-year"][inputmode="numeric"][maxlength="4"][pattern="[0-9]{2,4}"]');
         self::assertSelectorExists('.payment-card-expiry input[autocomplete="cc-csc"][inputmode="numeric"][maxlength="4"][pattern="[0-9]{3,4}"]');
@@ -347,7 +353,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         self::assertSame(OrderState::Confirmed, $reloaded->state());
         $this->client->request('GET', (string) parse_url($returnUrl, PHP_URL_PATH));
         $this->client->followRedirect();
-        self::assertSelectorTextContains('main', 'succeeded');
+        self::assertSelectorTextContains('main', 'Ödendi');
     }
 
     public function testPaytrBrowserPostIsInformationalEvenWithASignedBody(): void
@@ -382,6 +388,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $settings->paymentProvider = 'paytr';
         $settings->ga4MeasurementId = 'G-ABC1234567';
         $configuration->save($settings);
+        $configuration->saveCookies(new \App\Module\Settings\CookieSettingsData('<script src="https://consent.example.com/consent.js"></script>'));
         $this->submitFormPage($order);
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('script');

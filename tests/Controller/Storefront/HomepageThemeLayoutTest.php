@@ -302,7 +302,14 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSame(1, $crawler->filter('.features .feature .feature-ico')->count());
         self::assertSelectorTextContains('.features .feature b', 'Hızlı kargo');
         self::assertSame(1, $crawler->filter('.section-card .brand-strip .brand')->count());
-        self::assertSame(2, $crawler->filter('.marquee .marquee-item')->count());
+        self::assertSame(2, $crawler->filter('.marquee-group:not([aria-hidden]) .marquee-item:not([aria-hidden])')->count());
+        self::assertSame(2, $crawler->filter('.marquee-group')->count());
+        self::assertSame(1, $crawler->filter('.marquee-group[aria-hidden="true"]')->count());
+        self::assertSame(
+            $crawler->filter('.marquee-group')->first()->text(),
+            $crawler->filter('.marquee-group')->last()->text(),
+            'The ticker loop must use equal content groups, including the trailing separator.',
+        );
         self::assertSame(1, $crawler->filter('.marquee')->count()); // theme: a single marquee container with item/dot separators
         self::assertSelectorTextContains('.marquee', 'Yetkili servis');
     }
@@ -574,9 +581,7 @@ final class HomepageThemeLayoutTest extends WebTestCase
         yield 'category column height' => ['.category-panel', 'height', '.category-panel', 'height'];
         yield 'top sellers height' => ['.top-sellers', 'height', '.top-sellers', 'height'];
         yield 'seller row height' => ['.seller', 'height', '.seller', 'height'];
-        yield 'marquee height' => ['.marquee', 'height', '.marquee', 'height'];
-        yield 'marquee gap' => ['.marquee', 'gap', '.marquee', 'gap'];
-        yield 'marquee font size' => ['.marquee', 'font-size', '.marquee', 'font-size'];
+        // The ticker deliberately uses compact typography instead of the reference's large static band.
         yield 'section card padding' => ['.section-card', 'padding', '.section-card', 'padding'];
         yield 'hero photo left' => ['.hero-photo', 'left', '.hero-photo', 'left'];
         yield 'hero photo width' => ['.hero-photo', 'width', '.hero-photo', 'width'];

@@ -7,6 +7,7 @@ namespace App\Controller\Storefront\Payment;
 use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Customer\CustomerUser;
 use App\Module\Order\OrderRepositoryInterface;
+use App\Module\Order\OrderSummary;
 use App\Module\Payment\Gateway\IncomingPaymentCallback;
 use App\Module\Payment\PaymentCallbackHandler;
 use App\Module\Payment\PaymentInitiationService;
@@ -38,9 +39,12 @@ final class PaymentController extends AbstractController
             throw $this->createNotFoundException();
         }
 
+        $payment = $initiation->paymentFor($order);
+
         return $this->render('storefront/payment/show.html.twig', $context->withLayout([
             'order' => $order,
-            'payment' => $initiation->paymentFor($order),
+            'payment' => $payment,
+            'summary' => OrderSummary::build($order, $payment, null),
         ]));
     }
 

@@ -60,15 +60,17 @@
         {% endblock %}
         {# This executable snippet is explicitly managed by authenticated administrators in
            Çerez Politikası. Customer content and order notes never use this raw output path. #}
+        {% block cookie_consent %}
         {% set cookieScript = storefront_cookie_script() %}
         {% if cookieScript %}{{ cookieScript|raw }}{% endif %}
+        {% endblock %}
     </head>
 <body class="storefront-page" data-controller="storefront-shell">
         <a class="skip-link" href="#main-content">İçeriğe geç</a>
         {# The theme's notice band sits above the header, at the very top of the page, and there is
            only ever one of them. A page that has no CMS announcement keeps the store's own line;
            the homepage overrides this block with whatever the administrator wrote. #}
-        {% block notice %}{% include 'storefront/layout/_notice.html.twig' with {text: 'Adana\'dan Türkiye\'nin her yerine güvenli gönderim'} only %}{% endblock %}
+        {% block notice %}{% include 'storefront/layout/_notice.html.twig' with {text: 'Adana\'dan Türkiye\'nin her yerine güvenli gönderim', script_free_navigation: script_free_navigation|default(false)} only %}{% endblock %}
         {% include 'storefront/layout/_header.html.twig' %}
 
     <div class="storefront-content">

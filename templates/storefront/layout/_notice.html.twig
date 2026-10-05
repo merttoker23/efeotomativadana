@@ -6,10 +6,10 @@
    in one place, and the header's own announcement slot is this element rather than a copy of it. #}
 <div class="notice" role="status" data-storefront-shell-target="announcement">
     <p class="notice-text">{{ text }}</p>
-    <button
+    {% if not script_free_navigation|default(false) %}<button
         class="notice-close"
         type="button"
         aria-label="Duyuruyu kapat"
         data-action="storefront-shell#dismissAnnouncement"
-    >×</button>
+    >×</button>{% endif %}
 </div>

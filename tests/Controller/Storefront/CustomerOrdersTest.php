@@ -11,6 +11,7 @@ use App\Entity\Commerce\Shipment;
 use App\Entity\Customer\CustomerUser;
 use App\Module\Order\OrderAddressRole;
 use App\Module\Order\OrderState;
+use App\Module\Payment\PaymentState;
 use App\Module\Payment\SanitizedFailure;
 use App\Module\Returns\ReturnState;
 use App\Module\Shipping\ShipmentState;
@@ -112,6 +113,62 @@ final class CustomerOrdersTest extends WebTestCase
          $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler', ['page' => 2]);
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-testid="order-row"]'));
+    }
+
+    public function testUnpaidOrdersOfferRecoveryInTheCollapsedCardAndPaymentSummary(): void
+    {
+        $customer = $this->createCustomer('recovery@example.com');
+        $cases = [
+            [null, OrderState::Placed, true, 'Ödeme bekleniyor'],
+            [PaymentState::Pending, OrderState::Placed, true, 'Ödeme bekleniyor'],
+            [PaymentState::RequiresAction, OrderState::Placed, true, 'Ödeme bekleniyor'],
+            [PaymentState::Failed, OrderState::Placed, true, 'Ödeme başarısız'],
+            [PaymentState::Succeeded, OrderState::Confirmed, false, 'Ödendi'],
+            [PaymentState::Refunded, OrderState::Confirmed, false, 'İade edildi'],
+            [PaymentState::Pending, OrderState::Cancelled, false, 'Ödeme bekleniyor'],
+            [PaymentState::Pending, OrderState::Completed, false, 'Ödeme bekleniyor'],
+        ];
+        $orders = [];
+        foreach ($cases as $index => [$state, $orderState, $canPay, $label]) {
+            $order = $this->placedOrder($customer, sprintf('EOA-20261005-ABCD%08d', $index));
+            if (OrderState::Completed === $orderState) {
+                $order->transitionTo(OrderState::Confirmed);
+            }
+            if (OrderState::Placed !== $orderState) {
+                $order->transitionTo($orderState);
+            }
+            if (null !== $state) {
+                $payment = Payment::start($order, 'paytr', $order->grandTotal(), new \DateTimeImmutable());
+                $payment->beginAttempt('presentation-'.$order->orderNumber());
+                (new \ReflectionProperty(Payment::class, 'state'))->setValue($payment, $state);
+                $this->entityManager->persist($payment);
+            }
+            $orders[] = [$order->orderNumber(), $canPay, $label];
+        }
+        $this->entityManager->flush();
+        $this->client->loginUser($customer, 'main');
+        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler');
+        self::assertResponseIsSuccessful();
+        self::assertCount(4, $crawler->filter('summary .order-payment-link'));
+        self::assertSame(array_fill(0, 4, 'Ödemeyi Tamamla'), $crawler->filter('summary .order-payment-link')->each(static fn ($link): string => $link->text()));
+        foreach ($orders as $index => [$number, $canPay, $label]) {
+            $link = $crawler->filter(sprintf('a.order-payment-link[href="/yeni/odeme/%s"]', $number));
+            self::assertCount($canPay ? 1 : 0, $link);
+            $this->client->request('GET', '/yeni/odeme/'.$number);
+            self::assertResponseIsSuccessful();
+            self::assertSelectorTextContains('.payment-status-badge', $label);
+            self::assertSelectorTextNotContains('main', 'requires_action');
+            self::assertSelectorTextNotContains('main', 'pending');
+            self::assertSelectorTextNotContains('main', 'failed');
+            self::assertSelectorCount($canPay ? 1 : 0, '.payment-action-primary');
+            self::assertSelectorCount($canPay && $index > 0 ? 1 : 0, '.payment-action-danger');
+            if ($canPay) {
+                self::assertSelectorExists('form input[name="_token"]');
+                self::assertSelectorTextContains('.payment-action-primary', 'Ödemeyi tamamla');
+            }
+            self::assertSelectorTextContains('.payment-total dt', 'Toplam');
+            self::assertSelectorExists('.payment-total dd');
+        }
     }
 
     /**

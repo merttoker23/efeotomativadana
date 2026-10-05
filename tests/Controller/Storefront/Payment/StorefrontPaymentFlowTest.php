@@ -385,7 +385,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->client->request('GET', sprintf('/yeni/odeme/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('yeniden dene', (string) $this->client->getResponse()->getContent());
+        self::assertSelectorTextContains('.payment-status-secondary-actions button', 'Tekrar dene');
     }
 
     public function testThePaymentPageHidesRetryForACapturedPayment(): void
@@ -406,7 +406,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->client->request('GET', sprintf('/yeni/odeme/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
-        self::assertStringNotContainsString('yeniden dene', (string) $this->client->getResponse()->getContent());
+        self::assertSelectorNotExists('.payment-status-actions');
     }
 
     /** Opens a session and renders the checkout page so its real CSRF token is used. */

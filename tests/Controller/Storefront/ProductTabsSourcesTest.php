@@ -235,7 +235,7 @@ final class ProductTabsSourcesTest extends WebTestCase
         );
     }
 
-    public function testEveryHomepageProductSectionShowsOnlySellableProductsAndPreservesItsOrder(): void
+    public function testEveryHomepageProductSectionKeepsUnavailableProductsAndManualOrder(): void
     {
         $products = [];
         $customer = $this->customer('stock-tabs@example.com');
@@ -250,7 +250,7 @@ final class ProductTabsSourcesTest extends WebTestCase
             $price->scheduleSale(Money::ofMinor(9_000 - $index * 1_000, 'TRY'), null, null);
         }
         $this->manager->flush();
-        // Both parts of the domain's sellable criterion matter, including positive but blocked stock.
+        // Both zero stock and positive but blocked stock must remain visible in CMS selections.
         $this->connection->update('commerce_product_inventory', ['quantity' => 0], ['product_id' => $products[3]->id()]);
         $this->connection->update('commerce_product_inventory', ['available_for_sale' => 0], ['product_id' => $products[1]->id()]);
         $manual = [$products[3]->slug(), $products[0]->slug(), $products[1]->slug(), $products[2]->slug()];
@@ -277,22 +277,25 @@ final class ProductTabsSourcesTest extends WebTestCase
         $crawler = $this->home();
         $panels = $this->panels($crawler);
         for ($index = 0; $index < 3; ++$index) {
-            self::assertSame(['stock-tab-2', 'stock-tab-0'], $this->slugs($panels[$index]));
+            self::assertSame(['stock-tab-2', 'stock-tab-0', 'stock-tab-3', 'stock-tab-1'], $this->slugs($panels[$index]));
         }
-        self::assertSame(['stock-tab-0', 'stock-tab-2'], $this->slugs($panels[3]));
-        self::assertSame(['/yeni/urun/stock-tab-0', '/yeni/urun/stock-tab-2'], $crawler->filter('.top-sellers a.seller')->extract(['href']));
+        self::assertSame($manual, $this->slugs($panels[3]));
+        self::assertSame(array_map(static fn (string $slug): string => '/yeni/urun/'.$slug, $manual), $crawler->filter('.top-sellers a.seller')->extract(['href']));
         foreach (['Stock grid', 'Stock split'] as $title) {
-            self::assertSame(['stock-tab-0', 'stock-tab-2'], $this->slugs($crawler->filter('section[aria-label="'.$title.'"]')));
+            self::assertSame($manual, $this->slugs($crawler->filter('section[aria-label="'.$title.'"]')));
         }
-        self::assertStringNotContainsString('Stokta Yok', $crawler->filter('main')->text());
+        self::assertStringContainsString('Stokta Yok', $crawler->filter('main')->text());
+        self::assertCount(1, $crawler->filter('section[aria-label="Stock split"] .big-promo'));
 
-        // Stock disappearing later also removes the cards from every area on the next request.
+        // Losing all stock keeps the configured sections and banner, with purchase controls disabled.
         $this->connection->update('commerce_product_inventory', ['quantity' => 0], ['product_id' => $products[0]->id()]);
         $this->connection->update('commerce_product_inventory', ['available_for_sale' => 0], ['product_id' => $products[2]->id()]);
         $crawler = $this->home();
-        self::assertCount(0, $crawler->filter('main .product-card, main .seller'));
-        self::assertCount(4, $crawler->filter('.product-grid-empty'));
-        self::assertCount(0, $crawler->filter('section[aria-label="Stock grid"], section[aria-label="Stock split"], .top-sellers'));
+        self::assertCount(24, $crawler->filter('main .product-card'));
+        self::assertCount(4, $crawler->filter('main .seller'));
+        self::assertCount(0, $crawler->filter('.product-grid-empty, main .cart-add-form'));
+        self::assertCount(3, $crawler->filter('section[aria-label="Stock grid"], section[aria-label="Stock split"], .top-sellers'));
+        self::assertCount(1, $crawler->filter('section[aria-label="Stock split"] .big-promo'));
     }
 
     /** @return array<int, Crawler> */

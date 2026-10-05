@@ -357,6 +357,7 @@ final class SettingsControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Çerez Politikası');
+        self::assertSame('Çerez Politikası', $crawler->filter('.admin-sidebar nav .nav-link')->last()->text());
         self::assertSame(['Çerez Politikası'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['cookie_settings[script]'] = '  '.$snippet.'  ';

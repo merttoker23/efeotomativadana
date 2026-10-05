@@ -6,7 +6,6 @@ namespace App\Module\Order;
 
 use App\Entity\Commerce\CustomerOrder;
 use App\Entity\Commerce\Payment;
-use App\Entity\Commerce\PaymentState;
 use App\Entity\Commerce\Shipment;
 use App\Module\Payment\PaymentState as PaymentStateAlias;
 use App\Module\Shipping\ShipmentTrackingView;
@@ -42,6 +41,7 @@ final readonly class OrderSummary
         private ?Money $capturedAmount,
         private ?Money $refundedAmount,
         private ?ShipmentTrackingView $tracking,
+        private bool $canPay,
     ) {
     }
 
@@ -62,6 +62,10 @@ final readonly class OrderSummary
             null === $payment ? null : $payment->capturedAmount(),
             null === $payment ? null : $payment->refundedAmount(),
             null === $shipment ? null : ShipmentTrackingView::forShipment($shipment),
+            !in_array($order->state(), [OrderState::Cancelled, OrderState::Completed], true)
+                && (null === $payment || ($payment->state()->canBeRetried()
+                    && 0 === $payment->capturedAmount()->minorAmount()
+                    && 0 === $payment->refundedAmount()->minorAmount())),
         );
     }
 
@@ -81,7 +85,7 @@ final readonly class OrderSummary
             PaymentStateAlias::PartiallyRefunded => 'Kısmen iade edildi',
             PaymentStateAlias::Refunded => 'İade edildi',
             PaymentStateAlias::CapturedAmountMismatch => 'Ödeme alındı, tutar farklı',
-            PaymentStateAlias::RequiresAction => 'Ödemeniz bekleniyor',
+            PaymentStateAlias::RequiresAction => 'Ödeme bekleniyor',
             PaymentStateAlias::Pending => $captured ? 'Ödeme alındı' : 'Ödeme bekleniyor',
             PaymentStateAlias::Failed => 'Ödeme başarısız',
             PaymentStateAlias::Cancelled => 'Ödeme iptal edildi',
@@ -109,6 +113,7 @@ final readonly class OrderSummary
     }
 
     public function hasPayment(): bool { return null !== $this->paymentState; }
+    public function canPay(): bool { return $this->canPay; }
     public function paymentState(): ?string { return $this->paymentState; }
     public function paymentStatusLabel(): ?string { return $this->paymentStatusLabel; }
     public function paymentMethodLabel(): ?string { return $this->paymentMethodLabel; }

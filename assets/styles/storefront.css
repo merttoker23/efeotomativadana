@@ -410,6 +410,46 @@ select:focus-visible {
     transform: rotate(180deg);
 }
 
+/* Card-entry pages keep scripts disabled; native disclosures provide the same navigation. */
+.script-free-account-menu[open] .action-caret {
+    transform: rotate(180deg);
+}
+
+.script-free-account-menu > summary,
+.script-free-mobile-menu > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.script-free-account-menu > summary::-webkit-details-marker,
+.script-free-mobile-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.site-header:has(.script-free-mobile-menu) {
+    position: relative;
+}
+
+.script-free-mobile-menu {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    .script-free-mobile-menu {
+        display: block;
+    }
+
+    .script-free-mobile-menu .mobile-navigation {
+        position: absolute;
+        z-index: 60;
+        inset-inline: 0;
+        top: 100%;
+        max-height: 65vh;
+        overflow-y: auto;
+        box-shadow: 0 14px 34px rgb(7 30 60 / 18%);
+    }
+}
+
 .action-caret {
     display: block;
     flex: 0 0 12px;
@@ -2721,9 +2761,34 @@ select:focus-visible {
 .checkout-summary small { color: #66717d; display: block; margin-top: 14px; }
 .cart-checkout-link { margin-top: 16px; width: 100%; }
 .order-success-card { text-align: center; }
-/* The payment status page reuses the order card but carries forms and money figures, which
-   read badly centred, so it opts out of the inherited centring. */
-.payment-status-card { text-align: left; }
+/* Payment recovery: one customer-facing summary, with the existing protected actions. */
+.payment-status-page { min-height: 0; }
+.payment-status-card { max-width: 640px; padding: clamp(20px, 4vw, 36px); border: 1px solid var(--storefront-line); border-radius: 14px; background: #fff; box-shadow: 0 8px 24px rgb(9 42 83 / 6%); text-align: left; }
+.payment-status-header h1 { margin: 8px 0 12px; color: var(--storefront-navy); font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.2; }
+.payment-order-number { margin: 0 0 16px; color: var(--storefront-muted); font-size: .85rem; overflow-wrap: anywhere; }
+.payment-order-number strong { color: var(--storefront-ink); }
+.payment-status-badge { display: inline-flex; padding: 7px 12px; border: 1px solid var(--storefront-line); border-radius: 999px; color: var(--storefront-navy); background: #f1f5f9; font-size: .82rem; font-weight: 700; }
+.payment-status-badge.is-awaiting { background: #fff5d2; border-color: #f2dd9b; }
+.payment-status-totals { display: grid; gap: 14px; margin: 24px 0; padding: 20px 0; border-block: 1px solid var(--storefront-line); }
+.payment-status-totals > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; align-items: baseline; }
+.payment-status-totals dt { color: var(--storefront-muted); font-size: .86rem; }
+.payment-status-totals dd { min-width: 0; margin: 0; text-align: right; overflow-wrap: anywhere; font-size: .9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.payment-status-totals .payment-total { padding-top: 14px; border-top: 1px solid var(--storefront-line); }
+.payment-total dt, .payment-total dd { color: var(--storefront-navy); font-size: 1.15rem; font-weight: 750; }
+.payment-status-hint { color: var(--storefront-muted); font-size: .88rem; line-height: 1.6; margin: 0 0 20px; }
+.payment-status-actions { display: grid; gap: 12px; }
+.payment-status-actions form { min-width: 0; margin: 0; }
+.payment-status-secondary-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.payment-status-secondary-actions form { flex: 1 1 180px; }
+.payment-action-primary, .payment-action-secondary { appearance: none; display: inline-flex; justify-content: center; align-items: center; width: 100%; min-height: 46px; padding: 12px 16px; border: 1px solid transparent; border-radius: 8px; font: inherit; font-size: .88rem; font-weight: 700; cursor: pointer; }
+.payment-action-primary { color: var(--storefront-navy); background: var(--storefront-yellow); }
+.payment-action-secondary { color: var(--storefront-navy); background: #fff; border-color: var(--storefront-line); }
+.payment-action-danger { color: #a02b32; border-color: #edc9cc; }
+.payment-action-primary:hover, .order-payment-link:hover { filter: brightness(.96); }
+.payment-action-secondary:hover { background: #f7f9fb; }
+.payment-continue-link { display: flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; max-width: 100%; min-height: 44px; margin: 22px auto 0; color: var(--storefront-muted); font-size: .85rem; }
+.payment-continue-link:hover { color: var(--storefront-navy); }
+.payment-action-primary:focus-visible, .payment-action-secondary:focus-visible, .payment-continue-link:focus-visible, .order-payment-link:focus-visible { outline: 3px solid #6ea4e5; outline-offset: 3px; }
 
 /* Provider form: CSS only; card values travel directly to the signed action URL. */
 .payment-gateway-page { min-height: 0; }
@@ -3644,22 +3709,31 @@ select:focus-visible {
 
 /* The marquee band. */
 .marquee {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 28px;
-    height: 68.8px;
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
     margin-top: 1.5rem;
     overflow: hidden;
-    color: #0d294e;
-    background: var(--storefront-yellow);
-    font-size: 27.2px;
-    font-weight: 800;
-    text-align: center;
+    color: #fff;
+    background: var(--storefront-navy-light);
+    font-size: 16px;
+    font-weight: 650;
+    line-height: 1.25;
 }
-
-.marquee .dot {
-    font-size: 14.4px;
+.marquee-track { display: flex; width: max-content; animation: storefront-ticker 80s linear infinite; }
+.marquee-group { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-around; gap: 28px; min-width: 100vw; min-height: 52px; padding: 0 28px 0 0; }
+.marquee-item { flex-shrink: 0; white-space: nowrap; }
+.marquee .dot { flex-shrink: 0; font-size: .6em; color: var(--storefront-yellow); }
+@keyframes storefront-ticker {
+    to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .marquee { height: auto; }
+    .marquee-track { width: 100%; animation: none; }
+    .marquee-group { min-width: 0; width: 100%; flex-wrap: wrap; justify-content: center; gap: 12px 20px; padding: 18px; }
+    .marquee-group[aria-hidden="true"], .marquee-item[aria-hidden="true"] { display: none; }
+    .marquee-item { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+    .marquee-item[aria-hidden="true"] + .dot { display: none; }
 }
 
 /* The closing row: quotes beside the blog feed. */
@@ -4281,23 +4355,8 @@ select:focus-visible {
         overflow-wrap: anywhere;
     }
 
-    .marquee {
-        height: auto;
-        min-height: 68.8px;
-        flex-wrap: wrap;
-        gap: 0.625rem 1.25rem;
-        padding: 1rem;
-        font-size: 1rem;
-    }
-
-    .marquee-item {
-        max-width: 100%;
-        overflow-wrap: anywhere;
-    }
-
-    .marquee .dot {
-        display: none;
-    }
+    .marquee { min-height: 44px; font-size: 14px; }
+    .marquee-group { min-height: 44px; column-gap: 20px; padding-right: 20px; }
 }
 
 /* Post-purchase account area: order list, order detail, returns. */
@@ -4358,6 +4417,7 @@ select:focus-visible {
 .order-card-count { color: var(--storefront-muted); font-size: .8rem; }
 .order-card-amount { text-align: right; overflow-wrap: anywhere; }
 .order-card-amount strong { color: var(--storefront-navy); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.order-payment-link { display: inline-flex; justify-self: end; align-items: center; justify-content: center; max-width: 100%; min-height: 36px; padding: 7px 12px; border-radius: 6px; color: var(--storefront-navy); background: var(--storefront-yellow); font-size: .78rem; font-weight: 750; text-decoration: none; }
 .order-card-toggle { display: flex; gap: 6px; align-items: center; color: var(--storefront-navy); font-size: .8rem; font-weight: 600; }
 .order-card-toggle svg { flex-shrink: 0; }
 .order-disclosure:not([open]) .when-open, .order-disclosure[open] .when-closed { display: none; }
