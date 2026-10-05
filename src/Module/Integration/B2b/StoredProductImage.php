@@ -7,7 +7,7 @@ final readonly class StoredProductImage
     public string $path;
     public string $absolutePath;
 
-    public function __construct(string $path, string $absolutePath)
+    public function __construct(string $path, string $absolutePath, public ?string $etag = null, public ?string $lastModified = null)
     {
         if (1 !== preg_match('~^/uploads/products/[a-z0-9]+\.(?:jpg|png|webp)$~', $path)) {
             throw new \InvalidArgumentException('Stored product image path is invalid.');

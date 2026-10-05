@@ -26,6 +26,9 @@ final class B2bCatalogWriter
     /** @var list<StoredProductImage> */
     private array $pendingMedia = [];
     private bool $mediaTransactionActive = false;
+    private ?int $brandLogoRunId = null;
+    /** @var array<string, bool> */
+    private array $brandLogoMappings = [];
 
     public function __construct(
         private B2bResourceResolver $resources,
@@ -37,6 +40,7 @@ final class B2bCatalogWriter
         private ProductInventoryRepositoryInterface $inventoryRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private ?B2bBrandLogoSynchronizer $brandLogos = null,
     ) {
     }
 
@@ -46,16 +50,19 @@ final class B2bCatalogWriter
             throw new \LogicException('A B2B media transaction is already active.');
         }
         $this->mediaTransactionActive = true;
+        $this->brandLogos?->beginTransaction();
     }
 
     public function commitMediaTransaction(): void
     {
         $this->pendingMedia = [];
         $this->mediaTransactionActive = false;
+        $this->brandLogos?->commit();
     }
 
     public function rollbackMediaTransaction(): void
     {
+        $this->brandLogos?->rollback();
         foreach ($this->pendingMedia as $image) {
             $this->removeStoredImage($image);
         }
@@ -116,6 +123,8 @@ final class B2bCatalogWriter
             $this->inventory->upsert($product, $item->stock(), $item->stock() > 0);
             $counters = $counters->recordPriceUpdated()->recordStockUpdated();
 
+            [$counters, $deferredErrors] = $this->importBrandLogo($product, $item, $runId, $counters, $deferredErrors);
+
             return B2bItemResult::success($product, $counters, $deferredErrors);
         } catch (B2bResourceConflictException|B2bProductIdentityConflictException|CatalogConflict $exception) {
             return B2bItemResult::failure(new B2bItemError(B2bErrorType::Conflict, $exception->getMessage(), $item->externalId()));
@@ -143,11 +152,35 @@ final class B2bCatalogWriter
             $this->resources->markProductSeen($item, $runId, $seenAt);
             $counters = $counters->recordUpdated()->recordPriceUpdated()->recordStockUpdated();
             [$counters, $errors] = $this->importFullImages($product, $item, $runId, $seenAt, $counters, []);
+            [$counters, $errors] = $this->importBrandLogo($product, $item, $runId, $counters, $errors);
 
             return B2bItemResult::success($product, $counters, $errors);
         } catch (B2bProductIdentityConflictException $exception) {
             return B2bItemResult::failure(new B2bItemError(B2bErrorType::Conflict, $exception->getMessage(), $item->externalId()));
         }
+    }
+
+    /** @param list<B2bItemError> $errors
+     * @return array{B2bSyncCounters, list<B2bItemError>}
+     */
+    private function importBrandLogo(Product $product, NormalizedCatalogFeedItem $item, int $runId, B2bSyncCounters $counters, array $errors): array
+    {
+        $brandId = $product->brand()?->id();
+        if (null !== $brandId && null !== $item->brandLogoUrl() && null !== $item->brandExternalId()) {
+            if ($this->brandLogoRunId !== $runId) {
+                $this->brandLogoRunId = $runId;
+                $this->brandLogoMappings = [];
+            }
+            $key = $item->brandExternalId()."\0".$brandId;
+            $this->brandLogoMappings[$key] ??= $this->resources->isMappedBrand($item->brandExternalId(), $brandId);
+            if (!$this->brandLogoMappings[$key]) return [$counters, $errors];
+            $error = $this->brandLogos?->sync($brandId, $item->brandLogoUrl(), $item->brandExternalId(), $runId);
+            if (null !== $error) {
+                $errors[] = $error;
+                $counters = $counters->recordImagesFailed();
+            }
+        }
+        return [$counters, $errors];
     }
 
     private function addIdentifiers(Product $product, NormalizedCatalogFeedItem $item): int

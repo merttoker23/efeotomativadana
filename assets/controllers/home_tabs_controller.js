@@ -58,6 +58,7 @@ export default class extends Controller {
     }
 
     onKeydown(event) {
+        if (!this.tabTargets.includes(event.target)) return;
         const total = this.tabTargets.length;
         if (total < 2) {
             return;

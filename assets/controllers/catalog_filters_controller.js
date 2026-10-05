@@ -28,6 +28,7 @@ export default class extends Controller {
         if (this.submitting || !this.element.reportValidity()) return;
 
         const destination = new URL(this.element.action, window.location.href);
+        destination.search = window.location.search;
         this.copyFields(destination, new FormData(this.element));
         destination.searchParams.delete('page');
         destination.hash = 'catalog-results';
@@ -68,6 +69,10 @@ export default class extends Controller {
         if (!this.element.reportValidity()) return;
 
         const destination = new URL(event.currentTarget.href, window.location.href);
+        const knownFilters = ['q', 'sort', 'category', 'brand', 'min_price', 'max_price', 'availability', 'page'];
+        for (const [key, value] of new URL(window.location.href).searchParams) {
+            if (!knownFilters.includes(key) && !destination.searchParams.has(key)) destination.searchParams.append(key, value);
+        }
         const fields = new FormData(this.element);
         // Category/brand routing comes from the clicked link; editable fields come from the form.
         this.copyFields(destination, fields, ['q', 'sort', 'min_price', 'max_price', 'availability']);

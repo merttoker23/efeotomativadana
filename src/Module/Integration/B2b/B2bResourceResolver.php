@@ -420,6 +420,12 @@ final class B2bResourceResolver
         $this->entityManager->flush();
     }
 
+    public function isMappedBrand(string $externalId, int $localBrandId): bool
+    {
+        $mapping = $this->mappings->findOneByExternalId($this->providerKey, B2bResourceType::Brand, $externalId);
+        return null !== $mapping && 'brand' === $mapping->localResourceType() && (string) $localBrandId === $mapping->localResourceId();
+    }
+
     private function assertMappedProductIdentity(ExternalResourceMapping $mapping, Product $product, NormalizedCatalogFeedItem $item): void
     {
         if (!B2bProductIdentity::sameSku($product->sku(), $item->sku())) {

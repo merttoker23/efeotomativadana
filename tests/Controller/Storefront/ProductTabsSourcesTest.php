@@ -276,6 +276,9 @@ final class ProductTabsSourcesTest extends WebTestCase
 
         $crawler = $this->home();
         $panels = $this->panels($crawler);
+
+        self::assertCount(4, $crawler->filter('section[data-controller="home-tabs"] [role="tabpanel"]'));
+        self::assertCount(4, $crawler->filter('section[data-controller="home-tabs"] [role="tab"]'));
         for ($index = 0; $index < 3; ++$index) {
             self::assertSame(['stock-tab-2', 'stock-tab-0', 'stock-tab-3', 'stock-tab-1'], $this->slugs($panels[$index]));
         }

@@ -30,7 +30,7 @@ final readonly class EfeFeedNormalizer
     }
 
     /** @param array<string, mixed> $record */
-    public function normalize(array $record): NormalizedCatalogFeedItem
+    public function normalize(array $record, ?string $brandLogoUrl = null): NormalizedCatalogFeedItem
     {
         try {
             $externalId = $this->requiredString($record['id'] ?? null, 'id', 191);
@@ -66,6 +66,7 @@ final readonly class EfeFeedNormalizer
                 stock: $stock,
                 imageUrls: $imageUrls,
                 imageErrors: $imageErrors,
+                brandLogoUrl: null !== $brandExternalId && null !== $brandLogoUrl && $this->validImageUrl($brandLogoUrl) ? $brandLogoUrl : null,
             );
         } catch (B2bPermanentProviderException $exception) {
             throw $exception;

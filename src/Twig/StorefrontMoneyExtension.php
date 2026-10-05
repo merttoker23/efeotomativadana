@@ -15,6 +15,7 @@ final class StorefrontMoneyExtension extends AbstractExtension
         return [
             new TwigFilter('storefront_money', $this->format(...)),
             new TwigFilter('storefront_price_input', $this->priceInput(...)),
+            new TwigFilter('storefront_price_display', $this->priceDisplay(...)),
         ];
     }
 
@@ -39,6 +40,11 @@ final class StorefrontMoneyExtension extends AbstractExtension
         return 0 === $fraction
             ? (string) intdiv($minor, 100)
             : intdiv($minor, 100).'.'.str_pad((string) $fraction, 2, '0', \STR_PAD_LEFT);
+    }
+
+    public function priceDisplay(?int $minor): string
+    {
+        return null === $minor ? '' : number_format(intdiv($minor, 100), 0, ',', '.').','.str_pad((string) ($minor % 100), 2, '0', \STR_PAD_LEFT);
     }
 
     public function format(Money $money): string

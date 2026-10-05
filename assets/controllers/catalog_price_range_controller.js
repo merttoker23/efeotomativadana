@@ -1,18 +1,51 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['minInput', 'maxInput', 'minRange', 'maxRange', 'track'];
+    static targets = ['minInput', 'maxInput', 'minCanonical', 'maxCanonical', 'minRange', 'maxRange', 'track'];
 
     connect() {
         this.inputsChanged();
     }
 
     inputsChanged() {
+        for (const bound of ['min', 'max']) {
+            const input = this[`${bound}InputTarget`];
+            const canonical = this.parse(input.value);
+            this[`${bound}CanonicalTarget`].value = canonical ?? '';
+            input.setCustomValidity(canonical === null ? 'Geçerli, negatif olmayan bir fiyat girin (ör. 1.000,00).' : '');
+        }
+        const min = this.minCanonicalTarget.value;
+        const max = this.maxCanonicalTarget.value;
+        if (min !== '' && max !== '' && BigInt(min.replace('.', '')) > BigInt(max.replace('.', ''))) {
+            this.maxInputTarget.setCustomValidity('Maksimum fiyat minimum fiyattan küçük olamaz.');
+        }
         if (this.hasMinRangeTarget) {
-            this.minRangeTarget.value = this.minInputTarget.value || this.minRangeTarget.min;
-            this.maxRangeTarget.value = this.maxInputTarget.value || this.maxRangeTarget.max;
+            this.minRangeTarget.value = min || this.minRangeTarget.min;
+            this.maxRangeTarget.value = max || this.maxRangeTarget.max;
         }
         this.render();
+    }
+
+    parse(value) {
+        value = value.trim();
+        if (value === '') return '';
+        if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/.test(value)) return null;
+        const [major, fraction = ''] = value.replaceAll('.', '').split(',');
+        const canonical = `${major.replace(/^0+(?=\d)/, '')}.${fraction.padEnd(2, '0')}`;
+        return BigInt(major + fraction.padEnd(2, '0')) <= 9223372036854775807n ? canonical : null;
+    }
+
+    format(value) {
+        const [major, fraction = ''] = (typeof value === 'number' ? value.toFixed(2) : value).split('.');
+        return `${major.replace(/\B(?=(\d{3})+(?!\d))/g, '.')},${fraction.padEnd(2, '0')}`;
+    }
+
+    formatInputs() {
+        this.inputsChanged();
+        for (const bound of ['min', 'max']) {
+            const canonical = this[`${bound}CanonicalTarget`].value;
+            if (canonical !== '') this[`${bound}InputTarget`].value = this.format(canonical);
+        }
     }
 
     rangeChanged(event) {
@@ -24,15 +57,9 @@ export default class extends Controller {
         }
         this.minRangeTarget.value = min;
         this.maxRangeTarget.value = max;
-        // The fields are typed into, so they take the plain decimal the listing reads back, not
-        // the fixed two-decimal form the slider steps in.
-        this.minInputTarget.value = this.decimal(min);
-        this.maxInputTarget.value = this.decimal(max);
-        this.render();
-    }
-
-    decimal(value) {
-        return Number(value).toFixed(2).replace(/\.?0+$/, '') || '0';
+        this.minInputTarget.value = this.format(min);
+        this.maxInputTarget.value = this.format(max);
+        this.inputsChanged();
     }
 
     render() {

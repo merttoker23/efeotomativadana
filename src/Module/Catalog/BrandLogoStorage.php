@@ -56,7 +56,14 @@ final readonly class BrandLogoStorage
             throw new \RuntimeException('Logo dosyası hazırlanamadı.');
         }
         try {
-            if (!imagejpeg($canvas, $temporary, 90) || !@chmod($temporary, 0644) || !@rename($temporary, $this->directory.'/'.$brandId.'.jpg')) {
+            if (!imagejpeg($canvas, $temporary, 90)) {
+                throw new \RuntimeException('Logo kaydedilemedi. Lütfen tekrar deneyin.');
+            }
+            $destination = $this->directory.'/'.$brandId.'.jpg';
+            if (is_file($destination) && hash_file('sha256', $temporary) === hash_file('sha256', $destination)) {
+                return;
+            }
+            if (!@chmod($temporary, 0644) || !@rename($temporary, $destination)) {
                 throw new \RuntimeException('Logo kaydedilemedi. Lütfen tekrar deneyin.');
             }
         } finally {

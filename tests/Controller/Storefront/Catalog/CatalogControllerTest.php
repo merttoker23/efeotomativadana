@@ -94,6 +94,9 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorCount(30, '.product-card');
         self::assertSame('10.00', $crawler->filter('.sort-form input[name="min_price"]')->attr('value'));
         self::assertSame('1000.00', $crawler->filter('.sort-form input[name="max_price"]')->attr('value'));
+        self::assertSame('hidden', $crawler->filter('.catalog-filter-form input[name="min_price"]')->attr('type'));
+        self::assertSame('10,00', $crawler->filter('[data-catalog-price-range-target="minInput"]')->attr('value'));
+        self::assertSame('1.000,00', $crawler->filter('[data-catalog-price-range-target="maxInput"]')->attr('value'));
         self::assertSelectorExists('[data-controller="catalog-price-range"] input[type="range"]');
         self::assertSelectorNotExists('.catalog-filter-form button[type="submit"]');
         self::assertStringContainsString('change->catalog-filters#submit', $crawler->filter('input[name="availability"]')->attr('data-action'));
@@ -318,8 +321,8 @@ final class CatalogControllerTest extends WebTestCase
         $crawler = $this->client->request('GET', '/yeni/markalar');
         self::assertSelectorTextNotContains('main', 'Üreticiler');
         $card = $crawler->filter('.brand-grid a[href="/yeni/marka/logo-brand#catalog-results"]');
-        self::assertSame('/img/ureticiler/'.$brand->id().'.jpg', $card->filter('img')->attr('src'));
-        self::assertStringContainsString('product-placeholder', $card->filter('img')->attr('data-fallback-src'));
+        self::assertStringContainsString('/yeni/assets/storefront/images/brand-placeholder-', $card->filter('img')->attr('src'));
+        self::assertStringContainsString('brand-placeholder', $card->filter('img')->attr('data-fallback-src'));
         self::assertSame('Logo Brand', $card->filter('strong')->text());
         self::assertSame('0 ürün', $card->filter('span')->text());
     }

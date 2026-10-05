@@ -10,6 +10,7 @@ use Twig\TwigFunction;
 
 final class BrandLogoExtension extends AbstractExtension
 {
+    public const PLACEHOLDER = 'storefront/images/brand-placeholder.svg';
     public function __construct(private readonly BrandLogoStorage $logos, private readonly StorefrontMediaExtension $media)
     {
     }
@@ -24,6 +25,6 @@ final class BrandLogoExtension extends AbstractExtension
     {
         $uploaded = $this->logos->uploadedPath($brandId);
 
-        return null === $uploaded ? '/img/ureticiler/'.$brandId.'.jpg' : $this->media->mediaUrl($uploaded);
+        return $this->media->mediaUrl($uploaded, self::PLACEHOLDER);
     }
 }

@@ -50,6 +50,7 @@ final readonly class NormalizedCatalogFeedItem
         int $stock,
         array $imageUrls,
         array $imageErrors = [],
+        private ?string $brandLogoUrl = null,
     ) {
         $this->externalId = self::required($externalId, 'External ID', 191);
         $this->sku = self::required($sku, 'SKU', 64);
@@ -78,6 +79,7 @@ final readonly class NormalizedCatalogFeedItem
     public function description(): ?string { return $this->description; }
     public function brandExternalId(): ?string { return $this->brandExternalId; }
     public function brandName(): ?string { return $this->brandName; }
+    public function brandLogoUrl(): ?string { return $this->brandLogoUrl; }
     public function categoryExternalId(): string { return $this->categoryExternalId; }
     public function categoryName(): string { return $this->categoryName; }
     /** @return list<array{ProductIdentifierType, string}> */

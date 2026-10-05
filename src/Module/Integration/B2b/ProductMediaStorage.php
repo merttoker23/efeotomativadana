@@ -49,6 +49,11 @@ final class ProductMediaStorage implements ProductMediaStorageInterface
 
     public function store(string $sourceUrl, string $altText): StoredProductImage
     {
+        return $this->storeIfModified($sourceUrl) ?? throw new B2bPermanentProviderException('Unexpected unmodified product image response.');
+    }
+
+    public function storeIfModified(string $sourceUrl, ?string $etag = null, ?string $lastModified = null): ?StoredProductImage
+    {
         $this->assertAllowedUrl($sourceUrl);
         if (!is_dir($this->directory) && !mkdir($this->directory, 0755, true) && !is_dir($this->directory)) {
             throw new B2bPermanentProviderException('Product media directory cannot be created.');
@@ -67,6 +72,11 @@ final class ProductMediaStorage implements ProductMediaStorageInterface
                 'max_duration' => $this->overallTimeout,
                 'max_redirects' => $this->maxRedirects,
             ];
+            foreach (['If-None-Match' => $etag, 'If-Modified-Since' => $lastModified] as $header => $value) {
+                if (null !== $value && strlen($value) <= 1024 && !preg_match('/[\r\n]/', $value)) {
+                    $options['headers'][$header] = $value;
+                }
+            }
             if (null !== $this->caBundle) {
                 if (!is_file($this->caBundle) || !is_readable($this->caBundle)) {
                     throw new B2bPermanentProviderException('Configured product media CA bundle is not readable.');
@@ -75,6 +85,11 @@ final class ProductMediaStorage implements ProductMediaStorageInterface
             }
             $response = $this->request($sourceUrl, $options, $deadline);
             $status = $response->getStatusCode();
+            if (304 === $status && (null !== $etag || null !== $lastModified)) {
+                $this->assertAllowedUrl((string) ($response->getInfo('url') ?: $sourceUrl));
+                $response->cancel();
+                return null;
+            }
             if ($status >= 500 || in_array($status, [408, 425, 429], true)) {
                 throw new B2bRetryableProviderException('Product image source returned a temporary failure.', $status);
             }
@@ -135,7 +150,8 @@ final class ProductMediaStorage implements ProductMediaStorageInterface
             }
             $this->publish($absolutePath, 0o644);
 
-            return new StoredProductImage('/uploads/products/'.$name, $absolutePath);
+            $headers = $response->getHeaders(false);
+            return new StoredProductImage('/uploads/products/'.$name, $absolutePath, $headers['etag'][0] ?? null, $headers['last-modified'][0] ?? null);
         } catch (B2bPermanentProviderException|B2bRetryableProviderException $exception) {
             throw $exception;
         } catch (TransportExceptionInterface $exception) {

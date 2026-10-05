@@ -23,10 +23,12 @@
                     <legend>Fiyat Aralığı</legend>
                     <div class="catalog-price-inputs">
                         <label>Min (TL)
-                            <input type="number" name="min_price" min="0" step="0.01" inputmode="decimal" value="{{ price_min }}" placeholder="{{ bound_min|default('0') }}" data-catalog-price-range-target="minInput" data-action="input->catalog-price-range#inputsChanged input->catalog-filters#debounce change->catalog-filters#submit">
+                            <input type="hidden" name="min_price" value="{{ price_min }}" data-catalog-price-range-target="minCanonical">
+                            <input type="text" inputmode="decimal" value="{{ criteria.minPriceMinor|storefront_price_display }}" placeholder="{{ price_bounds.min|storefront_price_display|default('0,00') }}" data-catalog-price-range-target="minInput" data-action="input->catalog-price-range#inputsChanged input->catalog-filters#debounce change->catalog-price-range#formatInputs change->catalog-filters#submit blur->catalog-price-range#formatInputs blur->catalog-filters#submit">
                         </label>
                         <label>Max (TL)
-                            <input type="number" name="max_price" min="0" step="0.01" inputmode="decimal" value="{{ price_max }}" placeholder="{{ bound_max|default('—') }}" data-catalog-price-range-target="maxInput" data-action="input->catalog-price-range#inputsChanged input->catalog-filters#debounce change->catalog-filters#submit">
+                            <input type="hidden" name="max_price" value="{{ price_max }}" data-catalog-price-range-target="maxCanonical">
+                            <input type="text" inputmode="decimal" value="{{ criteria.maxPriceMinor|storefront_price_display }}" placeholder="{{ price_bounds.max|storefront_price_display|default('—') }}" data-catalog-price-range-target="maxInput" data-action="input->catalog-price-range#inputsChanged input->catalog-filters#debounce change->catalog-price-range#formatInputs change->catalog-filters#submit blur->catalog-price-range#formatInputs blur->catalog-filters#submit">
                         </label>
                     </div>
                     {% if bound_min != '' and bound_max != '' %}
@@ -81,10 +83,10 @@
                     {% if criteria.query %}<p class="search-context">“{{ criteria.query }}” için sonuçlar</p>{% endif %}
                 </div>
                 {% if not collection_empty %}
-                <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="sort-form" data-controller="catalog-sort">
+                <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="sort-form" data-controller="catalog-filters" data-action="submit->catalog-filters#submit pageshow@window->catalog-filters#restore">
                     {% for key, value in criteria.filterParameters(route_filter) %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
                     <label for="catalog-sort">Sırala</label>
-                    <select id="catalog-sort" name="sort" data-action="catalog-sort#submit">
+                    <select id="catalog-sort" name="sort" data-action="change->catalog-filters#submit">
                         <option value="newest"{% if criteria.sort.value == 'newest' %} selected{% endif %}>En yeni</option>
                         <option value="name-asc"{% if criteria.sort.value == 'name-asc' %} selected{% endif %}>Ada göre</option>
                         <option value="price-asc"{% if criteria.sort.value == 'price-asc' %} selected{% endif %}>Fiyat: düşükten yükseğe</option>

@@ -1248,7 +1248,8 @@ select:focus-visible {
    "Ürün Kataloğu". The panel keeps its accessible name through aria-labelledby, and these
    rules keep it looking exactly as it did while it was a heading. */
 .catalog-filters h2,
-.catalog-filters .catalog-filter-heading {
+.catalog-filters .catalog-filter-heading,
+.catalog-filters .catalog-price-range legend {
     margin: 0 0 0.65rem;
     font-size: 0.9rem;
     font-weight: 500;
@@ -2468,6 +2469,7 @@ select:focus-visible {
 }
 
 .cart-empty {
+    margin-top: 1.25rem;
     padding: 2.5rem 1rem;
     border: 1px dashed #cbd1d7;
     border-radius: 0.35rem;
@@ -2904,12 +2906,14 @@ select:focus-visible {
     background: transparent;
 }
 
+.catalog-filters .catalog-price-range + .catalog-filter-heading {
+    margin-top: 0.35rem;
+}
+
 .catalog-price-range legend {
     padding: 0;
     margin-bottom: 0.6rem;
     color: var(--storefront-navy);
-    font-size: 0.8rem;
-    font-weight: 600;
 }
 
 .catalog-price-inputs {
@@ -4928,3 +4932,14 @@ select:focus-visible {
 }
 
 .catalog-layout.catalog-layout-empty { grid-template-columns: minmax(0, 1fr); }
+
+.catalog-layout-empty .catalog-heading-row {
+    margin-bottom: 1.25rem;
+}
+
+/* Use the catalog title scale for storefront page titles, including account and checkout. */
+.storefront-page .page-shell h1:not(:where(.hero-title, #home-title)) {
+    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    font-weight: 600;
+    line-height: 1.2;
+}

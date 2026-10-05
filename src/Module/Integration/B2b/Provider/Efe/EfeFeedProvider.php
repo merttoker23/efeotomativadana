@@ -13,6 +13,7 @@ use App\Module\Integration\B2b\B2bSyncCheckpoint;
 use App\Module\Integration\B2b\Exception\B2bPermanentProviderException;
 use JsonMachine\Items;
 use JsonMachine\JsonDecoder\ExtJsonDecoder;
+use Psr\Log\LoggerInterface;
 
 final readonly class EfeFeedProvider implements B2bFeedProviderInterface
 {
@@ -22,6 +23,8 @@ final readonly class EfeFeedProvider implements B2bFeedProviderInterface
         private EfeFeedNormalizer $normalizer,
         private string $endpointUrl,
         private array $allowedHosts = [],
+        private ?EfeBrandLogoSource $brandLogos = null,
+        private ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -51,6 +54,12 @@ final readonly class EfeFeedProvider implements B2bFeedProviderInterface
         }
 
         try {
+            $logoUrls = [];
+            try {
+                $logoUrls = $this->brandLogos?->urls() ?? [];
+            } catch (\Throwable) {
+                $this->logger?->warning('Efe brand logo index could not be loaded; catalog synchronization continues.', ['run_snapshot' => basename($snapshot->path)]);
+            }
             $items = Items::fromFile($snapshot->path, [
                 'pointer' => '/data',
                 'decoder' => new ExtJsonDecoder(true),
@@ -70,7 +79,9 @@ final readonly class EfeFeedProvider implements B2bFeedProviderInterface
                     continue;
                 }
                 try {
-                    yield $position => B2bFeedRecord::success($this->normalizer->normalize($record));
+                    $manufacturerId = $record['ureticiid'] ?? null;
+                    $logoUrl = is_string($manufacturerId) ? ($logoUrls[trim($manufacturerId)] ?? null) : null;
+                    yield $position => B2bFeedRecord::success($this->normalizer->normalize($record, $logoUrl));
                 } catch (\Throwable $exception) {
                     yield $position => B2bFeedRecord::failure(new B2bItemError(
                         $this->itemErrorType($exception),

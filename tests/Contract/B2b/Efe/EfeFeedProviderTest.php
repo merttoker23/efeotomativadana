@@ -147,7 +147,22 @@ final class EfeFeedProviderTest extends TestCase
         $provider->prepareSnapshot($this->request());
     }
 
-    private function provider(string $json): EfeFeedProvider
+    public function testPublishedLogosAreMatchedByManufacturerIdAndIndexFailureDoesNotStopProducts(): void
+    {
+        foreach (['<img src="img/markalar/78.jpg">', null] as $html) {
+            $client = new MockHttpClient(new MockResponse($html ?? '', ['http_code' => null === $html ? 503 : 200, 'response_headers' => ['content-type: text/html']]));
+            $source = new \App\Module\Integration\B2b\Provider\Efe\EfeBrandLogoSource($client, 'https://b2b.efeotoyedekparca.com.tr/feed.json', ['b2b.efeotoyedekparca.com.tr'], null);
+            $provider = $this->provider($this->fixture(), $source);
+            $snapshot = $provider->prepareSnapshot($this->request());
+            $records = iterator_to_array($provider->streamItems($snapshot, new B2bSyncCheckpoint()), false);
+            self::assertTrue($records[0]->isSuccess());
+            self::assertTrue($records[1]->isSuccess());
+            self::assertSame(null === $html ? null : 'https://b2b.efeotoyedekparca.com.tr/img/markalar/78.jpg', $records[0]->item()?->brandLogoUrl());
+            self::assertSame(1, $client->getRequestsCount());
+        }
+    }
+
+    private function provider(string $json, ?\App\Module\Integration\B2b\Provider\Efe\EfeBrandLogoSource $source = null): EfeFeedProvider
     {
         $downloader = new EfeSnapshotDownloader(
             httpClient: new MockHttpClient(new MockResponse($json, ['response_headers' => ['content-type: application/json']])),
@@ -166,7 +181,7 @@ final class EfeFeedProviderTest extends TestCase
             ['b2b.efeotoyedekparca.com.tr'],
         );
 
-        return new EfeFeedProvider($downloader, $normalizer, 'https://b2b.efeotoyedekparca.com.tr/feed.json');
+        return new EfeFeedProvider($downloader, $normalizer, 'https://b2b.efeotoyedekparca.com.tr/feed.json', brandLogos: $source);
     }
 
     private function request(): B2bSnapshotRequest

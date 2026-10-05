@@ -99,6 +99,12 @@ services:
             $endpointUrl: '%env(EFE_B2B_FEED_URL)%'
             $allowedHosts: '%env(csv:EFE_B2B_ALLOWED_HOSTS)%'
 
+    App\Module\Integration\B2b\Provider\Efe\EfeBrandLogoSource:
+        arguments:
+            $endpointUrl: '%env(EFE_B2B_FEED_URL)%'
+            $allowedHosts: '%env(csv:EFE_B2B_ALLOWED_HOSTS)%'
+            $caBundle: '%env(EFE_B2B_CA_BUNDLE)%'
+
     App\Module\Integration\B2b\ProductMediaStorage:
         arguments:
             $directory: '%env(EFE_B2B_PRODUCT_MEDIA_DIR)%'

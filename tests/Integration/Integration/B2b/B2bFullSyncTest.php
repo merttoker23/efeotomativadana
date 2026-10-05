@@ -35,6 +35,74 @@ final class B2bFullSyncTest extends KernelTestCase
     private InMemoryProductMediaStorage $media;
     private CatalogManager $catalog;
 
+    public function testBrandLogoIsStoredWithMappedLocalIdAndReusedByFullAndDailyProducts(): void
+    {
+        $directory = sys_get_temp_dir().'/efe-brand-sync-'.bin2hex(random_bytes(5));
+        $logos = new \App\Module\Catalog\BrandLogoStorage($directory.'/brands', \Symfony\Component\Validator\Validation::createValidator());
+        $image = imagecreatetruecolor(2, 2);
+        ob_start(); imagepng($image); $bytes = (string) ob_get_clean();
+        $client = new \Symfony\Component\HttpClient\MockHttpClient(fn () => new \Symfony\Component\HttpClient\Response\MockResponse($bytes));
+        $writer = $this->logoWriter($directory, $logos, $client);
+        try {
+            $record = $this->fixtureRecord();
+            $record['urunresimleri'] = [];
+            $item = $this->normalizer()->normalize($record, 'https://b2b.efeotoyedekparca.com.tr/img/markalar/78.jpg');
+            $result = $writer->importFull($item, 1200);
+            self::assertTrue($result->isSuccess());
+            $localId = $result->product()?->brand()?->id();
+            self::assertNotNull($localId);
+            self::assertNotSame(78, $localId);
+            self::assertNotNull($logos->uploadedPath($localId));
+            self::assertNull($logos->uploadedPath(78));
+            $record['id'] = 'second-logo-product'; $record['stokkodu'] = 'SECOND-LOGO';
+            $second = $writer->importFull($this->normalizer()->normalize($record, $item->brandLogoUrl()), 1200);
+            self::assertTrue($second->isSuccess());
+            self::assertSame($localId, $second->product()?->brand()?->id());
+            self::assertTrue($writer->updateDaily($item, 1200)->isSuccess());
+            self::assertSame(1, $client->getRequestsCount());
+        } finally {
+            (new \Symfony\Component\Filesystem\Filesystem())->remove($directory);
+        }
+    }
+
+    public function testInvalidBrandLogoKeepsProductPriceAndStockSynchronizationSuccessful(): void
+    {
+        $directory = sys_get_temp_dir().'/efe-brand-sync-'.bin2hex(random_bytes(5));
+        $logos = new \App\Module\Catalog\BrandLogoStorage($directory.'/brands', \Symfony\Component\Validator\Validation::createValidator());
+        $client = new \Symfony\Component\HttpClient\MockHttpClient(new \Symfony\Component\HttpClient\Response\MockResponse('bad image', ['http_code' => 404]));
+        $writer = $this->logoWriter($directory, $logos, $client);
+        try {
+            $record = $this->fixtureRecord(); $record['urunresimleri'] = [];
+            $item = $this->normalizer()->normalize($record, 'https://b2b.efeotoyedekparca.com.tr/img/markalar/78.jpg');
+            $result = $writer->importFull($item, 1201);
+            self::assertTrue($result->isSuccess());
+            self::assertSame(1, $result->counters()->imagesFailed());
+            self::assertSame(1, $result->counters()->priceUpdated());
+            self::assertSame(1, $result->counters()->stockUpdated());
+            self::assertCount(1, $result->deferredErrors());
+            self::assertNull($logos->uploadedPath($result->product()->brand()->id()));
+            $record['listefiyati'] = '900.00'; $record['mevcut_stok'] = '7';
+            $daily = $writer->updateDaily($this->normalizer()->normalize($record, $item->brandLogoUrl()), 1202);
+            self::assertTrue($daily->isSuccess());
+            self::assertSame(108000, (int) $this->connection->fetchOne('SELECT base_minor_amount FROM commerce_product_price WHERE product_id = ?', [$result->product()->id()]));
+            self::assertSame(7, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_product_inventory WHERE product_id = ?', [$result->product()->id()]));
+        } finally {
+            (new \Symfony\Component\Filesystem\Filesystem())->remove($directory);
+        }
+    }
+
+    private function logoWriter(string $directory, \App\Module\Catalog\BrandLogoStorage $logos, \Symfony\Component\HttpClient\MockHttpClient $client): B2bCatalogWriter
+    {
+        $media = new \App\Module\Integration\B2b\ProductMediaStorage($client, $directory.'/products', ['b2b.efeotoyedekparca.com.tr'], 5_000_000, 10, 30, 60, 3, null);
+        return new B2bCatalogWriter(
+            resources: self::getContainer()->get(\App\Module\Integration\B2b\B2bResourceResolver::class), catalog: $this->catalog, media: $this->media,
+            pricing: self::getContainer()->get(PricingManager::class), inventory: self::getContainer()->get(InventoryManager::class),
+            prices: self::getContainer()->get(ProductPriceRepositoryInterface::class), inventoryRepository: self::getContainer()->get(ProductInventoryRepositoryInterface::class),
+            entityManager: $this->entityManager, clock: new MockClock('2026-07-25T12:00:00+00:00'),
+            brandLogos: new \App\Module\Integration\B2b\B2bBrandLogoSynchronizer($media, $logos, new \Symfony\Component\Cache\Adapter\ArrayAdapter()),
+        );
+    }
+
     protected function setUp(): void
     {
         self::bootKernel();

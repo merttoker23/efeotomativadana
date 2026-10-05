@@ -10,14 +10,14 @@
    and dropping the tab would hide a question the store asked and could not answer yet. #}
 {% if section.data.tabs %}
     {% set base = 'home-tabs-' ~ (blockId|default(0)) %}
-    <section class="container home-section section-card" aria-label="{{ section.title }}">
+    <section class="container home-section section-card" aria-label="{{ section.title }}" data-controller="home-tabs">
         <div class="section-head">
             <div>
                 <h2>{{ section.title }}</h2>
                 {% if section.subtitle %}<p>{{ section.subtitle }}</p>{% endif %}
             </div>
         </div>
-        <div class="top-products-tabs" role="tablist" aria-label="{{ section.title }}" data-controller="home-tabs">
+        <div class="top-products-tabs" role="tablist" aria-label="{{ section.title }}">
             {% for tab in section.data.tabs %}
                 <button class="tab-btn{% if loop.first %} active{% endif %}"
                         type="button"
