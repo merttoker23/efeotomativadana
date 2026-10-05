@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['close', 'preference'];
+    static targets = ['close', 'preference', 'title'];
     static values = { key: String, delay: Number, allowDismiss: Boolean };
 
     connect() {
@@ -26,7 +26,7 @@ export default class extends Controller {
         this.overflow = [document.body.style.overflow, document.documentElement.style.overflow];
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
-        this.closeTarget.focus({ preventScroll: true });
+        this.titleTarget.focus({ preventScroll: true });
     }
 
     close() {

@@ -5,7 +5,7 @@
         data-campaign-popup-allow-dismiss-value="{{ section.data.allowDismiss ? 'true' : 'false' }}"
         data-action="cancel->campaign-popup#cancel close->campaign-popup#closed pointerdown->campaign-popup#backdropStart click->campaign-popup#backdrop turbo:before-cache@document->campaign-popup#disconnect"
         aria-labelledby="campaign-popup-title" aria-describedby="campaign-popup-description">
-    <button class="campaign-popup-close" type="button" aria-label="Kampanyayı kapat" autofocus data-campaign-popup-target="close" data-action="campaign-popup#close">×</button>
+    <button class="campaign-popup-close" type="button" aria-label="Kampanyayı kapat" data-campaign-popup-target="close" data-action="campaign-popup#close">×</button>
     {% set image = section.data.image ?: section.data.mobileImage %}
     {% if image %}
         <picture>
@@ -14,7 +14,7 @@
         </picture>
     {% endif %}
     <div class="campaign-popup-content">
-        <h2 id="campaign-popup-title">{{ section.title }}</h2>
+        <h2 id="campaign-popup-title" class="campaign-popup-title" tabindex="-1" data-campaign-popup-target="title">{{ section.title }}</h2>
         <p id="campaign-popup-description">{{ section.data.description }}</p>
         {% if section.data.cta and section.data.link %}
             <a class="hero-cta campaign-popup-cta" href="{{ section.data.link }}" data-action="campaign-popup#close">{{ section.data.cta }}</a>

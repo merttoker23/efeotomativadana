@@ -1604,6 +1604,15 @@ select:focus-visible {
     cursor: pointer;
 }
 
+.product-gallery-dialog-close {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
 .product-gallery-dialog-stage {
     display: grid;
     grid-template-columns: 44px minmax(0, 1fr) 44px;
@@ -3247,12 +3256,12 @@ select:focus-visible {
 }
 .campaign-popup::backdrop { background: #071e3c99; }
 .campaign-popup picture { display: block; }
-.campaign-popup-image { display: block; width: 100%; height: auto; max-height: 45dvh; object-fit: contain; }
+.campaign-popup-image { display: block; width: 100%; height: auto; }
 .campaign-popup-close {
     position: absolute; top: 10px; right: 10px; z-index: 1;
-    display: grid; place-items: center; width: 44px; height: 44px;
+    display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
     border: 1px solid var(--storefront-line); border-radius: 50%;
-    background: #fff; color: var(--storefront-navy); font-size: 1.8rem; cursor: pointer;
+    background: #fff; color: var(--storefront-navy); font-size: 1.25rem; line-height: 1; cursor: pointer;
 }
 .campaign-popup-content { padding: 28px; overflow-wrap: anywhere; }
 .campaign-popup-content h2 { margin: 0 28px 12px 0; font-size: 1.6rem; line-height: 1.25; }
@@ -3261,6 +3270,7 @@ select:focus-visible {
 .campaign-popup-preference { display: flex; align-items: center; gap: 8px; margin-top: 20px; font-size: .875rem; }
 .campaign-popup-preference input { flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--storefront-navy); }
 .campaign-popup :focus-visible { outline: 3px solid var(--storefront-yellow); outline-offset: 3px; }
+.campaign-popup-title:focus { outline: none; }
 @media (max-width: 680px) {
     .campaign-popup-content { padding: 24px 18px; }
     .campaign-popup-content h2 { font-size: 1.35rem; }
