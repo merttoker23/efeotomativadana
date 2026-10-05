@@ -59,8 +59,8 @@ final class GeneralStoreSettingsData
         public ?string $phone = null,
         #[Assert\Length(max: 100)]
         public ?string $city = null,
-        #[Assert\Length(max: 100)]
-        public ?string $district = null,
+        #[Assert\Choice(choices: ['Türkiye'])]
+        public string $country = 'Türkiye',
     ) {
     }
 }

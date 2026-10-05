@@ -13,13 +13,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-/**
- * Mağaza Ayarları > Mağaza bölümündeki iletişim alanları: telefon, il ve ilçe.
- *
- * Doğrulama iki yerden gelir ve ikisi de sınanır. Tarayıcı tarafı seçim kutusunu daraltır;
- * asıl karar sunucuya aittir, çünkü gönderilen değer istendiği gibi değiştirilebilir. Buradaki
- * her reddetme senaryosu, tarayıcının gönderdiği geçersiz bir değeri taklit eder.
- */
+/** Store country/city and optional phone settings. */
 final class StoreContactSettingsTest extends WebTestCase
 {
     private KernelBrowser $client;
@@ -40,95 +34,45 @@ final class StoreContactSettingsTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testTheContactFieldsAreSelectsOverTheCatalogRatherThanFreeText(): void
+    public function testCountryAndCityUseLocalChoices(): void
     {
         $crawler = $this->client->request('GET', '/yeni/admin/settings');
         self::assertResponseIsSuccessful();
-
-        $city = $crawler->filter('select[name="store_settings[city]"]');
-        $district = $crawler->filter('select[name="store_settings[district]"]');
-        self::assertCount(1, $city);
-        self::assertCount(1, $district);
-        // No free-text fallback: the province and the district are selects, not inputs.
-        self::assertCount(0, $crawler->filter('input[name="store_settings[city]"], input[name="store_settings[district]"]'));
-        self::assertSelectorExists('[name="store_settings[phone]"]');
-
-        $cities = $city->filter('option')->each(static fn ($node) => $node->attr('value'));
-        self::assertCount(82, $cities, '81 provinces plus the empty choice.');
+        self::assertSelectorNotExists('[name="store_settings[district]"], [data-controller="store-address"]');
+        self::assertSame(['Türkiye'], $crawler->filter('select[name="store_settings[country]"] option')->each(static fn ($node) => $node->attr('value')));
+        $cities = $crawler->filter('select[name="store_settings[city]"] option')->each(static fn ($node) => $node->attr('value'));
+        self::assertCount(82, $cities);
         self::assertContains('Adana', $cities);
-        self::assertSame('Adana', $city->filter('option[value="Adana"]')->text());
-        self::assertSame('Seyhan', $district->filter('option[value="Seyhan"]')->text());
         self::assertContains('Şanlıurfa', $cities);
-        self::assertContains('Seyhan', $district->filter('option')->each(static fn ($node) => $node->attr('value')));
-        self::assertContains('Şehitkamil', $district->filter('option')->each(static fn ($node) => $node->attr('value')));
-
-        // The catalog the dependent district list narrows by travels with the page, so changing a
-        // province never costs a request.
-        $catalog = json_decode((string) $crawler->filter('[data-controller="store-address"]')->attr('data-store-address-districts-value'), true);
-        self::assertIsArray($catalog);
-        self::assertContains('Seyhan', $catalog['Adana']);
-        self::assertNotContains('Şehitkamil', $catalog['Adana']);
     }
 
-    public function testPhoneCityAndDistrictAreSavedTogether(): void
+    public function testCountryCityAndPhoneSaveWithoutChangingLegacyDistrict(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
-        $form = $crawler->selectButton('Ayarları kaydet')->form();
-        $form['store_settings[phone]'] = '0322 123 45 67';
-        $form['store_settings[city]'] = 'Adana';
-        $form['store_settings[district]'] = 'Seyhan';
-        $this->client->submit($form);
-
-        self::assertResponseRedirects('/yeni/admin/settings');
-
-        $configuration = self::getContainer()->get(StoreConfiguration::class);
-        self::assertSame('+90 322 123 45 67', $configuration->phone());
-        self::assertSame('Adana', $configuration->city());
-        self::assertSame('Seyhan', $configuration->district());
-        // The canonical form is what is stored, not what was typed.
-        self::assertSame('+90 322 123 45 67', $this->storedSetting('store.phone'));
-
+        $this->storeSetting('store.district', 'Seyhan');
         $form = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
-        self::assertSame('+90 322 123 45 67', $form['store_settings[phone]']->getValue());
-        self::assertSame('Adana', $form['store_settings[city]']->getValue());
-        self::assertSame('Seyhan', $form['store_settings[district]']->getValue());
-    }
-
-    public function testADistrictThatBelongsToAnotherProvinceIsRefused(): void
-    {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
-        $form = $crawler->selectButton('Ayarları kaydet')->form();
+        $form['store_settings[country]'] = 'Türkiye';
         $form['store_settings[city]'] = 'Adana';
-        $form['store_settings[district]'] = 'Şehitkamil';
+        $form['store_settings[phone]'] = '0322 123 45 67';
         $this->client->submit($form);
-
-        self::assertResponseStatusCodeSame(422);
-        $configuration = self::getContainer()->get(StoreConfiguration::class);
-        self::assertNull($configuration->city());
-        self::assertNull($configuration->district());
+        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertSame('Türkiye', $this->storedSetting('store.country'));
+        self::assertSame('Adana', $this->storedSetting('store.city'));
+        self::assertSame('Seyhan', $this->storedSetting('store.district'));
+        self::assertSame('+90 322 123 45 67', $this->storedSetting('store.phone'));
+        $form = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
+        self::assertSame('Türkiye', $form['store_settings[country]']->getValue());
+        self::assertSame('Adana', $form['store_settings[city]']->getValue());
     }
 
-    public function testADistrictWithoutAProvinceIsRefused(): void
+    public function testUnknownCountryOrProvinceIsRefused(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
-        $form = $crawler->selectButton('Ayarları kaydet')->form();
-        $form['store_settings[district]'] = 'Seyhan';
-        $this->client->submit($form);
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertNull(self::getContainer()->get(StoreConfiguration::class)->district());
-    }
-
-    public function testAProvinceOrDistrictThatDoesNotExistIsRefused(): void
-    {
-        // Posted raw rather than through the form: the DOM crawler refuses to set a choice the
-        // page does not offer, which is exactly what a tampered request would send.
-        foreach ([['city', 'Adaa', 'Seyhan'], ['district', 'Adana', 'Bilinmeyen İlçe']] as [$field, $city, $district]) {
-            $this->postTamperedField($field, 'district' === $field ? $district : $city, $city, $district);
-
-            self::assertResponseStatusCodeSame(422, sprintf('"%s" should be refused.', $field));
+        foreach (['country' => 'Unknown', 'city' => 'Adaa'] as $field => $value) {
+            $form = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
+            $values = $form->getPhpValues();
+            $values['store_settings'][$field] = $value;
+            $this->client->request('POST', '/yeni/admin/settings', $values);
+            self::assertResponseStatusCodeSame(422);
             self::assertNull(self::getContainer()->get(StoreConfiguration::class)->city());
-            self::assertNull(self::getContainer()->get(StoreConfiguration::class)->district());
         }
     }
 
@@ -157,38 +101,17 @@ final class StoreContactSettingsTest extends WebTestCase
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['store_settings[phone]'] = '';
         $form['store_settings[city]'] = '';
-        $form['store_settings[district]'] = '';
         $this->client->submit($form);
 
         self::assertResponseRedirects('/yeni/admin/settings');
         $configuration = self::getContainer()->get(StoreConfiguration::class);
         self::assertNull($configuration->phone());
         self::assertNull($configuration->city());
-        self::assertNull($configuration->district());
+        self::assertSame('Seyhan', $this->storedSetting('store.district'));
         self::assertNull($this->storedSetting('store.phone'));
     }
 
-    /**
- * Formu geçerli biçimde doldurup tek bir alanı elle değiştirerek gönderir.
- *
- * Bu, tarayıcının seçim kutusunda sunmadığı bir değeri gönderen bir isteği taklit eder;
- * seçim kutusunun kendisi böyle bir gönderimi engellediği için engellemesi de bir doğrulama
- * sayılmaz. Geri kalan alanlar formdan alınır, böylece reddedilen tek şeyin bu alan olduğu
- * görülür.
- */
-private function postTamperedField(string $field, string $value, string $city, string $district): void
-{
-    $form = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
-    $values = $form->getPhpValues();
-    $values['store_settings']['city'] = $city;
-    $values['store_settings']['district'] = $district;
-    $values['store_settings'][$field] = $value;
-    $values['store_settings']['_token'] = (string) $form['store_settings[_token]']->getValue();
-
-    $this->client->request('POST', '/yeni/admin/settings', $values);
-}
-
-private function createAdministrator(): AdminUser
+    private function createAdministrator(): AdminUser
     {
         $administrator = new AdminUser('store-contact-admin@example.com');
         $administrator->setPassword(
@@ -221,7 +144,7 @@ private function createAdministrator(): AdminUser
     private function resetContactSettings(): void
     {
         $this->connection->delete('admin_user');
-        foreach ([SettingKey::StorePhone, SettingKey::StoreCity, SettingKey::StoreDistrict] as $key) {
+        foreach ([SettingKey::StorePhone, SettingKey::StoreCountry, SettingKey::StoreCity, SettingKey::StoreDistrict] as $key) {
             $this->connection->executeStatement(
                 'INSERT INTO store_setting (setting_key, value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)',
                 [$key->value, json_encode($key->defaultValue()), (new \DateTimeImmutable())->format('Y-m-d H:i:s')],

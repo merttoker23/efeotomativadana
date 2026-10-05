@@ -102,7 +102,21 @@ final class CollectionsControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.catalog-empty', 'Şu anda indirimli ürün yok');
+        self::assertSelectorNotExists('.catalog-filters, .sort-form, .catalog-summary');
+        self::assertSelectorExists('.catalog-layout-empty');
         self::assertSelectorCount(0, '.product-card');
+    }
+
+    public function testFilteredEmptyCollectionKeepsControlsToRemoveCriteria(): void
+    {
+        $this->discounted('COL-FILTERED', 'İndirimli ürün', 'filtered-sale');
+        $this->entityManager->flush();
+        $this->client->request('GET', self::COLLECTIONS.'?q=nonexistent&min_price=99999');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('.catalog-filters, .sort-form');
+        self::assertSelectorTextContains('.catalog-empty', 'Ürün bulunamadı');
+        self::assertSelectorNotExists('.catalog-layout-empty');
+        self::assertSelectorTextNotContains('main', 'Aktif indirim');
     }
 
     /**

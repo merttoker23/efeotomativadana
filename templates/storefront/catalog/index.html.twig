@@ -7,35 +7,34 @@
         <a href="{{ path('app_home') }}">Ana Sayfa</a><span aria-hidden="true">/</span><span>{{ heading }}</span>
     </nav>
 
-    <div class="container catalog-layout">
+    <div class="container catalog-layout{{ collection_empty ? ' catalog-layout-empty' : '' }}">
+        {% if not collection_empty %}
         <aside class="catalog-filters" aria-label="Katalog filtreleri">
-            <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="catalog-filter-form" data-controller="catalog-filters">
+            <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="catalog-filter-form" data-controller="catalog-filters" data-action="submit->catalog-filters#submit pageshow@window->catalog-filters#restore">
                 <input type="hidden" name="sort" value="{{ criteria.sort.value }}">
                 {% if criteria.query %}<input type="hidden" name="q" value="{{ criteria.query }}">{% endif %}
                 {% if criteria.categorySlug and app.request.attributes.get('_route') != 'storefront_catalog_category' %}<input type="hidden" name="category" value="{{ criteria.categorySlug }}">{% endif %}
                 {% if criteria.brandSlug and app.request.attributes.get('_route') != 'storefront_catalog_brand' %}<input type="hidden" name="brand" value="{{ criteria.brandSlug }}">{% endif %}
-                {% set price_min = criteria.minPriceMinor is not null ? criteria.minPriceMinor / 100 : null %}
-                {% set price_max = criteria.maxPriceMinor is not null ? criteria.maxPriceMinor / 100 : null %}
+                {% set price_min = criteria.minPriceMinor|storefront_price_input %}
+                {% set price_max = criteria.maxPriceMinor|storefront_price_input %}
+                {% set bound_min = price_bounds.min|storefront_price_input %}
+                {% set bound_max = price_bounds.max|storefront_price_input %}
                 <fieldset class="catalog-price-range" data-controller="catalog-price-range">
                     <legend>Fiyat Aralığı</legend>
                     <div class="catalog-price-inputs">
                         <label>Min (TL)
-                            <input type="number" name="min_price" min="0" step="0.01" inputmode="decimal" value="{{ price_min }}" placeholder="{{ price_bounds.min is not null ? (price_bounds.min / 100)|number_format(2, '.', '') : '0' }}" data-catalog-price-range-target="minInput" data-action="input->catalog-price-range#inputsChanged">
+                            <input type="number" name="min_price" min="0" step="0.01" inputmode="decimal" value="{{ price_min }}" placeholder="{{ bound_min|default('0') }}" data-catalog-price-range-target="minInput" data-action="input->catalog-price-range#inputsChanged input->catalog-filters#debounce change->catalog-filters#submit">
                         </label>
                         <label>Max (TL)
-                            <input type="number" name="max_price" min="0" step="0.01" inputmode="decimal" value="{{ price_max }}" placeholder="{{ price_bounds.max is not null ? (price_bounds.max / 100)|number_format(2, '.', '') : '—' }}" data-catalog-price-range-target="maxInput" data-action="input->catalog-price-range#inputsChanged">
+                            <input type="number" name="max_price" min="0" step="0.01" inputmode="decimal" value="{{ price_max }}" placeholder="{{ bound_max|default('—') }}" data-catalog-price-range-target="maxInput" data-action="input->catalog-price-range#inputsChanged input->catalog-filters#debounce change->catalog-filters#submit">
                         </label>
                     </div>
-                    {% if price_bounds.min is not null and price_bounds.max is not null %}
-                        {% set selectable_min = price_bounds.min / 100 %}
-                        {% set selectable_max = price_bounds.max / 100 %}
+                    {% if bound_min != '' and bound_max != '' %}
                         <div class="catalog-price-sliders" data-catalog-price-range-target="track">
-                            <input type="range" min="{{ selectable_min }}" max="{{ selectable_max }}" step="0.01" value="{{ price_min ?? selectable_min }}" aria-label="Minimum fiyat (TL)" data-catalog-price-range-target="minRange" data-action="input->catalog-price-range#rangeChanged"{% if selectable_min == selectable_max %} disabled{% endif %}>
-                            <input type="range" min="{{ selectable_min }}" max="{{ selectable_max }}" step="0.01" value="{{ price_max ?? selectable_max }}" aria-label="Maksimum fiyat (TL)" data-catalog-price-range-target="maxRange" data-action="input->catalog-price-range#rangeChanged"{% if selectable_min == selectable_max %} disabled{% endif %}>
+                            <input type="range" min="{{ bound_min }}" max="{{ bound_max }}" step="0.01" value="{{ price_min|default(bound_min) }}" aria-label="Minimum fiyat (TL)" data-catalog-price-range-target="minRange" data-action="input->catalog-price-range#rangeChanged change->catalog-filters#submit"{% if bound_min == bound_max %} disabled{% endif %}>
+                            <input type="range" min="{{ bound_min }}" max="{{ bound_max }}" step="0.01" value="{{ price_max|default(bound_max) }}" aria-label="Maksimum fiyat (TL)" data-catalog-price-range-target="maxRange" data-action="input->catalog-price-range#rangeChanged change->catalog-filters#submit"{% if bound_min == bound_max %} disabled{% endif %}>
                         </div>
                     {% endif %}
-                    <output class="catalog-price-values" data-catalog-price-range-target="output" aria-live="polite">{{ price_min is not null ? price_min|number_format(2, ',', '.') : (price_bounds.min is not null ? (price_bounds.min / 100)|number_format(2, ',', '.') : '0') }} TL — {{ price_max is not null ? price_max|number_format(2, ',', '.') : (price_bounds.max is not null ? (price_bounds.max / 100)|number_format(2, ',', '.') : '∞') }} TL</output>
-                    <button type="button" class="catalog-price-reset" data-action="catalog-price-range#reset" hidden data-catalog-price-range-target="reset">Aralığı temizle</button>
                 </fieldset>
                 <p class="catalog-filter-heading" id="catalog-filter-title">Kategoriler</p>
                 <div class="catalog-filter-list catalog-category-list" role="region" aria-labelledby="catalog-filter-title" tabindex="0">
@@ -48,6 +47,7 @@
                         </a>
                     {% endfor %}
                 </div>
+                {% if brands is not empty %}
                 <p class="catalog-filter-heading" id="catalog-brand-title">Markalar</p>
                 <div class="catalog-filter-list catalog-brand-list" role="region" aria-labelledby="catalog-brand-title" tabindex="0">
                     {% for brand in brands %}
@@ -59,10 +59,16 @@
                         </a>
                     {% endfor %}
                 </div>
-                <label class="checkbox-field"><input type="checkbox" name="availability" value="in-stock"{% if criteria.inStockOnly %} checked{% endif %}> Yalnızca stoktakiler</label>
-                <button type="submit">Filtreleri uygula</button>
+                {% endif %}
+                <label class="checkbox-field"><input type="checkbox" name="availability" value="in-stock" data-action="change->catalog-filters#submit"{% if criteria.inStockOnly %} checked{% endif %}> Yalnızca stoktakiler</label>
+                {# A second filter form without a submit button is pointless, so clearing the
+                   filters is a button that empties every editable field and navigates back to the
+                   bare address of the current listing: no search term, no sort, no price, stock,
+                   category or brand narrowing, just the page itself. #}
+                <button type="button" class="catalog-filter-clear" data-action="catalog-filters#clear">Filtreyi Temizle</button>
             </form>
         </aside>
+        {% endif %}
 
         <section id="catalog-results" class="catalog-results" aria-labelledby="catalog-heading" tabindex="-1">
             {# The address of the next page of this very query — same route, same filters, same sort,
@@ -71,10 +77,10 @@
 
             <div class="catalog-heading-row">
                 <div>
-                    {% if criteria.onSaleOnly %}<p class="panel-kicker">Aktif indirim</p>{% endif %}
                     <h1 id="catalog-heading">{{ heading }}</h1>
                     {% if criteria.query %}<p class="search-context">“{{ criteria.query }}” için sonuçlar</p>{% endif %}
                 </div>
+                {% if not collection_empty %}
                 <form method="get" action="{{ app.request.pathInfo }}#catalog-results" class="sort-form" data-controller="catalog-sort">
                     {% for key, value in criteria.filterParameters(route_filter) %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
                     <label for="catalog-sort">Sırala</label>
@@ -85,9 +91,10 @@
                         <option value="price-desc"{% if criteria.sort.value == 'price-desc' %} selected{% endif %}>Fiyat: yüksekten düşüğe</option>
                     </select>
                 </form>
+                {% endif %}
             </div>
 
-            <p class="catalog-summary">{{ page.totalItems }} üründen <span class="catalog-summary-range" data-catalog-infinite-scroll-target="range">{{ page.firstItem }} - {{ page.lastItem }}</span> arası gösteriliyor</p>
+            {% if not collection_empty %}<p class="catalog-summary">{{ page.totalItems }} üründen <span class="catalog-summary-range" data-catalog-infinite-scroll-target="range">{{ page.firstItem }} - {{ page.lastItem }}</span> arası gösteriliyor</p>{% endif %}
 
             {# Every listing here — the whole catalogue, a category, a brand — reads as one long
                grid: it asks for the next page of the very same query as the customer reaches the
@@ -98,7 +105,7 @@
                     {# An empty collections page is not an error and not the same thing as an empty
                        search, so it says which of the two it is rather than sending the shopper back
                        to the catalogue to be told a product list came back empty. #}
-                    {% if criteria.onSaleOnly %}
+                    {% if collection_empty %}
                         <div class="catalog-empty" role="status"><h2>Şu anda indirimli ürün yok</h2><p>Yeni bir indirim başladığında ürünler burada listelenir.</p></div>
                     {% else %}
                         <div class="catalog-empty" role="status"><h2>Ürün bulunamadı</h2><p>Arama veya filtre seçiminizi değiştirerek tekrar deneyin.</p></div>

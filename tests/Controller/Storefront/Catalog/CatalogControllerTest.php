@@ -21,6 +21,31 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class CatalogControllerTest extends WebTestCase
 {
+    public function testEmptyBrandFacetHidesItsHeadingWhileSelectedZeroCountBrandStaysRemovable(): void
+    {
+        $brand = new Brand('Facet Brand', 'facet-brand');
+        $brand->publish();
+        $this->product('FACET-BRANDED', 'Branded lamp', 'facet-branded', true, $brand);
+        $this->product('FACET-UNBRANDED', 'Unbranded filter', 'facet-unbranded', true);
+        $this->entityManager->flush();
+
+        $this->client->request('GET', '/yeni/katalog?q=Branded+lamp');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('#catalog-brand-title', 'Markalar');
+        self::assertSelectorCount(1, '.catalog-brand-list a');
+
+        $this->client->request('GET', '/yeni/katalog?q=Unbranded+filter');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('#catalog-brand-title, .catalog-brand-list');
+        self::assertSelectorTextContains('.product-grid', 'Unbranded filter');
+
+        $this->client->request('GET', '/yeni/katalog?q=Unbranded+filter&brand=facet-brand');
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('#catalog-brand-title');
+        self::assertSelectorTextContains('.catalog-brand-list a[aria-current]', 'Facet Brand');
+        self::assertSelectorTextContains('.catalog-brand-list a[aria-current] small', '0');
+    }
+
     public function testSelectedOptionsOutsidePopularSliceRemainVisibleAndRemovable(): void
     {
         for ($i = 0; $i < 25; ++$i) {
@@ -34,8 +59,8 @@ final class CatalogControllerTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/yeni/kategori/category-24?brand=brand-24&min_price=10&sort=price-desc');
         self::assertResponseIsSuccessful();
-        self::assertSelectorCount(25, '.catalog-category-list a');
-        self::assertSelectorCount(25, '.catalog-brand-list a');
+        self::assertSelectorCount(1, '.catalog-category-list a');
+        self::assertSelectorCount(1, '.catalog-brand-list a');
         self::assertSelectorTextContains('.catalog-category-list a[aria-current]', 'Category 24');
         self::assertSelectorTextContains('.catalog-brand-list a[aria-current]', 'Brand 24');
 
@@ -70,6 +95,9 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSame('10.00', $crawler->filter('.sort-form input[name="min_price"]')->attr('value'));
         self::assertSame('1000.00', $crawler->filter('.sort-form input[name="max_price"]')->attr('value'));
         self::assertSelectorExists('[data-controller="catalog-price-range"] input[type="range"]');
+        self::assertSelectorNotExists('.catalog-filter-form button[type="submit"]');
+        self::assertStringContainsString('change->catalog-filters#submit', $crawler->filter('input[name="availability"]')->attr('data-action'));
+        self::assertStringContainsString('change->catalog-filters#submit', $crawler->filter('input[type="range"]')->first()->attr('data-action'));
         $next = $crawler->filter('[data-catalog-infinite-scroll-next-url-value]')->attr('data-catalog-infinite-scroll-next-url-value');
         $paginationNext = $crawler->filter('.pagination a[rel="next"]')->attr('href');
         self::assertSame($paginationNext, $next);
@@ -288,6 +316,7 @@ final class CatalogControllerTest extends WebTestCase
         $this->entityManager->flush();
 
         $crawler = $this->client->request('GET', '/yeni/markalar');
+        self::assertSelectorTextNotContains('main', 'Üreticiler');
         $card = $crawler->filter('.brand-grid a[href="/yeni/marka/logo-brand#catalog-results"]');
         self::assertSame('/img/ureticiler/'.$brand->id().'.jpg', $card->filter('img')->attr('src'));
         self::assertStringContainsString('product-placeholder', $card->filter('img')->attr('data-fallback-src'));
@@ -423,6 +452,7 @@ final class CatalogControllerTest extends WebTestCase
         $detailPlaceholder = (string) $crawler->filter('.product-gallery img')->first()->attr('src');
         self::assertStringStartsWith('/yeni/assets/storefront/images/product-placeholder-', $detailPlaceholder);
         self::assertSelectorNotExists('.product-gallery-zoom, .product-gallery-dialog');
+        self::assertSelectorNotExists('.product-gallery img.product-placeholder');
 
         $crawler = $this->client->request('GET', '/yeni/katalog?sort=name-asc');
         self::assertResponseIsSuccessful();
@@ -439,6 +469,7 @@ final class CatalogControllerTest extends WebTestCase
             self::assertStringStartsWith('/yeni/', $source);
         }
         self::assertSelectorCount(2, '.product-card img[loading="lazy"][decoding="async"][width="640"][height="640"]');
+        self::assertSelectorNotExists('.product-card img.product-placeholder');
         self::assertSelectorCount(3, '.payments img[loading="lazy"][decoding="async"][width][height]');
     }
 

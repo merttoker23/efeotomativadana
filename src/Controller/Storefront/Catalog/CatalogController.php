@@ -146,26 +146,15 @@ final class CatalogController extends AbstractController
         ?SeoMetadata $seo = null,
     ): Response {
         $criteria = CatalogCriteria::fromQuery($request->query, $categorySlug, $brandSlug, self::LISTING_PAGE_SIZE, $onSaleOnly);
-        // Keep the sidebar bounded and always expose the selected option so it can be removed.
-        $categories = $this->catalog->categoriesByPopularity(self::FILTER_OPTIONS);
-        $brands = $this->catalog->brandsByPopularity(self::FILTER_OPTIONS);
-        if (null !== $criteria->categorySlug && !in_array($criteria->categorySlug, array_column($categories, 'slug'), true)) {
-            $selectedCategory = $this->catalog->category($criteria->categorySlug);
-            if (null !== $selectedCategory) {
-                $categories[] = $selectedCategory;
-            }
-        }
-        if (null !== $criteria->brandSlug && !in_array($criteria->brandSlug, array_column($brands, 'slug'), true)) {
-            $selectedBrand = $this->catalog->brand($criteria->brandSlug);
-            if (null !== $selectedBrand) {
-                $brands[] = $selectedBrand;
-            }
-        }
+        $collectionEmpty = $onSaleOnly && !$this->catalog->hasActiveDiscountedProducts();
+        $categories = $collectionEmpty ? [] : $this->catalog->categoryFacets($criteria, self::FILTER_OPTIONS);
+        $brands = $collectionEmpty ? [] : $this->catalog->brandFacets($criteria, self::FILTER_OPTIONS);
         $page = $this->catalog->search($criteria);
 
         return $this->render('storefront/catalog/index.html.twig', $this->context(
             [
                 'heading' => $heading,
+                'collection_empty' => $collectionEmpty,
                 'criteria' => $criteria,
                 'price_bounds' => $this->catalog->priceBounds($criteria),
                 'page' => $page,

@@ -32,9 +32,10 @@ final class StoreSettingsType extends AbstractType
                 'help' => 'Boş bırakılabilir. Örnek: +90 322 123 45 67. 0, +90 veya alan kodu yazılmadan da kabul edilir.',
                 'attr' => ['inputmode' => 'tel', 'placeholder' => '+90 322 123 45 67'],
             ])
-            // İl serbest metin olsaydı "Adanaa" da bir il olarak saklanırdı. Seçim kutusu
-            // katalogdan beslenir; sunucu yine de gönderilen değeri katalogla karşılaştırır,
-            // çünkü bu form tarayıcının gönderdiği tek gerçek doğrulamadır.
+            ->add('country', ChoiceType::class, [
+                'label' => 'Ülke',
+                'choices' => ['Türkiye' => 'Türkiye'],
+            ])
             ->add('city', ChoiceType::class, [
                 'label' => 'İl',
                 'required' => false,
@@ -42,19 +43,6 @@ final class StoreSettingsType extends AbstractType
                 'choices' => TurkishGeography::provinces(),
                 'choice_label' => static fn (string $choice): string => $choice,
                 'empty_data' => '',
-                'attr' => ['data-store-address-target' => 'city'],
-            ])
-            // İlçe kutusu il seçilmeden önce de tüm ilçeleri taşır; seçilen ile ait olmayanlar
-            // JavaScript ile gizlenir. Böylece JavaScript olmadan da form eksiksiz gönderilebilir
-            // ve reddedilen bir eşleşmenin sorumlusu tarayıcı değil, sunucu olur.
-            ->add('district', ChoiceType::class, [
-                'label' => 'İlçe',
-                'required' => false,
-                'placeholder' => 'İlçe seçin',
-                'choices' => TurkishGeography::allDistricts(),
-                'choice_label' => static fn (string $choice): string => $choice,
-                'empty_data' => '',
-                'attr' => ['data-store-address-target' => 'district'],
             ])
             ->add('defaultLocale', TextType::class, ['label' => 'Mağazanın varsayılan dili'])
             ->add('defaultTaxRate', IntegerType::class, ['label' => 'Varsayılan vergi oranı (%)'])

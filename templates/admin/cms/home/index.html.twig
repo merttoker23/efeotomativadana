@@ -27,11 +27,11 @@
                         <td>
                             <form method="post" action="{{ path('admin_cms_home_toggle', {id: section.id}) }}">
                                 <input type="hidden" name="_token" value="{{ csrf_token('cms_section_' ~ section.id) }}">
-                                <button type="submit">{{ section.enabled ? 'Pasifleştir' : 'Aktifleştir' }}</button>
+                                <button class="cms-section-action" type="submit">{{ section.enabled ? 'Pasifleştir' : 'Aktifleştir' }}</button>
                             </form>
                         </td>
                         <td>
-                            <a href="{{ path('admin_cms_home_edit', {id: section.id}) }}">Bölümü düzenle</a>
+                            <a class="button-link cms-section-action" href="{{ path('admin_cms_home_edit', {id: section.id}) }}">Bölümü düzenle</a>
                         </td>
                     </tr>
                 {% endfor %}

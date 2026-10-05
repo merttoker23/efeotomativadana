@@ -75,7 +75,7 @@ final class StorefrontFooter implements ResetInterface
             'informationPages' => $this->pages->publishedForNavigation(self::MAX_INFORMATION_PAGES),
             'contact' => [
                 'city' => $this->settings->city(),
-                'district' => $this->settings->district(),
+                'country' => $this->settings->country(),
                 'phone' => $phone,
                 'phoneLink' => StorePhone::link($phone),
                 'email' => $this->settings->contactEmail(),

@@ -4,7 +4,6 @@ namespace App\Controller\Admin;
 
 use App\Form\Admin\StoreSettingsType;
 use App\Module\Settings\StoreConfiguration;
-use App\Module\Settings\TurkishGeography;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
@@ -46,9 +45,6 @@ final class SettingsController extends AbstractController
 
         return $this->render('admin/settings.html.twig', [
             'form' => $form,
-            // İl seçildiğinde ilçe kutusunu daraltan denetimin katalog verisi. Sayfayla birlikte
-            // gelir; il değiştikçe sunucuya yeni bir istek atılmaz.
-            'store_district_catalog' => TurkishGeography::districtsByProvince(),
         ], new Response(status: $form->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 

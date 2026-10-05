@@ -340,3 +340,6 @@ progress::-moz-progress-bar { background: var(--admin-accent); }
 .cms-selection-action { min-height: 32px; padding: 0; flex-shrink: 0; color: var(--admin-ink); }
 .cms-selection-action:hover { background: #e8efff; color: #1d4ed8; }
 .cms-field input, .cms-field textarea, .cms-picker input, .cms-picker select, .cms-image input, .cms-image select { border-radius: 8px; padding: 9px 12px; }
+
+.cms-section-action { min-height: 36px; padding: 7px 12px; font-size: .8rem; font-weight: 600; text-align: center; }
+.admin-table .cms-section-action { display: inline-flex; align-items: center; justify-content: center; max-width: 100%; white-space: normal; text-decoration: none; }

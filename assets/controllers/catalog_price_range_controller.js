@@ -1,10 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['minInput', 'maxInput', 'minRange', 'maxRange', 'track', 'output', 'reset'];
+    static targets = ['minInput', 'maxInput', 'minRange', 'maxRange', 'track'];
 
     connect() {
-        this.resetTarget.hidden = false;
         this.inputsChanged();
     }
 
@@ -25,22 +24,18 @@ export default class extends Controller {
         }
         this.minRangeTarget.value = min;
         this.maxRangeTarget.value = max;
-        this.minInputTarget.value = min.toFixed(2);
-        this.maxInputTarget.value = max.toFixed(2);
+        // The fields are typed into, so they take the plain decimal the listing reads back, not
+        // the fixed two-decimal form the slider steps in.
+        this.minInputTarget.value = this.decimal(min);
+        this.maxInputTarget.value = this.decimal(max);
         this.render();
     }
 
-    reset() {
-        this.minInputTarget.value = '';
-        this.maxInputTarget.value = '';
-        this.inputsChanged();
+    decimal(value) {
+        return Number(value).toFixed(2).replace(/\.?0+$/, '') || '0';
     }
 
     render() {
-        const format = (value) => `${Number(value).toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL`;
-        const min = this.minInputTarget.value || (this.hasMinRangeTarget ? this.minRangeTarget.min : '0');
-        const max = this.maxInputTarget.value || (this.hasMaxRangeTarget ? this.maxRangeTarget.max : null);
-        this.outputTarget.textContent = `${format(min)} — ${max === null ? '∞ TL' : format(max)}`;
         if (!this.hasTrackTarget) return;
         const lower = Number(this.minRangeTarget.min);
         const span = Number(this.maxRangeTarget.max) - lower;

@@ -689,7 +689,61 @@ final readonly class CatalogReadRepository
         return $this->findOption('catalog_brand', 'brand', 'product.brand_id = option_record.id', $slug);
     }
 
-    private function filteredProducts(CatalogCriteria $criteria, bool $applyPriceRange = true): QueryBuilder
+    /** @return list<CatalogOption> */
+    public function categoryFacets(CatalogCriteria $criteria, int $limit): array
+    {
+        return $this->facets($criteria, 'category', $limit);
+    }
+
+    /** @return list<CatalogOption> */
+    public function brandFacets(CatalogCriteria $criteria, int $limit): array
+    {
+        return $this->facets($criteria, 'brand', $limit);
+    }
+
+    public function hasActiveDiscountedProducts(): bool
+    {
+        return false !== $this->filteredProducts(new CatalogCriteria(onSaleOnly: true))
+            ->select('1')->setMaxResults(1)->executeQuery()->fetchOne();
+    }
+
+    /** @return list<CatalogOption> */
+    private function facets(CatalogCriteria $criteria, string $kind, int $limit): array
+    {
+        $counts = $this->filteredProducts($criteria, excludedFacet: $kind);
+        if ('category' === $kind) {
+            $counts->innerJoin('product', 'catalog_product_category', 'facet_relation', 'facet_relation.product_id = product.id');
+            $optionId = 'facet_relation.category_id';
+        } else {
+            $optionId = 'product.brand_id';
+        }
+        $counts->select($optionId.' AS option_id', 'COUNT(DISTINCT product.id) AS product_count')->groupBy($optionId);
+
+        $query = $this->connection->createQueryBuilder()
+            ->select('option_record.id', 'option_record.name', 'option_record.slug', 'COALESCE(facet_counts.product_count, 0) AS product_count')
+            ->from('catalog_'.$kind, 'option_record')
+            ->leftJoin('option_record', '('.$counts->getSQL().')', 'facet_counts', 'facet_counts.option_id = option_record.id')
+            ->where('option_record.publication_status = :published')
+            ->setParameters($counts->getParameters(), $counts->getParameterTypes());
+        $rows = (clone $query)->andWhere('facet_counts.product_count > 0')
+            ->orderBy('product_count', 'DESC')->addOrderBy('option_record.name', 'ASC')->addOrderBy('option_record.id', 'ASC')
+            ->setMaxResults(max(1, $limit))->executeQuery()->fetchAllAssociative();
+
+        $selected = 'category' === $kind ? $criteria->categorySlug : $criteria->brandSlug;
+        if (null !== $selected && !in_array($selected, array_column($rows, 'slug'), true)) {
+            $row = $query->andWhere('option_record.slug = :selected_facet')->setParameter('selected_facet', $selected)
+                ->setMaxResults(1)->executeQuery()->fetchAssociative();
+            if (false !== $row) {
+                $rows[] = $row;
+            }
+        }
+
+        return array_map(static fn (array $row): CatalogOption => new CatalogOption(
+            (string) $row['name'], (string) $row['slug'], (int) $row['product_count'], (int) $row['id'],
+        ), $rows);
+    }
+
+    private function filteredProducts(CatalogCriteria $criteria, bool $applyPriceRange = true, ?string $excludedFacet = null): QueryBuilder
     {
         $query = $this->connection->createQueryBuilder()
             ->from('catalog_product', 'product')
@@ -727,7 +781,7 @@ final readonly class CatalogReadRepository
             }
         }
 
-        if (null !== $criteria->categorySlug) {
+        if (null !== $criteria->categorySlug && 'category' !== $excludedFacet) {
             $query
                 ->andWhere(<<<'SQL'
                     EXISTS (
@@ -742,7 +796,7 @@ final readonly class CatalogReadRepository
                 ->setParameter('category_slug', $criteria->categorySlug);
         }
 
-        if (null !== $criteria->brandSlug) {
+        if (null !== $criteria->brandSlug && 'brand' !== $excludedFacet) {
             $query
                 ->andWhere(<<<'SQL'
                     EXISTS (

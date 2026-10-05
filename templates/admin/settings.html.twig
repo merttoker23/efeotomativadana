@@ -17,12 +17,9 @@
                     <legend>Mağaza</legend>
                     {{ form_row(form.storeName) }}
                     {{ form_row(form.contactEmail) }}
-                    {# İl/ilçe tek bir denetimdir: ilçe, seçilen ile ait olmayan seçenekler gizlenerek
-                       aynı anda daralır. Katalog tek istekte sayfaya gömülür. #}
-                    <div class="form-grid" data-controller="store-address"
-                         data-store-address-districts-value="{{ store_district_catalog|json_encode|escape('html_attr') }}">
+                    <div class="form-grid">
+                        {{ form_row(form.country) }}
                         {{ form_row(form.city) }}
-                        {{ form_row(form.district) }}
                     </div>
                     {{ form_row(form.phone) }}
                     {{ form_row(form.defaultLocale) }}

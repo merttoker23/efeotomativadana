@@ -365,7 +365,7 @@ select:focus-visible {
     border-bottom: 1px solid var(--storefront-line);
     color: var(--storefront-muted);
     font-size: 10.4px;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
@@ -392,7 +392,7 @@ select:focus-visible {
 
 .account-menu-panel a[aria-current="page"] {
     color: var(--storefront-navy);
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .account-menu-form {
@@ -1276,7 +1276,7 @@ select:focus-visible {
 .catalog-filter-list > a[aria-current="page"],
 .catalog-filter-list > a:hover {
     color: var(--storefront-navy);
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .catalog-filters > a small,
@@ -1335,7 +1335,7 @@ select:focus-visible {
 .sort-form label {
     color: #4e5963;
     font-size: 0.7rem;
-    font-weight: 750;
+    font-weight: 600;
 }
 
 .catalog-filter-form select,
@@ -1363,8 +1363,25 @@ select:focus-visible {
     color: var(--storefront-navy);
     background: var(--storefront-yellow);
     font-size: 0.75rem;
-    font-weight: 850;
+    font-weight: 600;
 }
+
+.catalog-filter-clear {
+    display: block;
+    min-height: 40px;
+    margin-top: 0.5rem;
+    border-radius: 0.3rem;
+    color: var(--storefront-navy);
+    background: var(--storefront-yellow);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 2.6;
+    text-align: center;
+    text-decoration: none;
+}
+
+.catalog-filter-clear:hover { filter: brightness(.96); }
+.catalog-filter-clear:focus-visible { outline: 3px solid var(--storefront-navy); outline-offset: 3px; }
 
 .catalog-results {
     scroll-margin-top: 1rem;
@@ -1386,7 +1403,8 @@ select:focus-visible {
 .catalog-heading-row h1,
 .brands-directory h1 {
     margin: 0;
-    font-size: clamp(1.7rem, 2.8vw, 2.4rem);
+    font-size: clamp(1.35rem, 2vw, 1.75rem);
+    font-weight: 600;
     line-height: 1.1;
 }
 
@@ -1423,7 +1441,7 @@ select:focus-visible {
 .stock-state {
     margin: 0.45rem 0 0;
     font-size: 0.68rem;
-    font-weight: 750;
+    font-weight: 600;
 }
 
 .stock-state.is-available {
@@ -1473,7 +1491,7 @@ select:focus-visible {
     border: 1px solid var(--storefront-line);
     border-radius: 0.3rem;
     font-size: 0.75rem;
-    font-weight: 800;
+    font-weight: 600;
 }
 
 .pagination a[aria-current="page"] {
@@ -2880,17 +2898,18 @@ select:focus-visible {
 .catalog-price-range {
     min-width: 0;
     margin: 0.5rem 0;
-    padding: 0.8rem;
-    border: 1px solid #dce1e6;
-    border-radius: 0.6rem;
-    background: #f8fafc;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
 }
 
 .catalog-price-range legend {
-    padding-inline: 0.3rem;
+    padding: 0;
+    margin-bottom: 0.6rem;
     color: var(--storefront-navy);
     font-size: 0.8rem;
-    font-weight: 850;
+    font-weight: 600;
 }
 
 .catalog-price-inputs {
@@ -2903,7 +2922,7 @@ select:focus-visible {
 .catalog-price-inputs input {
     width: 100%;
     min-width: 0;
-    min-height: 42px;
+    min-height: 36px;
     padding: 0.4rem;
     border: 1px solid #cfd4da;
     border-radius: 0.3rem;
@@ -2922,7 +2941,7 @@ select:focus-visible {
 .catalog-price-sliders::before {
     content: '';
     position: absolute;
-    inset: 20px 0;
+    inset: 21px 0;
     border-radius: 4px;
     background: linear-gradient(to right, #dce1e6 var(--price-from), var(--storefront-yellow) var(--price-from), var(--storefront-yellow) var(--price-to), #dce1e6 var(--price-to));
 }
@@ -2939,8 +2958,8 @@ select:focus-visible {
 }
 .catalog-price-sliders input::-webkit-slider-thumb {
     appearance: none;
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
     border: 2px solid var(--storefront-navy);
     border-radius: 50%;
     background: #fff;
@@ -2949,8 +2968,8 @@ select:focus-visible {
     pointer-events: auto;
 }
 .catalog-price-sliders input::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 12px;
+    height: 12px;
     border: 2px solid var(--storefront-navy);
     border-radius: 50%;
     background: #fff;
@@ -2958,9 +2977,6 @@ select:focus-visible {
     pointer-events: auto;
 }
 .catalog-price-sliders input:focus-visible { outline: 2px solid var(--storefront-navy); outline-offset: 2px; }
-.catalog-price-values { display: block; color: var(--storefront-navy); font-size: 0.8rem; font-weight: 750; text-align: center; }
-.catalog-filter-form .catalog-price-reset { min-height: 32px; margin-top: 0.4rem; background: transparent; text-decoration: underline; font-weight: 600; }
-.catalog-price-reset[hidden] { display: none; }
 .order-success-mark { align-items: center; background: #e7f7ed; border-radius: 50%; color: #23854a; display: inline-flex; font-size: 2rem; height: 64px; justify-content: center; width: 64px; }
 .order-success-grid { display: grid; gap: 28px; grid-template-columns: minmax(0, 1.4fr) minmax(260px, .6fr); margin: 30px 0; text-align: left; }
 .order-line { align-items: center; border-bottom: 1px solid #e7ebef; display: flex; justify-content: space-between; padding: 14px 0; }
@@ -4910,3 +4926,5 @@ select:focus-visible {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+.catalog-layout.catalog-layout-empty { grid-template-columns: minmax(0, 1fr); }

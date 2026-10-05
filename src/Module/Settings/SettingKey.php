@@ -9,6 +9,7 @@ enum SettingKey: string
     case StoreName = 'store.name';
     case ContactEmail = 'store.contact_email';
     case StorePhone = 'store.phone';
+    case StoreCountry = 'store.country';
     case StoreCity = 'store.city';
     case StoreDistrict = 'store.district';
     case StoreCurrency = 'store.currency';
@@ -43,6 +44,7 @@ enum SettingKey: string
             self::B2bProvider, self::PaymentProvider, self::ShippingProvider, self::SeoDefaultDescription, self::Ga4MeasurementId, self::ContactEmail, self::CookieScript, self::StorePhone, self::StoreCity, self::StoreDistrict => null,
             self::SeoIndexingEnabled => true,
             self::StoreName => 'Efe Otomotiv Adana',
+            self::StoreCountry => 'Türkiye',
             self::StoreCurrency => 'TRY',
             self::StoreDefaultLocale => 'tr',
             self::StoreDefaultTaxRate => 20,

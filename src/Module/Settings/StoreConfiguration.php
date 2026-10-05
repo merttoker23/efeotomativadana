@@ -84,6 +84,7 @@ final class StoreConfiguration implements ResetInterface
             phone: $this->phone(),
             city: $this->city(),
             district: $this->district(),
+            country: $this->country(),
         );
     }
 
@@ -195,7 +196,7 @@ final class StoreConfiguration implements ResetInterface
                 constraint: new NotBlank(),
             ));
         }
-        $this->validateContactDetails($configuration, $violations);
+        $this->validateContactDetails($configuration, $violations, $generalOnly);
         if (count($violations) > 0) {
             throw new ValidationFailedException($configuration, $violations);
         }
@@ -228,10 +229,13 @@ final class StoreConfiguration implements ResetInterface
             SettingKey::Ga4MeasurementId->value => $configuration->ga4MeasurementId,
             SettingKey::StorePhone->value => $configuration->phone,
             SettingKey::StoreCity->value => $configuration->city,
+            SettingKey::StoreCountry->value => $configuration->country,
             SettingKey::StoreDistrict->value => $configuration->district,
         ];
 
         if ($generalOnly) {
+            // The retired district setting is retained even when the province changes.
+            unset($values[SettingKey::StoreDistrict->value]);
             foreach ([SettingKey::PaymentProvider, SettingKey::ShippingProvider, SettingKey::ShippingFee, SettingKey::FreeShippingThreshold, SettingKey::SeoIndexingEnabled, SettingKey::SeoDefaultDescription] as $key) {
                 unset($values[$key->value]);
             }
@@ -251,7 +255,7 @@ final class StoreConfiguration implements ResetInterface
      *
      * @param ConstraintViolationListInterface $violations
      */
-    private function validateContactDetails(StoreSettingsData $configuration, ConstraintViolationListInterface $violations): void
+    private function validateContactDetails(StoreSettingsData $configuration, ConstraintViolationListInterface $violations, bool $generalOnly): void
     {
         try {
             $configuration->phone = StorePhone::normalize($configuration->phone);
@@ -265,7 +269,7 @@ final class StoreConfiguration implements ResetInterface
         }
 
         $district = null === $city ? null : TurkishGeography::normalizeDistrict($city, $configuration->district);
-        if (null !== $configuration->district && null === $district) {
+        if (!$generalOnly && null !== $configuration->district && null === $district) {
             $violations->add($this->contactViolation($configuration, 'district', $configuration->district, 'Seçilen ilçe seçilen ile ait değil.'));
         }
 
@@ -346,6 +350,11 @@ final class StoreConfiguration implements ResetInterface
     public function city(): ?string
     {
         return TurkishGeography::normalizeProvince($this->nullableStringValue(SettingKey::StoreCity));
+    }
+
+    public function country(): string
+    {
+        return $this->stringValue(SettingKey::StoreCountry);
     }
 
     /** Only a district of {@see city()}, so the pair can never contradict itself on the way out. */

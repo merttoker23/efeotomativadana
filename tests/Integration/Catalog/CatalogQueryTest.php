@@ -20,6 +20,50 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class CatalogQueryTest extends KernelTestCase
 {
+    public function testFacetsApplyOtherFiltersAndExcludeTheirOwnSelection(): void
+    {
+        $firstBrand = new Brand('Facet A', 'facet-a');
+        $secondBrand = new Brand('Facet B', 'facet-b');
+        $firstCategory = new Category('Facet X', 'facet-x');
+        $secondCategory = new Category('Facet Y', 'facet-y');
+        foreach ([$firstBrand, $secondBrand, $firstCategory, $secondCategory] as $option) {
+            $option->publish();
+        }
+        $sale = $this->product('FACET-AX', 'Facet lamp', 'facet-ax', true, $firstBrand, $firstCategory, 30_000);
+        $this->product('FACET-BX', 'Facet lamp', 'facet-bx', true, $secondBrand, $firstCategory, 20_000, 0);
+        $this->product('FACET-AY', 'Facet filter', 'facet-ay', true, $firstBrand, $secondCategory, 40_000);
+        $this->product('FACET-DRAFT', 'Facet lamp', 'facet-draft', false, $secondBrand, $secondCategory);
+        $this->entityManager->flush();
+        $this->connection->update('commerce_product_price', ['sale_minor_amount' => 10_000], ['product_id' => $sale->id()]);
+
+        $criteria = new CatalogCriteria(categorySlug: 'facet-x', brandSlug: 'facet-a');
+        self::assertSame(['facet-a' => 1, 'facet-b' => 1], $this->facetCounts($this->catalog->brandFacets($criteria, 24)));
+        self::assertSame(['facet-x' => 1, 'facet-y' => 1], $this->facetCounts($this->catalog->categoryFacets($criteria, 24)));
+        foreach ([
+            [new CatalogCriteria(query: 'lamp', brandSlug: 'facet-a'), ['facet-a' => 1, 'facet-b' => 1], ['facet-x' => 1]],
+            [new CatalogCriteria(categorySlug: 'facet-x', inStockOnly: true), ['facet-a' => 1], ['facet-x' => 1, 'facet-y' => 1]],
+            [new CatalogCriteria(categorySlug: 'facet-x', maxPriceMinor: 10_000), ['facet-a' => 1], ['facet-x' => 1]],
+            [new CatalogCriteria(categorySlug: 'facet-x', onSaleOnly: true), ['facet-a' => 1], ['facet-x' => 1]],
+        ] as [$filtered, $brandCounts, $categoryCounts]) {
+            self::assertSame($brandCounts, $this->facetCounts($this->catalog->brandFacets($filtered, 24)));
+            self::assertSame($categoryCounts, $this->facetCounts($this->catalog->categoryFacets($filtered, 24)));
+        }
+        $selected = new CatalogCriteria(query: 'filter', categorySlug: 'facet-x', brandSlug: 'facet-b');
+        self::assertSame(['facet-b' => 0], $this->facetCounts($this->catalog->brandFacets($selected, 1)));
+        self::assertSame(['facet-x' => 0], $this->facetCounts($this->catalog->categoryFacets($selected, 1)));
+        self::assertSame(['facet-a' => 2, 'facet-b' => 1], $this->facetCounts($this->catalog->brandFacets(new CatalogCriteria(brandSlug: 'facet-b'), 1)));
+        self::assertSame(['facet-x' => 2, 'facet-y' => 1], $this->facetCounts($this->catalog->categoryFacets(new CatalogCriteria(categorySlug: 'facet-y'), 1)));
+    }
+
+    /** @param list<\App\Module\Catalog\Query\CatalogOption> $options @return array<string, int> */
+    private function facetCounts(array $options): array
+    {
+        $counts = array_column($options, 'productCount', 'slug');
+        ksort($counts);
+
+        return $counts;
+    }
+
     public function testSearchTokensMatchInAnyOrderAcrossNamesAndIdentifiers(): void
     {
         $lamp = $this->product('TOKEN-LAMP', 'LAMBA SİS ACCENT 98-99 RH (BEYAZ)', 'token-lamp', true);

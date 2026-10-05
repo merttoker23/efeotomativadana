@@ -14,6 +14,29 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 final class CmsWorkflowTest extends WebTestCase
 {
+    public function testHomepageEditAndToggleShareCompactActionPresentationAndKeepRoutes(): void
+    {
+        $section = new HomeSection(HomeSectionType::Marquee, 'Actions', ['items' => ['Action test']]);
+        $section->setEnabled(true);
+        $admin = new AdminUser('cms-actions@example.com');
+        $admin->setPassword('test-only-hash');
+        $this->manager->persist($section);
+        $this->manager->persist($admin);
+        $this->manager->flush();
+        $client = static::getClient();
+        $client->loginUser($admin, 'admin');
+        $crawler = $client->request('GET', '/yeni/admin/cms/home');
+        self::assertResponseIsSuccessful();
+        $row = $crawler->filter('tbody tr')->reduce(static fn ($node) => str_contains($node->text(), 'Actions'));
+        self::assertCount(1, $row->filter('a.button-link.cms-section-action'));
+        self::assertCount(1, $row->filter('button.cms-section-action'));
+        self::assertSame('/yeni/admin/cms/home/'.$section->id().'/edit', $row->filter('a')->attr('href'));
+        $client->submit($row->selectButton('Pasifleştir')->form());
+        self::assertResponseRedirects('/yeni/admin/cms/home');
+        $client->followRedirect();
+        self::assertSelectorTextContains('button.cms-section-action', 'Aktifleştir');
+    }
+
     private Connection $connection;
     private EntityManagerInterface $manager;
 

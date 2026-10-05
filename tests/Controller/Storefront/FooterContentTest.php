@@ -120,7 +120,8 @@ final class FooterContentTest extends WebTestCase
 
         $crawler = $this->client->request('GET', '/yeni/bilgi');
 
-        self::assertSelectorTextContains('.site-footer .footer-address', 'Adana / Seyhan');
+        self::assertSelectorTextContains('.site-footer .footer-address', 'Türkiye / Adana');
+        self::assertSelectorTextNotContains('.site-footer .footer-address', 'Seyhan');
         self::assertSelectorTextContains('.site-footer .footer-address', '+90 322 123 45 67');
         self::assertSelectorTextContains('.site-footer .footer-address', 'iletisim@example.com');
         self::assertSame('tel:+903221234567', $crawler->filter('.site-footer .footer-address a[href^="tel:"]')->attr('href'));

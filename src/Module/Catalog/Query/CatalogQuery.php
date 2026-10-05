@@ -22,6 +22,23 @@ final readonly class CatalogQuery
         return $this->repository->priceBounds($criteria);
     }
 
+    /** @return list<CatalogOption> */
+    public function categoryFacets(CatalogCriteria $criteria, int $limit): array
+    {
+        return $this->repository->categoryFacets($criteria, $limit);
+    }
+
+    /** @return list<CatalogOption> */
+    public function brandFacets(CatalogCriteria $criteria, int $limit): array
+    {
+        return $this->repository->brandFacets($criteria, $limit);
+    }
+
+    public function hasActiveDiscountedProducts(): bool
+    {
+        return $this->repository->hasActiveDiscountedProducts();
+    }
+
     public function product(string $slug): ?CatalogProductDetail
     {
         return $this->repository->findPublishedProduct($slug);
