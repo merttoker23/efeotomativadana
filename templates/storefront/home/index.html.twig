@@ -50,4 +50,5 @@
         {% endif %}
     {% endif %}
 </main>
+{% if homepage.popup %}{% include homepage.popup.template with {section: homepage.popup} only %}{% endif %}
 {% endblock %}

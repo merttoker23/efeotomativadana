@@ -1,8 +1,20 @@
-{# The CMS announcement, rendered into the theme's single notice band.
-
-   This partial owns no markup of its own: it hands the stored text to the one notice template the
-   layout has, so an administrator's announcement replaces the store's default line in the theme's
-   position rather than appearing as a second bar. #}
-{% if section.data.text %}
-    {% include 'storefront/layout/_notice.html.twig' with {text: section.data.text} only %}
+{% set items = section.data.items|default([section.data.text|default('')]) %}
+{% set repeats = min(24, max(1, (240 / max(1, items|join('')|length))|round(0, 'ceil'))) %}
+{% if items|length %}
+<div class="notice notice-ticker" role="status" data-storefront-shell-target="announcement">
+    <div class="notice-ticker-viewport">
+        <div class="notice-ticker-track">
+            {% for duplicate in [false, true] %}
+                <div class="notice-ticker-group"{% if duplicate %} aria-hidden="true"{% endif %}>
+                    {% for repetition in 1..repeats %}
+                        <span class="notice-ticker-run"{% if repetition > 1 %} aria-hidden="true"{% endif %}>
+                            {% for item in items %}<span class="notice-ticker-item">{{ item }}</span><span class="notice-ticker-separator" aria-hidden="true">●</span>{% endfor %}
+                        </span>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <button class="notice-close" type="button" aria-label="Duyuruyu kapat" data-action="storefront-shell#dismissAnnouncement">×</button>
+</div>
 {% endif %}

@@ -27,10 +27,18 @@
             <p class="help-text">Merchant Salt: {{ secretStatus.salt ? 'Tanımlı ••••••••' : 'Tanımlı değil' }}</p>
             {{ form_row(form.merchantSalt) }}
         </fieldset>
-        <fieldset>
+        <fieldset class="payment-work-mode">
             <legend>Çalışma modu</legend>
-            {{ form_row(form.testMode) }}
-            {{ form_row(form.confirmLiveMode) }}
+            {{ form_label(form.testMode) }}
+            {{ form_errors(form.testMode) }}
+            <div class="payment-mode-options">
+                {% for mode in form.testMode %}
+                    <label class="payment-mode-option" for="{{ mode.vars.id }}">{{ form_widget(mode) }}<span>{{ mode.vars.label }}</span></label>
+                {% endfor %}
+            </div>
+            <div class="payment-live-confirm">{{ form_widget(form.confirmLiveMode) }}{{ form_label(form.confirmLiveMode) }}</div>
+            {{ form_help(form.confirmLiveMode) }}
+            {{ form_errors(form.confirmLiveMode) }}
         </fieldset>
         {{ form_row(form.save) }}
         {{ form_end(form) }}

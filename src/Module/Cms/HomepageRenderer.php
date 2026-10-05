@@ -88,6 +88,7 @@ final readonly class HomepageRenderer
 
         $slots = [
             HomeSectionType::AnnouncementBar->value => 'announcement',
+            HomeSectionType::PopupAd->value => 'popup',
             HomeSectionType::CategoryMenu->value => 'categoryMenu',
             HomeSectionType::HeroSlider->value => 'heroSlider',
             HomeSectionType::ProductCarousel->value => 'topSellers',
@@ -100,6 +101,12 @@ final readonly class HomepageRenderer
         foreach ($sections as $position => $section) {
             $sectionView = $this->view($section, $validated[$position], $byProductSlug, $categories, $brands, $ranked);
             $slot = $slots[$section->type()->value] ?? null;
+
+            // Overlay sections never enter the content flow, including extra active campaigns.
+            if ('popup' === $slot || ('announcement' === $slot && isset($filled[$slot]))) {
+                $filled[$slot] ??= $sectionView;
+                continue;
+            }
 
             if (null === $slot || isset($filled[$slot])) {
                 $blocks[] = $sectionView;
@@ -117,6 +124,7 @@ final readonly class HomepageRenderer
             $filled['testimonials'] ?? null,
             $filled['blogFeed'] ?? null,
             $blocks,
+            $filled['popup'] ?? null,
         );
     }
 
@@ -146,6 +154,12 @@ final readonly class HomepageRenderer
     {
         $data = $config;
         switch ($section->type()) {
+            case HomeSectionType::PopupAd:
+                $data['campaignKey'] = ($section->id() ?? 0).'-'.hash('sha256', json_encode([
+                    $section->title(), $section->subtitle(), $config,
+                ], JSON_THROW_ON_ERROR));
+
+                break;
             case HomeSectionType::CategoryMenu:
                 $data['categories'] = $this->pick($categories, $config['slugs']);
 

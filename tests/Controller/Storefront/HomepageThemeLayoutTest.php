@@ -417,8 +417,8 @@ final class HomepageThemeLayoutTest extends WebTestCase
 
         $crawler = $this->home();
 
-        self::assertSame(1, $crawler->filter('.notice[role="status"] .notice-text')->count());
-        self::assertSelectorTextContains('.notice .notice-text', 'ücretsiz kargo');
+        self::assertSame(1, $crawler->filter('.notice[role="status"] .notice-ticker-group[aria-hidden="true"]')->count());
+        self::assertSelectorTextContains('.notice .notice-ticker-item', 'ücretsiz kargo');
 
         // The theme's position: the notice is a child of the body, before the header, not a second
         // strip below the navigation.

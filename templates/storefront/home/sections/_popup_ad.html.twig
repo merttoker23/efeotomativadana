@@ -1,0 +1,26 @@
+<dialog class="campaign-popup"
+        data-controller="campaign-popup"
+        data-campaign-popup-key-value="{{ section.data.campaignKey }}"
+        data-campaign-popup-delay-value="{{ section.data.delay }}"
+        data-campaign-popup-allow-dismiss-value="{{ section.data.allowDismiss ? 'true' : 'false' }}"
+        data-action="cancel->campaign-popup#cancel close->campaign-popup#closed pointerdown->campaign-popup#backdropStart click->campaign-popup#backdrop turbo:before-cache@document->campaign-popup#disconnect"
+        aria-labelledby="campaign-popup-title" aria-describedby="campaign-popup-description">
+    <button class="campaign-popup-close" type="button" aria-label="Kampanyayı kapat" autofocus data-campaign-popup-target="close" data-action="campaign-popup#close">×</button>
+    {% set image = section.data.image ?: section.data.mobileImage %}
+    {% if image %}
+        <picture>
+            <source media="(max-width: 680px)" srcset="{{ media_url(section.data.mobileImage ?: image) }}">
+            <img class="campaign-popup-image" src="{{ media_url(image) }}" alt="" decoding="async">
+        </picture>
+    {% endif %}
+    <div class="campaign-popup-content">
+        <h2 id="campaign-popup-title">{{ section.title }}</h2>
+        <p id="campaign-popup-description">{{ section.data.description }}</p>
+        {% if section.data.cta and section.data.link %}
+            <a class="hero-cta campaign-popup-cta" href="{{ section.data.link }}" data-action="campaign-popup#close">{{ section.data.cta }}</a>
+        {% endif %}
+        {% if section.data.allowDismiss %}
+            <label class="campaign-popup-preference"><input type="checkbox" data-campaign-popup-target="preference"> Bir daha gösterme</label>
+        {% endif %}
+    </div>
+</dialog>

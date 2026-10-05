@@ -71,7 +71,7 @@
 
             <div class="catalog-heading-row">
                 <div>
-                    <p class="panel-kicker">{% if criteria.onSaleOnly %}Aktif indirim{% else %}Yerel katalog{% endif %}</p>
+                    {% if criteria.onSaleOnly %}<p class="panel-kicker">Aktif indirim</p>{% endif %}
                     <h1 id="catalog-heading">{{ heading }}</h1>
                     {% if criteria.query %}<p class="search-context">“{{ criteria.query }}” için sonuçlar</p>{% endif %}
                 </div>

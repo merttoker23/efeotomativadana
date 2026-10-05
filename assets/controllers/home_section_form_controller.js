@@ -38,6 +38,18 @@ export default class extends Controller {
         this.renumber();
     }
 
+    moveRow(event) {
+        const row = event.currentTarget.closest('.cms-row');
+        const index = this.rowTargets.indexOf(row);
+        const offset = event.currentTarget.value.startsWith('move-row-up:') ? -1 : 1;
+        const sibling = this.rowTargets[index + offset];
+        event.preventDefault();
+        if (!row || !sibling) return;
+        if (offset < 0) sibling.before(row);
+        else sibling.after(row);
+        this.renumber();
+    }
+
     renumber() {
         this.rowTargets.forEach((row, index) => {
             row.dataset.index = String(index);
@@ -70,7 +82,7 @@ export default class extends Controller {
     rename(value, index, field, attribute) {
         if ('value' === attribute && '_pick' === field.getAttribute('name')) {
             const parts = value.split(':');
-            if ('remove-row' === parts[0]) {
+            if (['remove-row', 'move-row-up', 'move-row-down'].includes(parts[0])) {
                 parts[1] = String(index);
 
                 return parts.join(':');

@@ -38,7 +38,7 @@ final class HomeSectionDraftTest extends TestCase
 
     public function testANewSectionStartsFromTheShapesItsOwnTypeDeclares(): void
     {
-        self::assertSame(['text' => ''], $this->drafts->fromConfiguration(HomeSectionType::AnnouncementBar, null));
+        self::assertSame(['items' => [['text' => '']]], $this->drafts->fromConfiguration(HomeSectionType::AnnouncementBar, null));
         self::assertSame(['limit' => 3], $this->drafts->fromConfiguration(HomeSectionType::BlogFeed, null));
         self::assertSame(['slugs' => []], $this->drafts->fromConfiguration(HomeSectionType::BrandStrip, null));
         self::assertSame(

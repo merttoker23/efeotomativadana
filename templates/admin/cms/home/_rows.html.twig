@@ -58,6 +58,10 @@
                     labels: labels,
                 } only %}
             {% endif %}
+            {% if type.value == 'announcement_bar' %}
+                <button type="submit" name="_pick" value="move-row-up:{{ loop.index0 }}:" data-action="home-section-form#moveRow">Yukarı taşı</button>
+                <button type="submit" name="_pick" value="move-row-down:{{ loop.index0 }}:" data-action="home-section-form#moveRow">Aşağı taşı</button>
+            {% endif %}
             <button class="danger-button" type="submit" name="_pick" value="remove-row:{{ loop.index0 }}:" data-action="home-section-form#removeRow">Satırı sil</button>
         </fieldset>
     {% endfor %}
@@ -66,6 +70,7 @@
 
     <template data-home-section-form-target="prototype">
         <fieldset class="cms-row" data-index="0" data-home-section-form-target="row">
+            {% if type.value == 'announcement_bar' %}<legend>1. satır</legend>{% endif %}
             {% for field in type.rowFields %}
                 {% set name = rows ~ '_0_' ~ field %}
                 {% if field in ['image', 'mobileImage'] %}
@@ -107,6 +112,11 @@
                     options: options,
                     labels: labels,
                 } only %}
+            {% endif %}
+            {% if type.value == 'announcement_bar' %}
+                <button type="submit" name="_pick" value="move-row-up:0:" data-action="home-section-form#moveRow">Yukarı taşı</button>
+                <button type="submit" name="_pick" value="move-row-down:0:" data-action="home-section-form#moveRow">Aşağı taşı</button>
+                <button class="danger-button" type="submit" name="_pick" value="remove-row:0:" data-action="home-section-form#removeRow">Satırı sil</button>
             {% endif %}
         </fieldset>
     </template>

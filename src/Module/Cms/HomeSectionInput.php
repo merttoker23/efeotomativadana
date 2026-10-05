@@ -30,6 +30,9 @@ final readonly class HomeSectionInput
      */
     public function configuration(HomeSectionType $type, array $draft, FileBag $files): array
     {
+        if (HomeSectionType::AnnouncementBar === $type && !isset($draft['items']) && isset($draft['text'])) {
+            return SectionConfiguration::validate($type, ['text' => mb_substr(trim((string) $draft['text']), 0, 500)]);
+        }
         $rows = $type->rowName();
         $selection = $type->selection();
 
@@ -37,9 +40,13 @@ final readonly class HomeSectionInput
             /** @var array<string, mixed> $configuration */
             $configuration = [];
             foreach ($type->fields() as $field => $kind) {
-                $configuration[$field] = 'number' === $kind
-                    ? $this->limit((int) ($draft[$field] ?? 3))
-                    : mb_substr(trim((string) ($draft[$field] ?? '')), 0, 500);
+                $configuration[$field] = match ($kind) {
+                    'number' => $this->limit((int) ($draft[$field] ?? 3)),
+                    'delay' => (int) ($draft[$field] ?? 5),
+                    'boolean' => (bool) ($draft[$field] ?? false),
+                    'image' => $this->image('popup', 0, (string) ($draft[$field] ?? ''), $files, $field),
+                    default => mb_substr(trim((string) ($draft[$field] ?? '')), 0, 500),
+                };
             }
             if (null !== $selection) {
                 $configuration['slugs'] = $this->slugs($draft['slugs'] ?? []);
@@ -50,7 +57,7 @@ final readonly class HomeSectionInput
 
         $configuration = [];
         foreach ($this->rows($type, $rows, $draft, $files) as $index => $row) {
-            if (HomeSectionType::Marquee === $type) {
+            if (\in_array($type, [HomeSectionType::AnnouncementBar, HomeSectionType::Marquee], true)) {
                 $configuration['items'][] = trim((string) ($row['text'] ?? ''));
 
                 continue;
@@ -71,7 +78,7 @@ final readonly class HomeSectionInput
             $configuration[$rows][] = $entry;
         }
 
-        if (HomeSectionType::Marquee === $type) {
+        if (\in_array($type, [HomeSectionType::AnnouncementBar, HomeSectionType::Marquee], true)) {
             $configuration['items'] = array_values(array_filter(
                 $configuration['items'] ?? [],
                 static fn (string $item): bool => '' !== $item,

@@ -56,15 +56,19 @@ final class HomeSectionDraft
 
         foreach ($type->fields() as $field => $kind) {
             if (\array_key_exists($field, $configuration)) {
-                $draft[$field] = 'number' === $kind
-                    ? (int) $configuration[$field]
-                    : (string) $configuration[$field];
+                $draft[$field] = match ($kind) {
+                    'number', 'delay' => (int) $configuration[$field],
+                    'boolean' => (bool) $configuration[$field],
+                    default => (string) $configuration[$field],
+                };
             }
         }
 
         $rows = $type->rowName();
         if (null !== $rows) {
-            $draft[$rows] = $this->normalizeRows($type, $configuration[$rows] ?? []);
+            $storedRows = HomeSectionType::AnnouncementBar === $type && isset($configuration['text'])
+                ? [$configuration['text']] : ($configuration[$rows] ?? []);
+            $draft[$rows] = $this->normalizeRows($type, $storedRows);
         }
 
         $selection = $type->selection();
@@ -97,9 +101,13 @@ final class HomeSectionDraft
         $draft = $current;
 
         foreach ($type->fields() as $field => $kind) {
-            $draft[$field] = 'number' === $kind
-                ? self::number($fields, $field, 3)
-                : self::text($fields, $field);
+            $draft[$field] = match ($kind) {
+                'number' => self::number($fields, $field, 3),
+                'delay' => self::number($fields, $field, 5),
+                'boolean' => '1' === self::text($fields, $field),
+                'image' => self::text($fields, 'popup_0_'.$field),
+                default => self::text($fields, $field),
+            };
         }
 
         $rows = $type->rowName();

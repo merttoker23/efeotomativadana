@@ -1251,7 +1251,7 @@ select:focus-visible {
 .catalog-filters .catalog-filter-heading {
     margin: 0 0 0.65rem;
     font-size: 0.9rem;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .catalog-filters h2:not(:first-child),
@@ -3210,6 +3210,60 @@ select:focus-visible {
     background: transparent;
     font-size: 1.45rem;
     line-height: 1;
+}
+
+/* Two identical groups translate by exactly one group, including its separators. */
+.notice-ticker { overflow: hidden; max-width: 100%; }
+.notice-ticker-viewport { width: 100%; min-width: 0; overflow: hidden; }
+.notice-ticker-track { display: flex; width: max-content; animation: notice-ticker-scroll 45s linear infinite; }
+.notice-ticker-group { display: flex; align-items: center; flex-shrink: 0; justify-content: space-around; min-width: 100vw; }
+.notice-ticker-run { display: flex; align-items: center; flex-shrink: 0; }
+.notice-ticker-item { flex-shrink: 0; white-space: nowrap; }
+.notice-ticker-separator { flex-shrink: 0; margin-inline: 1.5rem; font-size: .55em; }
+@keyframes notice-ticker-scroll { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+    .notice-ticker-track { animation: none; width: 100%; }
+    .notice-ticker-group { flex-wrap: wrap; justify-content: center; min-width: 0; width: 100%; gap: .5rem; }
+    .notice-ticker-group[aria-hidden="true"], .notice-ticker-run[aria-hidden="true"] { display: none; }
+    .notice-ticker-run { flex-wrap: wrap; justify-content: center; max-width: 100%; }
+    .notice-ticker-item { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+    .notice-ticker-separator { margin-inline: .25rem; }
+    .notice-ticker { height: auto; min-height: 2.3rem; padding-block: .5rem; }
+}
+
+.campaign-popup {
+    width: min(520px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    max-height: calc(100dvh - 32px);
+    padding: 0;
+    margin: auto;
+    border: 0;
+    border-radius: 16px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    color: var(--storefront-navy);
+    background: #fff;
+    box-shadow: 0 24px 80px #071e3c55;
+}
+.campaign-popup::backdrop { background: #071e3c99; }
+.campaign-popup picture { display: block; }
+.campaign-popup-image { display: block; width: 100%; height: auto; max-height: 45dvh; object-fit: contain; }
+.campaign-popup-close {
+    position: absolute; top: 10px; right: 10px; z-index: 1;
+    display: grid; place-items: center; width: 44px; height: 44px;
+    border: 1px solid var(--storefront-line); border-radius: 50%;
+    background: #fff; color: var(--storefront-navy); font-size: 1.8rem; cursor: pointer;
+}
+.campaign-popup-content { padding: 28px; overflow-wrap: anywhere; }
+.campaign-popup-content h2 { margin: 0 28px 12px 0; font-size: 1.6rem; line-height: 1.25; }
+.campaign-popup-content p { margin: 0 0 20px; line-height: 1.6; white-space: pre-line; }
+.campaign-popup-cta { display: flex; justify-content: center; text-align: center; white-space: normal; }
+.campaign-popup-preference { display: flex; align-items: center; gap: 8px; margin-top: 20px; font-size: .875rem; }
+.campaign-popup-preference input { flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--storefront-navy); }
+.campaign-popup :focus-visible { outline: 3px solid var(--storefront-yellow); outline-offset: 3px; }
+@media (max-width: 680px) {
+    .campaign-popup-content { padding: 24px 18px; }
+    .campaign-popup-content h2 { font-size: 1.35rem; }
 }
 
 /* The white card the upper row's side columns are.

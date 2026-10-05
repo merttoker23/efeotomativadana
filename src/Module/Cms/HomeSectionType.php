@@ -7,6 +7,7 @@ use App\Module\Catalog\ProductFeedSource;
 enum HomeSectionType: string
 {
     case AnnouncementBar = 'announcement_bar';
+    case PopupAd = 'popup_ad';
     case HeroSlider = 'hero_slider';
     case CategoryMenu = 'category_menu';
     case ProductCarousel = 'product_carousel';
@@ -40,7 +41,7 @@ enum HomeSectionType: string
             self::Features => 'features',
             self::Testimonials => 'quotes',
             self::ProductTabs => 'tabs',
-            self::Marquee => 'items',
+            self::AnnouncementBar, self::Marquee => 'items',
             default => null,
         };
     }
@@ -70,7 +71,7 @@ enum HomeSectionType: string
             self::Features => ['title', 'description'],
             self::ProductTabs => ['title', 'source'],
             self::Testimonials => ['author', 'text'],
-            self::Marquee => ['text'],
+            self::AnnouncementBar, self::Marquee => ['text'],
             default => [],
         };
     }
@@ -79,7 +80,7 @@ enum HomeSectionType: string
     public function fields(): array
     {
         return match ($this) {
-            self::AnnouncementBar => ['text' => 'textarea'],
+            self::PopupAd => ['description' => 'textarea', 'image' => 'image', 'mobileImage' => 'image', 'cta' => 'text', 'link' => 'link', 'delay' => 'delay', 'allowDismiss' => 'boolean'],
             self::BlogFeed => ['limit' => 'number'],
             // The promotional panel beside the split builder's product list: the theme's
             // `.big-promo`, which is a small label, a headline, a sentence and one call to action.
@@ -152,6 +153,7 @@ enum HomeSectionType: string
     {
         return match ($this) {
             self::AnnouncementBar => 'Duyuru Barı',
+            self::PopupAd => 'Popup Reklam',
             self::HeroSlider => 'Hero Slider',
             self::CategoryMenu => 'Kategori Menüsü',
             self::ProductCarousel => 'Ürün Karuseli',
@@ -170,7 +172,8 @@ enum HomeSectionType: string
     public function placement(): string
     {
         return match ($this) {
-            self::AnnouncementBar => 'Tema bildirim şeridi düzeninde, sayfanın en üstünde ve header’ın dışında tek bir duyuru olarak görünür.',
+            self::AnnouncementBar => 'Header’ın üstünde, duyurular kesintisiz kayan bir şeritte görünür.',
+            self::PopupAd => 'Ana sayfada gecikmeli kampanya penceresi olarak görünür. Bölüm sırasındaki ilk aktif popup gösterilir.',
             self::HeroSlider => 'Üst bölgede, kategori menüsü ile çok satanlar arasındaki hero slider alanında görünür.',
             self::CategoryMenu => 'Üst bölgede, hero slider’ın solundaki kategori panelinde görünür.',
             self::ProductCarousel => 'Sıralamada ilk ürün karuseli üst bölgede “Çok satanlar” sütununda, sonrakiler tema ürün grid bölümünde görünür.',
@@ -194,8 +197,10 @@ enum HomeSectionType: string
             'headline' => 'Kampanya başlığı',
             'label' => 'Üst etiket',
             'description' => 'Açıklama',
-            'image' => self::HeroSlider === $this ? 'Desktop Banner' : 'Görsel',
-            'mobileImage' => 'Mobil Banner',
+            'image' => self::PopupAd === $this ? 'Desktop görsel (isteğe bağlı)' : (self::HeroSlider === $this ? 'Desktop Banner' : 'Görsel'),
+            'mobileImage' => self::PopupAd === $this ? 'Mobil görsel (isteğe bağlı)' : 'Mobil Banner',
+            'delay' => 'Gösterim gecikmesi (saniye)',
+            'allowDismiss' => '“Bir daha gösterme” seçeneğini sun',
             'link' => 'Bağlantı',
             'cta' => 'Buton metni',
             'text' => 'Metin',
@@ -223,9 +228,9 @@ enum HomeSectionType: string
     public function emptyDraft(): array
     {
         return match ($this) {
-            self::AnnouncementBar => ['text' => ''],
+            self::PopupAd => ['description' => '', 'image' => '', 'mobileImage' => '', 'cta' => '', 'link' => '', 'delay' => 5, 'allowDismiss' => true],
             self::BlogFeed => ['limit' => 3],
-            self::Marquee => ['items' => [self::blankRow(['text'])]],
+            self::AnnouncementBar, self::Marquee => ['items' => [self::blankRow(['text'])]],
             self::HeroSlider => ['slides' => [self::blankRow(self::HERO_SLIDE_FIELDS)]],
             self::BannerGrid => ['banners' => [self::blankRow(['title', 'image', 'link'])]],
             self::Features => ['features' => [self::blankRow(['title', 'description'])]],

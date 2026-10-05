@@ -28,22 +28,29 @@
 
         <div class="form-grid">
             <div>
-                <label for="title">Bölüm başlığı</label>
+                <label for="title">{{ type.value == 'popup_ad' ? 'Başlık' : 'Bölüm başlığı' }}</label>
                 <input id="title" type="text" name="title" value="{{ title }}" maxlength="255" required>
             </div>
-            <div>
+            {% if type.value != 'popup_ad' %}<div>
                 <label for="subtitle">Alt başlık (isteğe bağlı)</label>
                 <input id="subtitle" type="text" name="subtitle" value="{{ subtitle }}" maxlength="500">
-            </div>
+            </div>{% endif %}
         </div>
 
         {% for field, kind in type.fields() %}
             <div class="cms-field">
-                <label for="field-{{ field }}">{{ type.fieldLabels()[field]|default(field) }}</label>
+                <label for="{{ kind == 'image' ? 'popup_0_' ~ field : 'field-' ~ field }}">{{ type.fieldLabels()[field]|default(field) }}</label>
                 {% if 'textarea' == kind %}
                     <textarea id="field-{{ field }}" name="{{ field }}" rows="3" maxlength="500">{{ draft[field]|default('') }}</textarea>
                 {% elseif 'link' == kind %}
                     {% include 'admin/cms/home/_link.html.twig' with {name: field, value: draft[field]|default('')} only %}
+                {% elseif 'image' == kind %}
+                    {% include 'admin/cms/home/_image.html.twig' with {name: 'popup_0_' ~ field, current: draft[field]|default(''), library: library, resolvedPreview: true} only %}
+                    {% if field == 'mobileImage' %}<p class="help-text">680px ve altında kullanılır. Seçilmezse desktop görseli kullanılır.</p>{% endif %}
+                {% elseif 'boolean' == kind %}
+                    <input id="field-{{ field }}" type="checkbox" name="{{ field }}" value="1"{{ draft[field]|default(false) ? ' checked' : '' }}>
+                {% elseif 'delay' == kind %}
+                    <input id="field-{{ field }}" type="number" name="{{ field }}" value="{{ draft[field]|default(5) }}" min="0" max="300" step="1" required>
                 {% elseif 'number' == kind %}
                     <input id="field-{{ field }}" type="number" name="{{ field }}" value="{{ draft[field]|default(3) }}" min="1" max="12">
                 {% else %}

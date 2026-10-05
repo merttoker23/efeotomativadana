@@ -292,6 +292,27 @@ final class HomeSectionInputTest extends TestCase
         return '/uploads/cms/'.str_repeat('b', 32).'.jpg';
     }
 
+    public function testPopupDesktopAndMobileUploadsUseExistingStorageIndependently(): void
+    {
+        $this->files->set('popup_0_image_file', $this->upload('popup-desktop.png'));
+        $this->files->set('popup_0_mobileImage_file', $this->upload('popup-mobile.png'));
+        $configuration = $this->input->configuration(HomeSectionType::PopupAd, HomeSectionType::PopupAd->emptyDraft(), $this->files);
+        foreach (['image', 'mobileImage'] as $field) {
+            self::assertMatchesRegularExpression('~^/uploads/cms/[a-f0-9]{32}\.png$~', $configuration[$field]);
+            self::assertFileExists($this->directory.'/'.basename($configuration[$field]));
+        }
+        self::assertNotSame($configuration['image'], $configuration['mobileImage']);
+    }
+
+    public function testPopupRejectsDisguisedMobileImageThroughExistingStorage(): void
+    {
+        $path = $this->directory.'/unsafe.png';
+        file_put_contents($path, '<?php echo "unsafe";');
+        $this->files->set('popup_0_mobileImage_file', new UploadedFile($path, 'mobile.png', 'image/png', null, true));
+        $this->expectException(\InvalidArgumentException::class);
+        $this->input->configuration(HomeSectionType::PopupAd, HomeSectionType::PopupAd->emptyDraft(), $this->files);
+    }
+
     private function upload(string $name): UploadedFile
     {
         $path = $this->directory.'/'.$name;

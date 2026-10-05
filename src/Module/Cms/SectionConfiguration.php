@@ -34,7 +34,8 @@ final class SectionConfiguration
     public static function validate(HomeSectionType $type, array $config): array
     {
         $schema = match ($type) {
-            HomeSectionType::AnnouncementBar => ['text' => 'text'],
+            HomeSectionType::AnnouncementBar => array_key_exists('items', $config) ? ['items' => 'items'] : ['text' => 'text'],
+            HomeSectionType::PopupAd => ['description' => 'optionalText', 'image' => 'optionalImage', 'mobileImage' => 'optionalImage', 'cta' => 'optionalText', 'link' => 'optionalLink', 'delay' => 'delay', 'allowDismiss' => 'boolean'],
             HomeSectionType::HeroSlider => ['slides' => 'slides'],
             HomeSectionType::CategoryMenu => ['slugs' => 'slugs'],
             HomeSectionType::ProductCarousel => ['slugs' => 'slugs'],
@@ -58,6 +59,18 @@ final class SectionConfiguration
             $value = $config[$key];
             if ('text' === $kind) {
                 self::text($value);
+            } elseif ('optionalText' === $kind) {
+                self::optionalText($value);
+            } elseif ('optionalImage' === $kind) {
+                if ('' !== $value) { self::image($value); }
+            } elseif ('optionalLink' === $kind) {
+                self::optionalLink($value);
+            } elseif ('delay' === $kind) {
+                if (!is_int($value) || $value < 0 || $value > 300) {
+                    throw new \InvalidArgumentException('Popup delay must be between 0 and 300 seconds.');
+                }
+            } elseif ('boolean' === $kind) {
+                if (!is_bool($value)) { throw new \InvalidArgumentException('Popup preference must be boolean.'); }
             } elseif ('limit' === $kind) {
                 if (!is_int($value) || $value < 1 || $value > 12) {
                     throw new \InvalidArgumentException('Blog limit must be between 1 and 12.');
@@ -67,6 +80,10 @@ final class SectionConfiguration
             } else {
                 self::list($kind, $value);
             }
+        }
+
+        if (HomeSectionType::PopupAd === $type && ('' === trim($config['cta']) xor '' === trim($config['link']))) {
+            throw new \InvalidArgumentException('A popup call to action needs both its text and its link.');
         }
 
         return $config;

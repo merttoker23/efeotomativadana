@@ -29,6 +29,7 @@ final readonly class HomepageView
         public ?HomeSectionView $testimonials = null,
         public ?HomeSectionView $blogFeed = null,
         public array $blocks = [],
+        public ?HomeSectionView $popup = null,
     ) {}
 
     /** The theme's upper band is only worth rendering when at least one of its three columns is. */
