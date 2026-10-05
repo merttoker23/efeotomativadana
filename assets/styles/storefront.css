@@ -1071,15 +1071,29 @@ select:focus-visible {
 }
 
 .account-primary-link {
+    appearance: none;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     min-height: 40px;
     padding: 0.55rem 0.9rem;
+    border: 0;
     border-radius: 0.25rem;
+    box-shadow: none;
     color: var(--storefront-navy);
     background: var(--storefront-yellow);
     font-size: 0.72rem;
     font-weight: 850;
+    font-family: inherit;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.account-primary-link:focus-visible {
+    outline: 3px solid var(--storefront-navy);
+    outline-offset: 3px;
 }
 
 .account-nav form {
@@ -2710,6 +2724,43 @@ select:focus-visible {
 /* The payment status page reuses the order card but carries forms and money figures, which
    read badly centred, so it opts out of the inherited centring. */
 .payment-status-card { text-align: left; }
+
+/* Provider form: CSS only; card values travel directly to the signed action URL. */
+.payment-gateway-page { min-height: 0; }
+.payment-gateway-card { max-width: 960px; padding: clamp(18px, 3vw, 32px); border: 1px solid var(--storefront-line); border-radius: 14px; background: var(--storefront-card); box-shadow: 0 8px 24px rgb(9 42 83 / 6%); }
+.payment-gateway-header { display: flex; align-items: center; gap: 14px; padding-bottom: 22px; border-bottom: 1px solid var(--storefront-line); }
+.payment-gateway-header > div { min-width: 0; }
+.payment-gateway-header h1 { margin: 0 0 4px; color: var(--storefront-navy); font-size: clamp(1.35rem, 3vw, 1.8rem); line-height: 1.25; }
+.payment-gateway-header p { margin: 0; color: var(--storefront-muted); font-size: .85rem; overflow-wrap: anywhere; }
+.payment-security-icon { display: grid; place-items: center; flex: 0 0 48px; height: 48px; border-radius: 12px; color: var(--storefront-navy); background: #eef3fa; }
+.payment-test-notice { margin: 18px 0 0; padding: 10px 14px; border: 1px solid #ebd48c; border-radius: 8px; color: #654a00; background: #fff8e4; font-size: .83rem; }
+.payment-gateway-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; gap: 28px; margin-top: 24px; }
+.payment-gateway-grid > * { min-width: 0; }
+.payment-gateway-card h2 { margin: 0; color: var(--storefront-navy); font-size: 1rem; font-weight: 700; }
+.payment-card-fields { display: grid; gap: 16px; }
+.payment-card-fields p { display: grid; gap: 6px; min-width: 0; margin: 0; }
+.payment-card-fields label { color: var(--storefront-ink); font-size: .83rem; font-weight: 650; }
+.payment-card-fields input { appearance: none; width: 100%; min-width: 0; height: 48px; padding: 10px 12px; border: 1px solid #cbd3dc; border-radius: 8px; box-shadow: none; color: var(--storefront-ink); background: var(--storefront-card); font: inherit; font-size: 1rem; }
+.payment-card-fields input:focus-visible { border-color: var(--storefront-navy); outline: 3px solid #6ea4e5; outline-offset: 2px; }
+.payment-card-expiry { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 12px; }
+.payment-card-hint { margin: 16px 0; color: var(--storefront-muted); font-size: .78rem; line-height: 1.5; }
+.payment-card-submit { appearance: none; width: 100%; min-height: 48px; padding: 12px 18px; border: 0; border-radius: 8px; box-shadow: none; color: var(--storefront-navy); background: var(--storefront-yellow); font: inherit; font-weight: 750; cursor: pointer; }
+.payment-card-submit:hover { filter: brightness(.96); }
+.payment-card-submit:focus-visible, .payment-back-link:focus-visible, .information-link:focus-visible { outline: 3px solid var(--storefront-navy); outline-offset: 3px; }
+.payment-gateway-summary { padding: 22px; border: 1px solid var(--storefront-line); border-radius: 10px; background: #f7f9fb; overflow-wrap: anywhere; }
+.payment-summary-order { margin: 10px 0 20px; color: var(--storefront-muted); font-size: .82rem; }
+.payment-summary-total { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); align-items: baseline; gap: 12px; padding-top: 18px; border-top: 1px solid var(--storefront-line); }
+.payment-summary-total strong { color: var(--storefront-navy); font-size: clamp(1.1rem, 2vw, 1.4rem); text-align: right; font-variant-numeric: tabular-nums; }
+.payment-summary-caption { margin: 6px 0 20px; color: var(--storefront-muted); font-size: .78rem; }
+.payment-back-link { display: inline-flex; align-items: center; min-height: 40px; color: var(--storefront-navy); font-size: .84rem; text-decoration: underline; text-underline-offset: 4px; }
+.payment-back-link:hover { color: var(--storefront-navy-light); }
+@media (max-width: 680px) {
+    .payment-gateway-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 20px; }
+    .payment-gateway-summary { padding: 16px; }
+    .payment-card-expiry { gap: 8px; }
+    .payment-card-expiry label { font-size: .75rem; }
+    .payment-card-fields input { padding-inline: 10px; }
+}
 .order-success-mark { align-items: center; background: #e7f7ed; border-radius: 50%; color: #23854a; display: inline-flex; font-size: 2rem; height: 64px; justify-content: center; width: 64px; }
 .order-success-grid { display: grid; gap: 28px; grid-template-columns: minmax(0, 1.4fr) minmax(260px, .6fr); margin: 30px 0; text-align: left; }
 .order-line { align-items: center; border-bottom: 1px solid #e7ebef; display: flex; justify-content: space-between; padding: 14px 0; }
@@ -2742,6 +2793,16 @@ select:focus-visible {
 .content-page { padding-block: 2rem 4rem; max-width: 70rem }
 .content-page article { max-width: 48rem }
 .content-body { white-space: normal; line-height: 1.7; overflow-wrap: anywhere }
+.information-page .generic-card { min-width: 0; }
+.information-page .page-title { overflow-wrap: anywhere; }
+.information-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.information-link { display: block; height: 100%; padding: 19.2px; border: 1px solid var(--storefront-line); border-radius: 5.6px; color: var(--storefront-navy); font-weight: 650; overflow-wrap: anywhere; }
+.information-link:hover { border-color: var(--storefront-navy); background: #f7f9fb; }
+@media (max-width: 1024px) { .information-links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) {
+    .information-links { grid-template-columns: minmax(0, 1fr); }
+    .information-page .generic-card { padding: 18px; }
+}
 .content-lead { font-size: 1.2rem }
 
 /* The blog, as `tema/blog.html` and `tema/blog-welcome.html` draw it.
@@ -4279,7 +4340,7 @@ select:focus-visible {
 
 /* Compact customer order cards. Native details owns keyboard and expanded semantics. */
 .order-disclosure { padding: 0; min-width: 0; }
-.order-card-summary { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, max-content) minmax(0, max-content) auto; gap: 20px; align-items: center; padding: 18px 20px; cursor: pointer; list-style: none; border-radius: 10px; }
+.order-card-summary { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 9rem) 18px; gap: 20px; align-items: center; padding: 18px 20px; cursor: pointer; list-style: none; border-radius: 10px; }
 .order-card-summary::-webkit-details-marker { display: none; }
 .order-card-summary::marker { content: ''; }
 .order-card-summary:hover { background: #f7f9fb; }
@@ -4289,13 +4350,13 @@ select:focus-visible {
 .order-card-identity .order-card-date { margin: 0; font-size: .8rem; }
 .order-card-identity .order-card-state { justify-self: start; }
 .order-card-state { max-width: 100%; overflow-wrap: anywhere; font-weight: 650; line-height: 1.4; }
+.order-card-summary > .order-card-state { min-width: 0; justify-self: start; white-space: normal; }
 .order-thumbnails { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .order-thumbnails img, .order-thumbnail-more { width: 40px; height: 40px; border: 1px solid var(--storefront-line); border-radius: 5px; background: #fff; }
 .order-thumbnails img { object-fit: contain; padding: 3px; }
 .order-thumbnail-more { display: grid; place-items: center; color: var(--storefront-muted); font-size: .76rem; font-weight: 600; }
 .order-card-count { color: var(--storefront-muted); font-size: .8rem; }
 .order-card-amount { text-align: right; overflow-wrap: anywhere; }
-.order-card-amount small { color: var(--storefront-muted); font-size: .78rem; }
 .order-card-amount strong { color: var(--storefront-navy); font-size: 1rem; font-variant-numeric: tabular-nums; }
 .order-card-toggle { display: flex; gap: 6px; align-items: center; color: var(--storefront-navy); font-size: .8rem; font-weight: 600; }
 .order-card-toggle svg { flex-shrink: 0; }
@@ -4346,9 +4407,10 @@ select:focus-visible {
     .checkout-summary { position: sticky; top: 24px; max-height: calc(100svh - 48px); overflow-y: auto; }
 }
 @media (max-width: 1024px) {
-    .order-card-summary { grid-template-columns: minmax(0, 1fr) minmax(0, max-content) minmax(0, max-content) auto; gap: 16px; }
+    .order-card-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 9rem) 18px; gap: 16px; }
     .order-card-identity { grid-column: 1 / -1; }
     .order-card-preview { grid-row: 2; }
+    .order-card-summary > .order-card-state { grid-column: 2; grid-row: 2; }
     .order-card-amount { grid-column: 3; grid-row: 2; }
     .order-card-toggle { justify-self: end; }
     .order-detail-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; }
@@ -4363,7 +4425,7 @@ select:focus-visible {
     .order-addresses { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 20px; }
     .order-address-card, .order-detail-summary { padding: 14px; }
     .order-card-toggle { gap: 3px; font-size: .75rem; }
-    .order-card-summary { grid-template-columns: minmax(0, 1fr) minmax(0, max-content) auto; }
+    .order-card-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 7.5rem) 18px; }
     .order-card-preview { grid-column: 1 / -1; grid-row: 3; }
     .order-card-summary > .order-card-state { grid-column: 1; grid-row: 2; justify-self: start; }
     .order-card-amount { grid-column: 2; }

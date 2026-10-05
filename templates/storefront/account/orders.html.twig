@@ -40,7 +40,7 @@
                                     <span class="order-card-count">{{ summary.lines|length }} ürün · {{ summary.quantity }} adet</span>
                                 </span>
                                 <span class="order-card-state">{{ summary.stateLabel }}{% if not summary.hasPayment %} · Ödeme bekleniyor{% endif %}</span>
-                                <span class="order-card-amount" data-testid="order-total"><small>Toplam</small><strong>{{ order.grandTotal|storefront_money }}</strong></span>
+                                <span class="order-card-amount" data-testid="order-total"><strong>{{ order.grandTotal|storefront_money }}</strong></span>
                                 <span class="order-card-toggle" aria-hidden="true"><svg viewBox="0 0 20 20" width="18" height="18" focusable="false"><path d="m5 7 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
                             </summary>
                             <div class="order-card-content">

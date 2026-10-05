@@ -16,25 +16,28 @@
     here, so no provider's vocabulary reaches the storefront.
 #}
 {% block body %}
-<main id="main-content" class="page-shell" tabindex="-1">
-    <section class="container order-success-card payment-status-card">
-        <p class="checkout-kicker">Sipariş {{ order.orderNumber }}</p>
-        <h1>Ödeme</h1>
-
-        <p class="order-number">Sipariş numarası: <strong>{{ order.orderNumber }}</strong></p>
-        <p class="order-totals grand"><span>Toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></p>
+<main id="main-content" class="page-shell payment-gateway-page" tabindex="-1">
+    <section class="container payment-gateway-card" aria-labelledby="payment-heading">
+        <header class="payment-gateway-header">
+            <span class="payment-security-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" focusable="false"><rect x="5" y="10" width="14" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <div>
+                <h1 id="payment-heading">Güvenli Ödeme</h1>
+                <p>Sipariş numarası: <strong>{{ order.orderNumber }}</strong></p>
+            </div>
+        </header>
 
         {% if fields.test_mode|default('0') == '1' %}
-            <p class="alert" role="status">Test ödemesi: Bu işlemde gerçek tahsilat yapılmaz.</p>
+            <p class="payment-test-notice" role="status"><strong>Test ödemesi:</strong> Bu işlemde gerçek tahsilat yapılmaz.</p>
         {% endif %}
 
-        <form method="post" action="{{ action_url }}" class="payment-card-form" id="gateway-payment-form">
+        <div class="payment-gateway-grid">
+        <form method="post" action="{{ action_url }}" class="payment-card-form" id="gateway-payment-form" aria-labelledby="card-details-heading">
             {% for name, value in fields %}
                 <input type="hidden" name="{{ name }}" value="{{ value }}">
             {% endfor %}
 
             <div class="payment-card-fields">
-                <p class="payment-card-hint">Kart bilgileriniz doğrudan ödeme sağlayıcısına iletilir ve bu mağazaya kaydedilmez.</p>
+                <h2 id="card-details-heading">Kart Bilgileri</h2>
 
                 <p>
                     <label for="cc_owner">Kart üzerindeki isim</label>
@@ -45,6 +48,7 @@
                     <input type="text" id="card_number" name="card_number" autocomplete="cc-number"
                            inputmode="numeric" maxlength="19" pattern="[0-9 ]+" required>
                 </p>
+                <div class="payment-card-expiry">
                 <p>
                     <label for="expiry_month">Son kullanma ayı</label>
                     <input type="text" id="expiry_month" name="expiry_month" autocomplete="cc-exp-month"
@@ -56,18 +60,27 @@
                            inputmode="numeric" maxlength="4" pattern="[0-9]{2,4}" required>
                 </p>
                 <p>
-                    <label for="cvv">CVC / güvenlik kodu</label>
+                    <label for="cvv">CVC</label>
                     <input type="text" id="cvv" name="cvv" autocomplete="cc-csc"
                            inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" required>
                 </p>
+                </div>
             </div>
+
+            <p class="payment-card-hint">Kart bilgileriniz doğrudan ödeme sağlayıcısına iletilir ve bu mağazaya kaydedilmez.</p>
 
             {# No script of any kind runs on this page: nothing here may be able to read the card
                fields, so the form is a plain post and the values are never handled by JavaScript. #}
-            <button type="submit" class="checkout-primary">Ödemeyi tamamla</button>
+            <button type="submit" class="checkout-primary payment-card-submit">Ödemeyi tamamla</button>
         </form>
-
-        <p><a class="account-primary-link" href="{{ path('storefront_payment_show', {orderNumber: order.orderNumber}) }}">Ödeme durumuna dön</a></p>
+        <aside class="payment-gateway-summary" aria-labelledby="payment-summary-heading">
+            <h2 id="payment-summary-heading">Sipariş Özeti</h2>
+            <p class="payment-summary-order">{{ order.orderNumber }}</p>
+            <div class="payment-summary-total"><span>Toplam</span><strong>{{ order.grandTotal|storefront_money }}</strong></div>
+            <p class="payment-summary-caption">Kredi kartı ile ödeme</p>
+            <a class="payment-back-link" href="{{ path('storefront_payment_show', {orderNumber: order.orderNumber}) }}">Ödeme durumuna dön</a>
+        </aside>
+        </div>
     </section>
 </main>
 {% endblock %}

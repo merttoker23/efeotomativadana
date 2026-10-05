@@ -40,6 +40,7 @@ final class StoreSettingsType extends AbstractType
                 'required' => false,
                 'placeholder' => 'İl seçin',
                 'choices' => TurkishGeography::provinces(),
+                'choice_label' => static fn (string $choice): string => $choice,
                 'empty_data' => '',
                 'attr' => ['data-store-address-target' => 'city'],
             ])
@@ -51,6 +52,7 @@ final class StoreSettingsType extends AbstractType
                 'required' => false,
                 'placeholder' => 'İlçe seçin',
                 'choices' => TurkishGeography::allDistricts(),
+                'choice_label' => static fn (string $choice): string => $choice,
                 'empty_data' => '',
                 'attr' => ['data-store-address-target' => 'district'],
             ])

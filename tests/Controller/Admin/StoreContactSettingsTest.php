@@ -56,6 +56,8 @@ final class StoreContactSettingsTest extends WebTestCase
         $cities = $city->filter('option')->each(static fn ($node) => $node->attr('value'));
         self::assertCount(82, $cities, '81 provinces plus the empty choice.');
         self::assertContains('Adana', $cities);
+        self::assertSame('Adana', $city->filter('option[value="Adana"]')->text());
+        self::assertSame('Seyhan', $district->filter('option[value="Seyhan"]')->text());
         self::assertContains('Şanlıurfa', $cities);
         self::assertContains('Seyhan', $district->filter('option')->each(static fn ($node) => $node->attr('value')));
         self::assertContains('Şehitkamil', $district->filter('option')->each(static fn ($node) => $node->attr('value')));

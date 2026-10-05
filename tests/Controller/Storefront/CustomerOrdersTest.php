@@ -87,6 +87,9 @@ final class CustomerOrdersTest extends WebTestCase
 
         $rows = $crawler->filter('[data-testid="order-row"]');
         self::assertCount(2, $rows);
+        self::assertSelectorNotExists('.order-card-amount small');
+        self::assertSelectorTextNotContains('.order-card-amount', 'Toplam');
+        self::assertCount(2, $crawler->filter('details.order-disclosure > summary.order-card-summary'));
         self::assertStringContainsString($newer->orderNumber(), $rows->first()->text());
     }
 
