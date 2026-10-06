@@ -1,0 +1,36 @@
+{% extends 'admin/base.html.twig' %}
+{% import 'admin/_labels.html.twig' as ui %}
+
+{% block title %}{{ item ? 'SSS kaydını düzenle' : 'Yeni SSS kaydı' }}{% endblock %}
+
+{% block body %}
+<section class="panel">
+    <h1>{{ item ? 'SSS kaydını düzenle' : 'Yeni SSS kaydı' }}</h1>
+    {% if error %}<div class="alert alert-error" role="alert">{{ ui.text(error) }}</div>{% endif %}
+
+    <form method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('cms_faq_form') }}">
+
+        <label for="question">Soru</label>
+        <input id="question" name="question" value="{{ values.question }}" maxlength="255" required>
+
+        <label for="answer">Cevap</label>
+        <textarea id="answer" name="answer" rows="10" maxlength="20000" required>{{ values.answer }}</textarea>
+        <p class="help-text">Cevap düz metin olarak saklanır ve storefront'ta HTML çalıştırılmadan gösterilir.</p>
+
+        <label for="sort_order">Sıra</label>
+        <input id="sort_order" type="number" name="sort_order" min="0" max="1000000" value="{{ values.sort_order }}" required>
+
+        <label><input type="checkbox" name="active" value="1" {{ values.active ? 'checked' : '' }}> Aktif</label>
+
+        <p><button type="submit">Kaydet</button></p>
+    </form>
+
+    {% if item and item.id %}
+        <form method="post" action="{{ path('admin_cms_faq_delete', {id: item.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('cms_faq_item_' ~ item.id) }}">
+            <button class="danger-button" type="submit">Sil</button>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}

@@ -34,14 +34,8 @@
         <section aria-labelledby="footer-service-title">
             <h4 id="footer-service-title">Müşteri Hizmetleri</h4>
             <a href="{{ path('storefront_contact') }}">İletişim</a>
-            {% if is_granted('ROLE_CUSTOMER') %}
-                {# Only a real link when it leads somewhere: a dead "İade ve değişim" in the footer of
-                   every anonymous page is a support question the store answers for free. #}
-                <a href="{{ path('customer_account_returns') }}">İade ve değişim</a>
-            {% else %}
-                <span>İade ve değişim</span>
-            {% endif %}
-            <span>Sık sorulan sorular</span>
+            <a href="{{ path('customer_account_returns') }}">İade ve değişim</a>
+            <a href="{{ path('storefront_faq_index') }}">Sıkça sorulan sorular</a>
         </section>
         <section aria-labelledby="footer-info-title">
             <h4 id="footer-info-title">Bilgi Sayfaları</h4>

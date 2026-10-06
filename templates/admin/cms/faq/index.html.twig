@@ -1,0 +1,57 @@
+{% extends 'admin/base.html.twig' %}
+{% import 'admin/_labels.html.twig' as ui %}
+
+{% block title %}Sıkça Sorulan Sorular{% endblock %}
+
+{% block body %}
+<section class="panel">
+    <h1>Sıkça Sorulan Sorular</h1>
+    <p class="help-text">Storefront SSS sayfasında gösterilecek soru ve cevapları, yayın durumunu ve sıralamayı yönetin.</p>
+    <p><a class="button-link" href="{{ path('admin_cms_faq_new') }}">Yeni soru ekle</a></p>
+
+    <div class="admin-table-wrap" tabindex="0" role="region" aria-label="SSS kayıt tablosu">
+        <table class="admin-table">
+            <caption class="visually-hidden">Sıkça Sorulan Sorular</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Soru</th>
+                    <th scope="col">Durum</th>
+                    <th scope="col">Sıra</th>
+                    <th scope="col">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td><a href="{{ path('admin_cms_faq_edit', {id: item.id}) }}">{{ item.question }}</a></td>
+                        <td>
+                            {{ ui.badge(item.active ? 'active' : 'inactive') }}
+                            <form method="post" action="{{ path('admin_cms_faq_toggle', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('cms_faq_item_' ~ item.id) }}">
+                                <button type="submit">{{ item.active ? 'Pasifleştir' : 'Aktifleştir' }}</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form method="post" action="{{ path('admin_cms_faq_order', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('cms_faq_item_' ~ item.id) }}">
+                                <label class="visually-hidden" for="faq-sort-{{ item.id }}">{{ item.question }} sırası</label>
+                                <input id="faq-sort-{{ item.id }}" type="number" name="sort_order" min="0" max="1000000" value="{{ item.sortOrder }}" required>
+                                <button type="submit">Sırayı kaydet</button>
+                            </form>
+                        </td>
+                        <td>
+                            <a class="button-link" href="{{ path('admin_cms_faq_edit', {id: item.id}) }}">Düzenle</a>
+                            <form method="post" action="{{ path('admin_cms_faq_delete', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('cms_faq_item_' ~ item.id) }}">
+                                <button class="danger-button" type="submit">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4">Henüz SSS kaydı yok. İlk sorunuzu ekleyin.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

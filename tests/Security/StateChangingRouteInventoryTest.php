@@ -57,6 +57,7 @@ final class StateChangingRouteInventoryTest extends KernelTestCase
         'storefront_payment_retry' => 'csrf',
         'storefront_payment_form' => 'csrf',
         'storefront_payment_cancel' => 'csrf',
+        'storefront_contact' => 'csrf',
         'storefront_payment_callback' => 'provider_signature',
         'storefront_paytr_notification' => 'provider_signature',
         'customer_login' => 'csrf',
@@ -66,6 +67,7 @@ final class StateChangingRouteInventoryTest extends KernelTestCase
         'customer_account_address_edit' => 'csrf',
         'customer_account_address_delete' => 'csrf',
         'customer_account_order_return' => 'csrf',
+        'customer_account_order_cancel' => 'csrf',
         'customer_account_return_withdraw' => 'csrf',
         'customer_logout' => 'logout_token',
         'admin_login' => 'csrf',
@@ -91,6 +93,11 @@ final class StateChangingRouteInventoryTest extends KernelTestCase
         'admin_cms_home_edit' => 'csrf',
         'admin_cms_home_toggle' => 'csrf',
         'admin_cms_home_delete' => 'csrf',
+        'admin_cms_faq_new' => 'csrf',
+        'admin_cms_faq_edit' => 'csrf',
+        'admin_cms_faq_toggle' => 'csrf',
+        'admin_cms_faq_order' => 'csrf',
+        'admin_cms_faq_delete' => 'csrf',
         'admin_seo_product' => 'csrf',
         'admin_seo_category' => 'csrf',
         'admin_seo_brand' => 'csrf',
@@ -114,6 +121,7 @@ final class StateChangingRouteInventoryTest extends KernelTestCase
         'admin_return_refund' => 'csrf',
         'admin_integration_b2b_full' => 'csrf',
         'admin_integration_b2b_daily' => 'csrf',
+        'admin_settings_cookies' => 'csrf',
     ];
 
     public function testEveryStateChangingRouteIsAccountedFor(): void

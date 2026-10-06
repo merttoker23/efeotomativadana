@@ -1,0 +1,42 @@
+{% extends 'storefront/base.html.twig' %}
+
+{% block title %}Sıkça Sorulan Sorular | {{ store.name }}{% endblock %}
+
+{% block body %}
+<style data-faq-styles>
+    .faq-page .generic-card { min-width: 0; }
+    .faq-list { display: grid; gap: 12px; min-width: 0; }
+    .faq-item { min-width: 0; border: 1px solid var(--storefront-line); border-radius: 8px; background: #fff; overflow: hidden; }
+    .faq-item > summary { padding: 14px 16px; color: var(--storefront-navy); font-weight: 650; line-height: 1.45; cursor: pointer; overflow-wrap: anywhere; }
+    .faq-item > summary::marker { color: var(--storefront-yellow); }
+    .faq-item[open] > summary { border-bottom: 1px solid var(--storefront-line); background: #f7f9fb; }
+    .faq-item > summary:focus-visible { outline: 3px solid var(--storefront-yellow); outline-offset: -3px; }
+    .faq-answer { min-width: 0; padding: 16px; color: var(--storefront-ink); line-height: 1.7; overflow-wrap: anywhere; }
+    @media (max-width: 680px) {
+        .faq-item > summary { padding: 12px 14px; }
+        .faq-answer { padding: 14px; }
+    }
+</style>
+<main id="main-content" class="page-shell faq-page" tabindex="-1">
+    <div class="container">
+        <nav class="breadcrumbs" aria-label="Sayfa yolu">
+            <a href="{{ path('app_home') }}">Ana sayfa</a><span aria-hidden="true">/</span><span>Sıkça Sorulan Sorular</span>
+        </nav>
+        <section class="generic-card" aria-labelledby="faq-heading">
+            <h1 id="faq-heading" class="page-title">Sıkça Sorulan Sorular</h1>
+            {% if faqItems is empty %}
+                <p>Henüz yayınlanmış bir soru bulunmuyor.</p>
+            {% else %}
+                <div class="faq-list">
+                    {% for item in faqItems %}
+                        <details class="faq-item">
+                            <summary>{{ item.question }}</summary>
+                            <div class="faq-answer">{{ item.answer|nl2br }}</div>
+                        </details>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}
