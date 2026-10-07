@@ -27,12 +27,12 @@ final class PasswordResetTest extends WebTestCase
     public function testResetRequestStoresOnlyAHash(): void
     {
         $this->createCustomer();
-        $crawler = $this->client->request('GET', '/yeni/parolami-unuttum');
+        $crawler = $this->client->request('GET', '/parolami-unuttum');
         $this->client->submit($crawler->selectButton('Sıfırlama bağlantısı gönder')->form([
             'password_reset_request[email]' => 'CUSTOMER@example.com',
         ]));
 
-        self::assertResponseRedirects('/yeni/parolami-unuttum');
+        self::assertResponseRedirects('/parolami-unuttum');
         $hash = $this->connection->fetchOne('SELECT token_hash FROM customer_password_reset_token');
         self::assertIsString($hash);
         self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $hash);
@@ -45,19 +45,19 @@ final class PasswordResetTest extends WebTestCase
         $rawToken = 'valid-reset-token';
         $this->persistToken($customer, $rawToken, new \DateTimeImmutable('+1 hour'));
 
-        $crawler = $this->client->request('GET', '/yeni/parola-sifirla/'.$rawToken);
+        $crawler = $this->client->request('GET', '/parola-sifirla/'.$rawToken);
         self::assertResponseIsSuccessful();
         $this->client->submit($crawler->selectButton('Parolayı sıfırla')->form([
             'password_reset[newPassword][first]' => 'ResetStrong!456',
             'password_reset[newPassword][second]' => 'ResetStrong!456',
         ]));
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
 
         $updated = self::getContainer()->get(EntityManagerInterface::class)->find(CustomerUser::class, $customer->id());
         self::assertInstanceOf(CustomerUser::class, $updated);
         self::assertTrue(self::getContainer()->get(UserPasswordHasherInterface::class)->isPasswordValid($updated, 'ResetStrong!456'));
 
-        $this->client->request('GET', '/yeni/parola-sifirla/'.$rawToken);
+        $this->client->request('GET', '/parola-sifirla/'.$rawToken);
         self::assertResponseStatusCodeSame(410);
     }
 
@@ -67,7 +67,7 @@ final class PasswordResetTest extends WebTestCase
         $rawToken = 'expired-reset-token';
         $this->persistToken($customer, $rawToken, new \DateTimeImmutable('-1 minute'));
 
-        $this->client->request('GET', '/yeni/parola-sifirla/'.$rawToken);
+        $this->client->request('GET', '/parola-sifirla/'.$rawToken);
 
         self::assertResponseStatusCodeSame(410);
     }

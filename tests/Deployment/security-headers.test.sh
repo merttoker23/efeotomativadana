@@ -80,40 +80,40 @@ check() {
 }
 
 # Public storefront.
-check /yeni/katalog 200
-check /yeni/giris 200
-check /yeni/kayit 200
-check /yeni/parolami-unuttum 200
-check /yeni/blog 200
-check /yeni/bilgi 200
-check /yeni/sepet 200
-check /yeni/admin/login 200
-check /yeni/hesabim 302
-check /yeni/robots.txt 200
+check /katalog 200
+check /giris 200
+check /kayit 200
+check /parolami-unuttum 200
+check /blog 200
+check /bilgi 200
+check /sepet 200
+check /admin/login 200
+check /hesabim 302
+check /robots.txt 200
 
 # The error paths, which is where the headers were missing.
-check /yeni/odeme/paytr/bildirim 405
-check /yeni/admin 302
-check /yeni/yok-boyle-bir-sayfa 404
+check /odeme/paytr/bildirim 405
+check /admin 302
+check /yok-boyle-bir-sayfa 404
 
 # A 405 must not be the *only* thing the notification endpoint answers: a POST is the real
 # contract and must still be reachable, so a change that turned the endpoint into a blanket 403
 # would be caught here rather than by a customer's payment failing.
-posted=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/yeni/odeme/paytr/bildirim" || true)
+posted=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$BASE/odeme/paytr/bildirim" || true)
 case "$posted" in
     200|400|500)
-        echo "ok   POST /yeni/odeme/paytr/bildirim ($posted)"
+        echo "ok   POST /odeme/paytr/bildirim ($posted)"
         ;;
     *)
-        echo "FAIL POST /yeni/odeme/paytr/bildirim answered $posted; the endpoint must answer for a provider, not refuse outright."
+        echo "FAIL POST /odeme/paytr/bildirim answered $posted; the endpoint must answer for a provider, not refuse outright."
         FAILURES=$((FAILURES + 1))
         ;;
 esac
 
 # HSTS must not be sent from a plain-http host: it would pin that host in a browser for two
 # years. Its production-only nature is asserted in tests/Security/ResponseSecurityHeadersTest.
-if curl -sS -o /dev/null -D - "$BASE/yeni/katalog" | grep -qi '^Strict-Transport-Security:'; then
-    echo "FAIL /yeni/katalog: Strict-Transport-Security sent over plain http"
+if curl -sS -o /dev/null -D - "$BASE/katalog" | grep -qi '^Strict-Transport-Security:'; then
+    echo "FAIL /katalog: Strict-Transport-Security sent over plain http"
     FAILURES=$((FAILURES + 1))
 fi
 

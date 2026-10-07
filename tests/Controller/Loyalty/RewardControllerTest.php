@@ -47,9 +47,9 @@ final class RewardControllerTest extends WebTestCase
 
     public function testAnonymousCannotReadRewardsOrAdminLedger(): void
     {
-        $this->client->request('GET', '/yeni/hesabim/puanlarim');
+        $this->client->request('GET', '/hesabim/puanlarim');
         self::assertResponseRedirects();
-        $this->client->request('GET', '/yeni/admin/puanlar');
+        $this->client->request('GET', '/admin/puanlar');
         self::assertResponseRedirects();
     }
 
@@ -65,7 +65,7 @@ final class RewardControllerTest extends WebTestCase
         $this->em->flush();
         $rewards->adjust($foreign, 1000, 'PRIVATE FOREIGN HISTORY', $this->admin, 'foreign');
         $this->client->loginUser($this->customer, 'main');
-        $this->client->request('GET', '/yeni/hesabim/puanlarim');
+        $this->client->request('GET', '/hesabim/puanlarim');
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(25, 'tbody tr');
         self::assertSelectorExists('a[rel="next"]');
@@ -73,7 +73,7 @@ final class RewardControllerTest extends WebTestCase
         self::assertSelectorNotExists('body:contains("PRIVATE FOREIGN HISTORY")');
         self::assertSelectorExists('meta[name="robots"][content*="noindex"]');
         self::assertSelectorExists('#main-content');
-        $this->client->request('GET', '/yeni/hesabim/puanlarim?page=2');
+        $this->client->request('GET', '/hesabim/puanlarim?page=2');
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(1, 'tbody tr');
         self::assertSelectorExists('a[rel="prev"]');
@@ -82,14 +82,14 @@ final class RewardControllerTest extends WebTestCase
     public function testNonAdminCannotReadLedger(): void
     {
         $this->client->loginUser(new InMemoryUser('viewer@example.com', 'test-only-not-used-for-form-login', ['ROLE_USER']), 'admin');
-        $this->client->request('GET', '/yeni/admin/puanlar');
+        $this->client->request('GET', '/admin/puanlar');
         self::assertResponseStatusCodeSame(403);
     }
 
     public function testAdminCanAdjustAndReplayBrowserSubmissionWithoutDuplicateEntry(): void
     {
         $this->client->loginUser($this->admin, 'admin');
-        $url = '/yeni/admin/puanlar/'.$this->customer->id();
+        $url = '/admin/puanlar/'.$this->customer->id();
         $crawler = $this->client->request('GET', $url);
         self::assertResponseIsSuccessful();
         $form = $crawler->selectButton('Record adjustment')->form(['reward_adjustment[points]' => 5, 'reward_adjustment[reason]' => 'Goodwill']);
@@ -107,7 +107,7 @@ final class RewardControllerTest extends WebTestCase
     public function testAdjustmentWithoutCsrfOrReasonCannotMutateBalance(): void
     {
         $this->client->loginUser($this->admin, 'admin');
-        $url = '/yeni/admin/puanlar/'.$this->customer->id();
+        $url = '/admin/puanlar/'.$this->customer->id();
         $this->client->request('POST', $url, ['reward_adjustment' => ['points' => 5, 'reason' => 'Missing token', 'requestKey' => 'key']]);
         self::assertResponseStatusCodeSame(422);
         $crawler = $this->client->request('GET', $url);

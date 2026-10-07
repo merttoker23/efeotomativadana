@@ -261,7 +261,7 @@ final class SeedHomepageCommandTest extends WebTestCase
         self::assertCount(3, $sections[1]->configuration()['slugs'], 'All three published categories are used.');
         self::assertCount(3, $sections[8]->configuration()['slugs'], 'All three published brands are used.');
 
-        static::getClient()->request('GET', '/yeni/');
+        static::getClient()->request('GET', '/');
         self::assertResponseIsSuccessful();
     }
 
@@ -289,7 +289,7 @@ final class SeedHomepageCommandTest extends WebTestCase
             self::assertStringContainsString($label, $this->tester->getDisplay());
         }
 
-        $crawler = static::getClient()->request('GET', '/yeni/');
+        $crawler = static::getClient()->request('GET', '/');
         self::assertResponseIsSuccessful();
         self::assertSame(1, $crawler->filter('.notice .notice-text')->count());
         self::assertSame(3, $crawler->filter('.hero .hero-slide')->count());
@@ -326,7 +326,7 @@ final class SeedHomepageCommandTest extends WebTestCase
 
         self::assertSame(Command::SUCCESS, $this->seed());
 
-        $crawler = static::getClient()->request('GET', '/yeni/');
+        $crawler = static::getClient()->request('GET', '/');
         self::assertResponseIsSuccessful();
 
         // The theme's bands, in the theme's order: one notice, the three-column upper row, the
@@ -380,7 +380,7 @@ final class SeedHomepageCommandTest extends WebTestCase
 
         self::assertSame(Command::SUCCESS, $this->seed());
 
-        $crawler = static::getClient()->request('GET', '/yeni/');
+        $crawler = static::getClient()->request('GET', '/');
         self::assertResponseIsSuccessful();
 
         $slides = $crawler->filter('.hero-slide');

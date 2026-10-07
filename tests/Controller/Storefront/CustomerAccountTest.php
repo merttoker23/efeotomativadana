@@ -37,7 +37,7 @@ final class CustomerAccountTest extends WebTestCase
     public function testRegistrationPageIsAvailableToAnonymousCustomers(): void
     {
         $client = $this->client;
-        $client->request('GET', '/yeni/kayit');
+        $client->request('GET', '/kayit');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Hesap oluştur');
@@ -47,7 +47,7 @@ final class CustomerAccountTest extends WebTestCase
     public function testLoginPageIsAvailableToAnonymousCustomers(): void
     {
         $client = $this->client;
-        $client->request('GET', '/yeni/giris');
+        $client->request('GET', '/giris');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Giriş yap');
@@ -58,15 +58,15 @@ final class CustomerAccountTest extends WebTestCase
     public function testAnonymousCustomerIsRedirectedFromAccountDashboard(): void
     {
         $client = $this->client;
-        $client->request('GET', '/yeni/hesabim');
+        $client->request('GET', '/hesabim');
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
     }
 
     public function testCustomerCanRegisterAndPasswordIsHashed(): void
     {
         $client = $this->client;
-        $crawler = $client->request('GET', '/yeni/kayit');
+        $crawler = $client->request('GET', '/kayit');
         $form = $crawler->selectButton('Hesap oluştur')->form([
             'customer_registration[firstName]' => 'Efe',
             'customer_registration[lastName]' => 'Yılmaz',
@@ -76,7 +76,7 @@ final class CustomerAccountTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
         $row = $this->connection->fetchAssociative('SELECT email, password FROM customer_user');
         self::assertIsArray($row);
         self::assertSame('customer@example.com', $row['email']);
@@ -87,7 +87,7 @@ final class CustomerAccountTest extends WebTestCase
     {
         $this->createCustomer('customer@example.com', 'VeryStrong!123');
         $client = $this->client;
-        $crawler = $client->request('GET', '/yeni/kayit');
+        $crawler = $client->request('GET', '/kayit');
         $client->submit($crawler->selectButton('Hesap oluştur')->form([
             'customer_registration[firstName]' => 'Başka',
             'customer_registration[lastName]' => 'Müşteri',
@@ -105,13 +105,13 @@ final class CustomerAccountTest extends WebTestCase
     {
         $this->createCustomer('customer@example.com', 'VeryStrong!123');
         $client = $this->client;
-        $crawler = $client->request('GET', '/yeni/giris');
+        $crawler = $client->request('GET', '/giris');
         $client->submit($crawler->selectButton('Giriş yap')->form([
             '_username' => 'CUSTOMER@example.com',
             '_password' => 'VeryStrong!123',
         ]));
 
-        self::assertResponseRedirects('/yeni/hesabim');
+        self::assertResponseRedirects('/hesabim');
         $client->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Efe');
@@ -123,7 +123,7 @@ final class CustomerAccountTest extends WebTestCase
         $client = $this->client;
         $client->loginUser($customer, 'main');
 
-        $crawler = $client->request('GET', '/yeni/hesabim/profil');
+        $crawler = $client->request('GET', '/hesabim/profil');
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('.account-form button.account-primary-button');
         $client->submit($crawler->selectButton('Profili kaydet')->form([
@@ -131,16 +131,16 @@ final class CustomerAccountTest extends WebTestCase
             'customer_profile[lastName]' => 'Yılmaz',
             'customer_profile[phone]' => '05320000000',
         ]));
-        self::assertResponseRedirects('/yeni/hesabim');
+        self::assertResponseRedirects('/hesabim');
 
-        $crawler = $client->request('GET', '/yeni/hesabim/parola');
+        $crawler = $client->request('GET', '/hesabim/parola');
         self::assertSelectorExists('.account-form button.account-primary-button');
         $client->submit($crawler->selectButton('Parolayı değiştir')->form([
             'customer_password_change[currentPassword]' => 'VeryStrong!123',
             'customer_password_change[newPassword][first]' => 'EvenStronger!456',
             'customer_password_change[newPassword][second]' => 'EvenStronger!456',
         ]));
-        self::assertResponseRedirects('/yeni/hesabim');
+        self::assertResponseRedirects('/hesabim');
 
         $updatedCustomer = self::getContainer()->get(EntityManagerInterface::class)->find(CustomerUser::class, $customer->id());
         self::assertInstanceOf(CustomerUser::class, $updatedCustomer);
@@ -160,7 +160,7 @@ final class CustomerAccountTest extends WebTestCase
 
         $client = $this->client;
         $client->loginUser($customerA, 'main');
-        $crawler = $client->request('GET', '/yeni/hesabim/adresler/yeni');
+        $crawler = $client->request('GET', '/hesabim/adresler/');
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('.account-form button.account-primary-button');
         $client->submit($crawler->selectButton('Adresi kaydet')->form([
@@ -174,11 +174,11 @@ final class CustomerAccountTest extends WebTestCase
             'customer_address[postalCode]' => '01170',
             'customer_address[defaultAddress]' => true,
         ]));
-        self::assertResponseRedirects('/yeni/hesabim/adresler');
+        self::assertResponseRedirects('/hesabim/adresler');
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM customer_address WHERE customer_id = ?', [$customerA->id()]));
 
         $ownAddressId = (int) $this->connection->fetchOne('SELECT id FROM customer_address WHERE customer_id = ?', [$customerA->id()]);
-        $crawler = $client->request('GET', '/yeni/hesabim/adresler/'.$ownAddressId.'/duzenle');
+        $crawler = $client->request('GET', '/hesabim/adresler/'.$ownAddressId.'/duzenle');
         $client->submit($crawler->selectButton('Adresi kaydet')->form([
             'customer_address[label]' => 'Merkez Ofis',
             'customer_address[recipientName]' => 'A Müşteri',
@@ -190,24 +190,24 @@ final class CustomerAccountTest extends WebTestCase
             'customer_address[postalCode]' => '01170',
             'customer_address[defaultAddress]' => true,
         ]));
-        self::assertResponseRedirects('/yeni/hesabim/adresler');
+        self::assertResponseRedirects('/hesabim/adresler');
         self::assertSame('Merkez Ofis', $this->connection->fetchOne('SELECT label FROM customer_address WHERE id = ?', [$ownAddressId]));
 
-        $client->request('GET', '/yeni/hesabim/adresler/'.$foreignAddress->id().'/duzenle');
+        $client->request('GET', '/hesabim/adresler/'.$foreignAddress->id().'/duzenle');
         self::assertResponseStatusCodeSame(404);
 
-        $client->request('POST', '/yeni/hesabim/adresler/'.$foreignAddress->id().'/duzenle', [
+        $client->request('POST', '/hesabim/adresler/'.$foreignAddress->id().'/duzenle', [
             'customer_address' => ['label' => 'Yetkisiz değişiklik'],
         ]);
         self::assertResponseStatusCodeSame(404);
         self::assertSame('Ev', $this->connection->fetchOne('SELECT label FROM customer_address WHERE id = ?', [$foreignAddress->id()]));
 
-        $crawler = $client->request('GET', '/yeni/hesabim/adresler');
+        $crawler = $client->request('GET', '/hesabim/adresler');
         self::assertSelectorExists('.account-primary-link');
         self::assertSelectorExists('.address-action-edit');
         self::assertSelectorExists('.address-action-delete');
         $client->submit($crawler->selectButton('Sil')->form());
-        self::assertResponseRedirects('/yeni/hesabim/adresler');
+        self::assertResponseRedirects('/hesabim/adresler');
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM customer_address WHERE customer_id = ?', [$customerA->id()]));
     }
 
@@ -216,9 +216,9 @@ final class CustomerAccountTest extends WebTestCase
         $customer = $this->createCustomer('customer@example.com', 'VeryStrong!123');
         $this->client->loginUser($customer, 'main');
 
-        $this->client->request('GET', '/yeni/admin');
+        $this->client->request('GET', '/admin');
 
-        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertResponseRedirects('/admin/login');
         self::assertNotContains('ROLE_ADMIN', $customer->getRoles());
     }
 
@@ -231,9 +231,9 @@ final class CustomerAccountTest extends WebTestCase
         $entityManager->flush();
         $this->client->loginUser($administrator, 'admin');
 
-        $this->client->request('GET', '/yeni/hesabim');
+        $this->client->request('GET', '/hesabim');
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
         self::assertNotContains('ROLE_CUSTOMER', $administrator->getRoles());
     }
 
@@ -243,17 +243,17 @@ final class CustomerAccountTest extends WebTestCase
         $customer->deactivate();
         self::getContainer()->get(EntityManagerInterface::class)->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/giris');
+        $crawler = $this->client->request('GET', '/giris');
         $this->client->submit($crawler->selectButton('Giriş yap')->form([
             '_username' => 'inactive@example.com',
             '_password' => 'VeryStrong!123',
         ]));
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
         $this->client->followRedirect();
         self::assertSelectorExists('[role="alert"]');
-        $this->client->request('GET', '/yeni/hesabim');
-        self::assertResponseRedirects('/yeni/giris');
+        $this->client->request('GET', '/hesabim');
+        self::assertResponseRedirects('/giris');
     }
 
     public function testCustomerLogoutRejectsGetAndAcceptsCsrfProtectedPost(): void
@@ -261,15 +261,15 @@ final class CustomerAccountTest extends WebTestCase
         $customer = $this->createCustomer('customer@example.com', 'VeryStrong!123');
         $this->client->loginUser($customer, 'main');
 
-        $this->client->request('GET', '/yeni/cikis');
+        $this->client->request('GET', '/cikis');
         self::assertResponseStatusCodeSame(405);
 
-        $crawler = $this->client->request('GET', '/yeni/hesabim');
+        $crawler = $this->client->request('GET', '/hesabim');
         $this->client->submit($crawler->selectButton('Çıkış yap')->form());
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
 
-        $this->client->request('GET', '/yeni/hesabim');
-        self::assertResponseRedirects('/yeni/giris');
+        $this->client->request('GET', '/hesabim');
+        self::assertResponseRedirects('/giris');
     }
 
     private function createCustomer(string $email, string $password): CustomerUser

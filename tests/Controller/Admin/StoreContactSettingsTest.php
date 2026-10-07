@@ -36,7 +36,7 @@ final class StoreContactSettingsTest extends WebTestCase
 
     public function testCountryAndCityUseLocalChoices(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('[name="store_settings[district]"], [data-controller="store-address"]');
         self::assertSame(['Türkiye'], $crawler->filter('select[name="store_settings[country]"] option')->each(static fn ($node) => $node->attr('value')));
@@ -49,17 +49,17 @@ final class StoreContactSettingsTest extends WebTestCase
     public function testCountryCityAndPhoneSaveWithoutChangingLegacyDistrict(): void
     {
         $this->storeSetting('store.district', 'Seyhan');
-        $form = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
+        $form = $this->client->request('GET', '/admin/settings')->selectButton('Ayarları kaydet')->form();
         $form['store_settings[country]'] = 'Türkiye';
         $form['store_settings[city]'] = 'Adana';
         $form['store_settings[phone]'] = '0322 123 45 67';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
         self::assertSame('Türkiye', $this->storedSetting('store.country'));
         self::assertSame('Adana', $this->storedSetting('store.city'));
         self::assertSame('Seyhan', $this->storedSetting('store.district'));
         self::assertSame('+90 322 123 45 67', $this->storedSetting('store.phone'));
-        $form = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
+        $form = $this->client->request('GET', '/admin/settings')->selectButton('Ayarları kaydet')->form();
         self::assertSame('Türkiye', $form['store_settings[country]']->getValue());
         self::assertSame('Adana', $form['store_settings[city]']->getValue());
     }
@@ -67,10 +67,10 @@ final class StoreContactSettingsTest extends WebTestCase
     public function testUnknownCountryOrProvinceIsRefused(): void
     {
         foreach (['country' => 'Unknown', 'city' => 'Adaa'] as $field => $value) {
-            $form = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
+            $form = $this->client->request('GET', '/admin/settings')->selectButton('Ayarları kaydet')->form();
             $values = $form->getPhpValues();
             $values['store_settings'][$field] = $value;
-            $this->client->request('POST', '/yeni/admin/settings', $values);
+            $this->client->request('POST', '/admin/settings', $values);
             self::assertResponseStatusCodeSame(422);
             self::assertNull(self::getContainer()->get(StoreConfiguration::class)->city());
         }
@@ -81,7 +81,7 @@ final class StoreContactSettingsTest extends WebTestCase
         $this->storeSetting('store.phone', '+90 322 123 45 67');
 
         foreach (['444', '322 123 45', 'tel:+903221234567', 'abc'] as $invalid) {
-            $crawler = $this->client->request('GET', '/yeni/admin/settings');
+            $crawler = $this->client->request('GET', '/admin/settings');
             $form = $crawler->selectButton('Ayarları kaydet')->form();
             $form['store_settings[phone]'] = $invalid;
             $this->client->submit($form);
@@ -97,13 +97,13 @@ final class StoreContactSettingsTest extends WebTestCase
         $this->storeSetting('store.city', 'Adana');
         $this->storeSetting('store.district', 'Seyhan');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['store_settings[phone]'] = '';
         $form['store_settings[city]'] = '';
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
         $configuration = self::getContainer()->get(StoreConfiguration::class);
         self::assertNull($configuration->phone());
         self::assertNull($configuration->city());

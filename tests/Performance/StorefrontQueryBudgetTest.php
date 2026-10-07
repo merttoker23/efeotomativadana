@@ -114,10 +114,10 @@ final class StorefrontQueryBudgetTest extends WebTestCase
     public function testTheHomepageCostsTheSameWithSixProductsAsWithTwelve(): void
     {
         $this->seedProducts('budget-home', 6);
-        $this->warmUp('/yeni/');
-        $withSix = $this->budget('/yeni/');
+        $this->warmUp('/');
+        $withSix = $this->budget('/');
         $this->seedProducts('budget-home', 6, 6);
-        $withTwelve = $this->budget('/yeni/');
+        $withTwelve = $this->budget('/');
 
         self::assertSame(
             $withSix,
@@ -130,10 +130,10 @@ final class StorefrontQueryBudgetTest extends WebTestCase
     {
         $this->seedProducts('budget-cart', 8);
         $this->addToCart('budget-cart', 3);
-        $this->warmUp('/yeni/sepet');
-        $withThree = $this->budget('/yeni/sepet');
+        $this->warmUp('/sepet');
+        $withThree = $this->budget('/sepet');
         $this->addToCart('budget-cart', 5, 3);
-        $withEight = $this->budget('/yeni/sepet');
+        $withEight = $this->budget('/sepet');
 
         self::assertSame(
             $withThree,
@@ -161,8 +161,8 @@ final class StorefrontQueryBudgetTest extends WebTestCase
     public function testTheCataloguePageStaysInsideItsQueryBudget(): void
     {
         $this->seedProducts('budget-catalogue', 4);
-        $this->warmUp('/yeni/katalog');
-        $queries = $this->budget('/yeni/katalog');
+        $this->warmUp('/katalog');
+        $queries = $this->budget('/katalog');
 
         self::assertLessThanOrEqual(
             6,
@@ -179,10 +179,10 @@ final class StorefrontQueryBudgetTest extends WebTestCase
     public function testTheFooterCostsTheSameWithTwoPublishedPagesAsWithTwelve(): void
     {
         $this->seedInformationPages('budget-footer-', 2);
-        $this->warmUp('/yeni/katalog');
-        $withTwo = $this->budget('/yeni/katalog');
+        $this->warmUp('/katalog');
+        $withTwo = $this->budget('/katalog');
         $this->seedInformationPages('budget-footer-', 10, 2);
-        $withTwelve = $this->budget('/yeni/katalog');
+        $withTwelve = $this->budget('/katalog');
 
         self::assertSame(
             $withTwo,
@@ -215,9 +215,9 @@ final class StorefrontQueryBudgetTest extends WebTestCase
     {
         $this->seedProducts('budget-cart-budget', 4);
         $this->addToCart('budget-cart-budget', 4);
-        $this->warmUp('/yeni/sepet');
+        $this->warmUp('/sepet');
 
-        self::assertLessThanOrEqual(14, $this->budget('/yeni/sepet'), 'The basket page exceeded its query budget.');
+        self::assertLessThanOrEqual(14, $this->budget('/sepet'), 'The basket page exceeded its query budget.');
     }
 
     private function seedProducts(string $prefix, int $count, int $offset = 0): void
@@ -264,7 +264,7 @@ final class StorefrontQueryBudgetTest extends WebTestCase
         $count = min($count, count($rows));
 
         for ($i = $offset; $i < $count; ++$i) {
-            $this->client->request('POST', '/yeni/sepet/ekle/'.$rows[$i]['id'], [
+            $this->client->request('POST', '/sepet/ekle/'.$rows[$i]['id'], [
                 'quantity' => 1,
                 '_token' => $this->csrfFor((string) $rows[$i]['slug']),
             ]);
@@ -281,7 +281,7 @@ final class StorefrontQueryBudgetTest extends WebTestCase
         // Scraped from the rendered product page rather than minted directly: this store uses
         // SameOriginCsrfTokenManager, which validates a header and a cookie rather than the
         // token field, so the token a real browser sends is the one the template prints.
-        $this->client->request('GET', '/yeni/urun/'.$slug);
+        $this->client->request('GET', '/urun/'.$slug);
         self::assertSame(200, $this->client->getResponse()->getStatusCode(), sprintf('The product page for "%s" did not render.', $slug));
         $token = $this->client->getCrawler()->filter('.cart-add-form input[name="_token"]')->attr('value');
         self::assertIsString($token);

@@ -47,7 +47,7 @@ final class HomeControllerTest extends WebTestCase
 
     public function testHomeRendersTheAccessibleStorefrontShell(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/');
+        $crawler = $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('html[lang="tr"]');
@@ -63,7 +63,7 @@ final class HomeControllerTest extends WebTestCase
         self::assertSelectorTextContains('main#main-content h1', 'Otomotiv parçasında güvenilir adresiniz');
         self::assertSelectorExists('footer.site-footer');
 
-        self::assertSame('/yeni/', $crawler->filter('a.storefront-brand')->attr('href'));
+        self::assertSame('/', $crawler->filter('a.storefront-brand')->attr('href'));
         self::assertSame('h1', $crawler->filter('main h1, main h2')->first()->nodeName());
     }
 
@@ -82,27 +82,27 @@ final class HomeControllerTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/');
+        $crawler = $this->client->request('GET', '/');
         self::assertResponseIsSuccessful();
-        $card = $crawler->filter('.blog-card[href="/yeni/blog/kapakli-yazi"]');
+        $card = $crawler->filter('.blog-card[href="/blog/kapakli-yazi"]');
         self::assertCount(1, $card->filter('.blog-cover img'));
-        self::assertSame('/yeni'.$cover, $card->filter('.blog-cover img')->attr('src'));
+        self::assertSame('/'.$cover, $card->filter('.blog-cover img')->attr('src'));
         self::assertSame('lazy', $card->filter('img')->attr('loading'));
         self::assertSame('async', $card->filter('img')->attr('decoding'));
-        self::assertSelectorExists('.blog-card[href="/yeni/blog/kapaksiz-yazi"] .blog-cover');
-        self::assertSelectorNotExists('.blog-card[href="/yeni/blog/kapaksiz-yazi"] img');
-        $crawler = $this->client->request('GET', '/yeni/blog');
-        self::assertSame('/yeni'.$cover, $crawler->filter('.blog-post-card[href="/yeni/blog/kapakli-yazi"] img')->attr('src'));
+        self::assertSelectorExists('.blog-card[href="/blog/kapaksiz-yazi"] .blog-cover');
+        self::assertSelectorNotExists('.blog-card[href="/blog/kapaksiz-yazi"] img');
+        $crawler = $this->client->request('GET', '/blog');
+        self::assertSame('/'.$cover, $crawler->filter('.blog-post-card[href="/blog/kapakli-yazi"] img')->attr('src'));
         self::assertSelectorExists('.blog-post-card img[loading="lazy"][decoding="async"]');
-        $crawler = $this->client->request('GET', '/yeni/blog/kapakli-yazi');
-        self::assertSame('/yeni'.$cover, $crawler->filter('.blog-post-hero img')->attr('src'));
+        $crawler = $this->client->request('GET', '/blog/kapakli-yazi');
+        self::assertSame('/'.$cover, $crawler->filter('.blog-post-hero img')->attr('src'));
         self::assertSelectorExists('.blog-post-hero img[fetchpriority="high"][decoding="async"]');
         self::assertSelectorNotExists('.blog-post-hero img[loading="lazy"]');
     }
 
     public function testHomeUsesMappedLocalAssetsWithoutStaticThemeLinks(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/');
+        $crawler = $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(0, 'a[href$=".html"], form[action$=".html"]');
@@ -117,7 +117,7 @@ final class HomeControllerTest extends WebTestCase
         );
         self::assertIsArray($importMap);
         self::assertIsArray($importMap['imports'] ?? null);
-        $controllerUrl = $importMap['imports']['/yeni/assets/controllers/storefront_shell_controller.js'] ?? null;
+        $controllerUrl = $importMap['imports']['/assets/controllers/storefront_shell_controller.js'] ?? null;
         self::assertIsString($controllerUrl);
 
         $this->assertLocalAssetLoads($this->client, $stylesheetUrl, 'text/css');
@@ -181,7 +181,7 @@ final class HomeControllerTest extends WebTestCase
 
     private function assertLocalAssetLoads(KernelBrowser $client, string $url, string $contentType): void
     {
-        self::assertStringStartsWith('/yeni/assets/', $url);
+        self::assertStringStartsWith('/assets/', $url);
         self::assertStringNotContainsString('tema', $url);
 
         $client->request('GET', $url);
@@ -232,7 +232,7 @@ final class HomeControllerTest extends WebTestCase
         $debugData->reset();
         $this->client->enableProfiler();
 
-        $this->client->request('GET', '/yeni/');
+        $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
         $profile = $this->client->getProfile();

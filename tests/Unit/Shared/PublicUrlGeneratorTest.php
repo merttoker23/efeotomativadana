@@ -41,7 +41,7 @@ final class PublicUrlGeneratorTest extends TestCase
     {
         // The request claims to be for another host entirely. The link must not follow it,
         // because a reset token delivered to an attacker's host is account takeover.
-        $request = Request::create('https://magaza.example/yeni/parolami-unuttum');
+        $request = Request::create('https://magaza.example/parolami-unuttum');
         $request->headers->set('Host', 'attacker.example');
         $request->server->set('HTTP_HOST', 'attacker.example');
 

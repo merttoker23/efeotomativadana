@@ -34,13 +34,13 @@ final class ProductDataTest extends TestCase
     {
         $graph = $this->data()->for(
             $this->product(sellPrice: Money::ofMinor(12_500, 'TRY'), quantity: 4, sellable: true),
-            'https://magaza.example/yeni/urun/yag-filtresi',
+            'https://magaza.example/urun/yag-filtresi',
         );
 
         self::assertSame('Product', $graph['@type']);
         self::assertSame('Yag Filtresi', $graph['name']);
         self::assertSame('FILTER-001', $graph['sku']);
-        self::assertSame('https://magaza.example/yeni/urun/yag-filtresi', $graph['url']);
+        self::assertSame('https://magaza.example/urun/yag-filtresi', $graph['url']);
         self::assertSame('125.00', $graph['offers']['price']);
         self::assertSame('TRY', $graph['offers']['priceCurrency']);
         self::assertSame('https://schema.org/InStock', $graph['offers']['availability']);
@@ -50,7 +50,7 @@ final class ProductDataTest extends TestCase
     {
         $graph = $this->data()->for(
             $this->product(sellPrice: Money::ofMinor(12_500, 'TRY'), quantity: 0, sellable: false),
-            'https://magaza.example/yeni/urun/yag-filtresi',
+            'https://magaza.example/urun/yag-filtresi',
         );
 
         self::assertSame('https://schema.org/OutOfStock', $graph['offers']['availability']);
@@ -60,7 +60,7 @@ final class ProductDataTest extends TestCase
     {
         $graph = $this->data()->for(
             $this->product(sellPrice: Money::ofMinor(12_500, 'TRY'), quantity: 7, sellable: false),
-            'https://magaza.example/yeni/urun/yag-filtresi',
+            'https://magaza.example/urun/yag-filtresi',
         );
 
         self::assertSame('https://schema.org/BackOrder', $graph['offers']['availability']);
@@ -70,7 +70,7 @@ final class ProductDataTest extends TestCase
     {
         $graph = $this->data()->for(
             $this->product(sellPrice: null, quantity: 4, sellable: true),
-            'https://magaza.example/yeni/urun/yag-filtresi',
+            'https://magaza.example/urun/yag-filtresi',
         );
 
         // "0.00" is a claim that the part is free, and a shopper who believes it is a customer
@@ -80,7 +80,7 @@ final class ProductDataTest extends TestCase
 
     public function testTheOfferPointsAtTheProductsOwnCanonicalUrl(): void
     {
-        $canonical = 'https://magaza.example/yeni/urun/yag-filtresi';
+        $canonical = 'https://magaza.example/urun/yag-filtresi';
 
         $graph = $this->data()->for($this->product(sellPrice: Money::ofMinor(1_000, 'TRY')), $canonical);
 
@@ -143,7 +143,7 @@ final class ProductDataTest extends TestCase
     private function urls(): SeoUrlFactory
     {
         $routes = new RouteCollection();
-        $routes->add('storefront_catalog_product', new Route('/yeni/urun/{slug}'));
+        $routes->add('storefront_catalog_product', new Route('/urun/{slug}'));
 
         return new SeoUrlFactory(
             new PublicUrlGenerator(
@@ -151,8 +151,8 @@ final class ProductDataTest extends TestCase
                 'https://magaza.example',
             ),
             new StorefrontMediaExtension(
-                new Packages(new PathPackage('/yeni', new EmptyVersionStrategy())),
-                '/yeni',
+                new Packages(new PathPackage('/', new EmptyVersionStrategy())),
+                '/',
             ),
         );
     }

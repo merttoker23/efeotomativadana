@@ -28,15 +28,15 @@ final class ResponseSecurityHeadersTest extends WebTestCase
      */
     public static function publicPages(): iterable
     {
-        yield 'catalogue' => ['/yeni/katalog'];
-        yield 'homepage' => ['/yeni'];
-        yield 'login' => ['/yeni/giris'];
-        yield 'registration' => ['/yeni/kayit'];
-        yield 'password reset request' => ['/yeni/parolami-unuttum'];
-        yield 'blog' => ['/yeni/blog'];
-        yield 'information pages' => ['/yeni/bilgi'];
-        yield 'sitemap' => ['/yeni/sitemap.xml'];
-        yield 'robots' => ['/yeni/robots.txt'];
+        yield 'catalogue' => ['/katalog'];
+        yield 'homepage' => ['/'];
+        yield 'login' => ['/giris'];
+        yield 'registration' => ['/kayit'];
+        yield 'password reset request' => ['/parolami-unuttum'];
+        yield 'blog' => ['/blog'];
+        yield 'information pages' => ['/bilgi'];
+        yield 'sitemap' => ['/sitemap.xml'];
+        yield 'robots' => ['/robots.txt'];
     }
 
     /**
@@ -95,7 +95,7 @@ final class ResponseSecurityHeadersTest extends WebTestCase
         $connection->rollBack();
         self::assertIsString($host);
 
-        $client->request('GET', '/yeni/giris');
+        $client->request('GET', '/giris');
         $policy = (string) $client->getResponse()->headers->get('Content-Security-Policy');
 
         self::assertStringContainsString('form-action', $policy);
@@ -114,7 +114,7 @@ final class ResponseSecurityHeadersTest extends WebTestCase
     public function testTransportSecurityIsProductionOnly(): void
     {
         $client = static::createClient();
-        $client->request('GET', '/yeni/katalog');
+        $client->request('GET', '/katalog');
         self::assertNull(
             $client->getResponse()->headers->get('Strict-Transport-Security'),
             'Sending HSTS from a plain-http development host would pin that host to https in a browser for a year.',
@@ -133,7 +133,7 @@ final class ResponseSecurityHeadersTest extends WebTestCase
         // The other half of the payment-host assertion, applied to the markup rather than to the
         // configuration: no rendered form may post somewhere the policy forbids.
         $client = static::createClient();
-        $crawler = $client->request('GET', '/yeni/giris');
+        $crawler = $client->request('GET', '/giris');
         $policy = (string) $client->getResponse()->headers->get('Content-Security-Policy');
 
         self::assertStringContainsString('form-action', $policy);
@@ -168,7 +168,7 @@ final class ResponseSecurityHeadersTest extends WebTestCase
         $client = static::createClient();
         $debug = (bool) self::getContainer()->getParameter('kernel.debug');
 
-        foreach (['/yeni/yok-boyle-bir-sayfa' => 404, '/yeni/odeme/paytr/bildirim' => 405] as $path => $expected) {
+        foreach (['/yok-boyle-bir-sayfa' => 404, '/odeme/paytr/bildirim' => 405] as $path => $expected) {
             $client->request('GET', $path);
 
             self::assertSame($expected, $client->getResponse()->getStatusCode(), $path);
@@ -223,7 +223,7 @@ final class ResponseSecurityHeadersTest extends WebTestCase
     public function testEveryCookieTheStorefrontSendsIsHttpOnlyAndLax(): void
     {
         $client = static::createClient();
-        $client->request('GET', '/yeni/katalog');
+        $client->request('GET', '/katalog');
 
         foreach ($client->getCookieJar()->all() as $cookie) {
             self::assertTrue($cookie->isHttpOnly(), sprintf('%s is readable from JavaScript.', $cookie->getName()));
@@ -284,7 +284,7 @@ final class ResponseSecurityHeadersTest extends WebTestCase
     private function policy(): string
     {
         $client = static::createClient();
-        $client->request('GET', '/yeni/katalog');
+        $client->request('GET', '/katalog');
 
         return (string) $client->getResponse()->headers->get('Content-Security-Policy');
     }

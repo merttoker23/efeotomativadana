@@ -61,7 +61,7 @@ final class ReturnAdminTest extends WebTestCase
         $newer = $this->openReturn($admin, 'EOA-20260928-BBBB00000002', new \DateTimeImmutable('2026-09-28 10:00:00'));
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler');
+        $crawler = $this->client->request('GET', '/admin/iadeler');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', $older->returnNumber());
@@ -70,7 +70,7 @@ final class ReturnAdminTest extends WebTestCase
         // Newest first.
         self::assertStringContainsString($newer->returnNumber(), $crawler->filter('[data-testid="return-row"]')->first()->text());
 
-        $this->client->request('GET', '/yeni/admin/iadeler', ['state' => 'approved']);
+        $this->client->request('GET', '/admin/iadeler', ['state' => 'approved']);
         self::assertResponseIsSuccessful();
         self::assertCount(0, $this->client->getCrawler()->filter('[data-testid="return-row"]'));
     }
@@ -78,7 +78,7 @@ final class ReturnAdminTest extends WebTestCase
     public function testAnUnknownStateFilterIsIgnoredRatherThanFatal(): void
     {
         $this->client->loginUser($this->adminUser(), 'admin');
-        $this->client->request('GET', '/yeni/admin/iadeler', ['state' => 'not-a-state']);
+        $this->client->request('GET', '/admin/iadeler', ['state' => 'not-a-state']);
 
         self::assertResponseIsSuccessful();
     }
@@ -89,7 +89,7 @@ final class ReturnAdminTest extends WebTestCase
         $matched = $this->openReturn($customer, 'EOA-20260928-AAAA00000001');
         $other = $this->openReturn($customer, 'EOA-20260928-BBBB00000002');
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler', ['q' => ' eoa-20260928-aaaa00000001 ']);
+        $crawler = $this->client->request('GET', '/admin/iadeler', ['q' => ' eoa-20260928-aaaa00000001 ']);
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-testid="return-row"]'));
@@ -103,7 +103,7 @@ final class ReturnAdminTest extends WebTestCase
         $return = $this->openReturn($admin, 'EOA-20260928-AAAA00000001');
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', $return->returnNumber());
@@ -118,12 +118,12 @@ final class ReturnAdminTest extends WebTestCase
         $return = $this->openReturn($this->admin(), 'EOA-20260928-AAAA00000001');
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $this->client->submit($crawler->selectButton('Onayla')->form([
             'return_approve[staffNote]' => 'Depoya alındı, kontrol edilecek.',
         ]));
 
-        self::assertResponseRedirects('/yeni/admin/iadeler/'.$return->returnNumber());
+        self::assertResponseRedirects('/admin/iadeler/'.$return->returnNumber());
         $this->entityManager->clear();
         $reloaded = $this->reload($return);
         self::assertSame(ReturnState::Approved, $reloaded->state());
@@ -136,7 +136,7 @@ final class ReturnAdminTest extends WebTestCase
         $return = $this->openReturn($this->admin(), 'EOA-20260928-AAAA00000001');
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $this->client->submit($crawler->selectButton('Reddet')->form([
             'return_reject[staffNote]' => '',
         ]));
@@ -151,12 +151,12 @@ final class ReturnAdminTest extends WebTestCase
         $return = $this->openReturn($this->admin(), 'EOA-20260928-AAAA00000001');
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $this->client->submit($crawler->selectButton('Reddet')->form([
             'return_reject[staffNote]' => 'Kullanılmış ürün iadesi kabul edilmez.',
         ]));
 
-        self::assertResponseRedirects('/yeni/admin/iadeler/'.$return->returnNumber());
+        self::assertResponseRedirects('/admin/iadeler/'.$return->returnNumber());
         $this->entityManager->clear();
         self::assertSame(ReturnState::Rejected, $this->reload($return)->state());
     }
@@ -167,21 +167,21 @@ final class ReturnAdminTest extends WebTestCase
         $this->returns->approve($return, 'Kabul.', self::ADMIN_EMAIL);
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $this->client->submit($crawler->selectButton('Ürünler geldi')->form(['return_received' => []]));
 
-        self::assertResponseRedirects('/yeni/admin/iadeler/'.$return->returnNumber());
+        self::assertResponseRedirects('/admin/iadeler/'.$return->returnNumber());
         $this->entityManager->clear();
         self::assertSame(ReturnState::Received, $this->reload($return)->state());
 
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $this->client->submit($crawler->selectButton('İade kaydını tamamla')->form([
             'return_refund[amountMinor]' => '45000',
             'return_refund[currency]' => 'TRY',
             'return_refund[refundReference]' => 'paytr_ref_9',
         ]));
 
-        self::assertResponseRedirects('/yeni/admin/iadeler/'.$return->returnNumber());
+        self::assertResponseRedirects('/admin/iadeler/'.$return->returnNumber());
         $this->entityManager->clear();
         $reloaded = $this->reload($return);
         self::assertSame(ReturnState::Refunded, $reloaded->state());
@@ -200,7 +200,7 @@ final class ReturnAdminTest extends WebTestCase
         $this->returns->markReceived($return, self::ADMIN_EMAIL);
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $this->client->submit($crawler->selectButton('İade kaydını tamamla')->form([
             'return_refund[amountMinor]' => '45000',
             'return_refund[currency]' => 'TRY',
@@ -218,7 +218,7 @@ final class ReturnAdminTest extends WebTestCase
         $this->returns->reject($return, 'Kullanılmış ürün.', self::ADMIN_EMAIL);
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('button[value*="approve"]');
@@ -230,12 +230,12 @@ final class ReturnAdminTest extends WebTestCase
         $return = $this->openReturn($this->admin(), 'EOA-20260928-AAAA00000001');
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $approveToken = $crawler->filter('form[action$="onayla"] input[name="return_approve[_token]"]')->attr('value');
         self::assertIsString($approveToken);
 
         // The approval token presented to the rejection action is a cross-action forgery.
-        $this->client->request('POST', '/yeni/admin/iadeler/'.$return->returnNumber().'/reddet', [
+        $this->client->request('POST', '/admin/iadeler/'.$return->returnNumber().'/reddet', [
             'return_reject' => ['staffNote' => 'Kabul edilmez.', '_token' => $approveToken],
         ]);
 
@@ -246,24 +246,24 @@ final class ReturnAdminTest extends WebTestCase
 
     public function testAnAnonymousVisitorIsSentToTheAdminLoginAndACustomerCannotReachTheAdminReturns(): void
     {
-        $this->client->request('GET', '/yeni/admin/iadeler');
-        self::assertResponseRedirects('/yeni/admin/login');
+        $this->client->request('GET', '/admin/iadeler');
+        self::assertResponseRedirects('/admin/login');
 
         // A customer session on the storefront firewall is sent to the admin login rather than
-        // refused with a 403, which is what `access_control` does for every /yeni/admin path. That
+        // refused with a 403, which is what `access_control` does for every /admin path. That
         // is the safer answer: a 403 confirms the path exists, a redirect confirms nothing.
         $customer = $this->admin();
         $this->client->loginUser($customer, 'main');
-        $this->client->request('GET', '/yeni/admin/iadeler');
+        $this->client->request('GET', '/admin/iadeler');
 
-        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertResponseRedirects('/admin/login');
         self::assertNotContains('ROLE_ADMIN', $customer->getRoles());
     }
 
     public function testAnUnknownReturnNumberIsA404(): void
     {
         $this->client->loginUser($this->adminUser(), 'admin');
-        $this->client->request('GET', '/yeni/admin/iadeler/RET-20260928-FFFFFFFFFF');
+        $this->client->request('GET', '/admin/iadeler/RET-20260928-FFFFFFFFFF');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -275,13 +275,13 @@ final class ReturnAdminTest extends WebTestCase
         // The token is minted while the approval button is genuinely on the page, so the refusal
         // below is proved by the *domain* guard and not by a stale or absent token.
         $this->client->loginUser($this->adminUser(), 'admin');
-        $crawler = $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber());
         $token = $crawler->filter('form[action$="onayla"] input[name="return_approve[_token]"]')->attr('value');
         self::assertIsString($token);
 
         $this->returns->approve($return, 'Kabul.', self::ADMIN_EMAIL);
 
-        $this->client->request('POST', '/yeni/admin/iadeler/'.$return->returnNumber().'/onayla', [
+        $this->client->request('POST', '/admin/iadeler/'.$return->returnNumber().'/onayla', [
             'return_approve' => ['staffNote' => 'Tekrar onay.', '_token' => $token],
         ]);
 
@@ -297,7 +297,7 @@ final class ReturnAdminTest extends WebTestCase
         $return = $this->openReturn($this->admin(), 'EOA-20260928-AAAA00000001');
 
         $this->client->loginUser($this->adminUser(), 'admin');
-        $this->client->request('GET', '/yeni/admin/iadeler/'.$return->returnNumber().'/onayla');
+        $this->client->request('GET', '/admin/iadeler/'.$return->returnNumber().'/onayla');
 
         self::assertResponseStatusCodeSame(405);
         $this->entityManager->clear();

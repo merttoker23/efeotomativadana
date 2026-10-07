@@ -78,7 +78,7 @@ final class CategoryInfiniteScrollTest extends WebTestCase
 
         self::assertSame(self::PER_PAGE, $this->products($crawler)->count());
         self::assertSame('catalog-infinite-scroll', $this->listing($crawler)->attr('data-controller'));
-        self::assertSame('/yeni/kategori/'.self::CATEGORY.'?sort=newest&page=2', $this->nextUrl($crawler));
+        self::assertSame('/kategori/'.self::CATEGORY.'?sort=newest&page=2', $this->nextUrl($crawler));
         self::assertSame(1, $crawler->filter('[data-catalog-infinite-scroll-target="sentinel"]')->count());
     }
 
@@ -100,7 +100,7 @@ final class CategoryInfiniteScrollTest extends WebTestCase
         self::assertSame([], array_intersect($second, $last), 'The last page repeated a product from the second.');
         self::assertCount(self::PRODUCTS, array_unique([...$first, ...$second, ...$last]));
 
-        self::assertSame('/yeni/kategori/'.self::CATEGORY.'?sort=newest&page=3', $this->nextUrl($secondPage));
+        self::assertSame('/kategori/'.self::CATEGORY.'?sort=newest&page=3', $this->nextUrl($secondPage));
         // Nothing after the last page, and nothing left to watch: that is what stops the scroll.
         self::assertSame('', $this->nextUrl($lastPage));
         self::assertSame(0, $lastPage->filter('[data-catalog-infinite-scroll-target="sentinel"]')->count());
@@ -184,10 +184,10 @@ final class CategoryInfiniteScrollTest extends WebTestCase
      */
     public function testTheCatalogueIndexAndTheBrandListingScrollTheWayTheCategoryDoes(): void
     {
-        $brandPath = '/yeni/marka/'.self::BRAND;
+        $brandPath = '/marka/'.self::BRAND;
 
         foreach ([
-            '/yeni/katalog' => '/yeni/katalog?sort=newest&page=2',
+            '/katalog' => '/katalog?sort=newest&page=2',
             $brandPath => $brandPath.'?sort=newest&page=2',
         ] as $path => $expected) {
             $crawler = $this->request($path);
@@ -210,7 +210,7 @@ final class CategoryInfiniteScrollTest extends WebTestCase
             $parameters['page'] = (string) $page;
         }
 
-        return $this->request('/yeni/kategori/'.self::CATEGORY, $parameters);
+        return $this->request('/kategori/'.self::CATEGORY, $parameters);
     }
 
     /** @param array<string, string> $query */

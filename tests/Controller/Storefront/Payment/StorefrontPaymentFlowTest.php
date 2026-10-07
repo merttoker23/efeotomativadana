@@ -70,7 +70,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->gateway->queueInitiation(GatewayInitiationOutcome::redirect('https://pay.test/hosted/checkout', 'FAKE-FLOW'));
         $this->login($customer);
 
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -96,7 +96,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->selectFakeProvider();
         $this->login($customer);
 
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -121,7 +121,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         // No queued outcome: the gateway call fails outright.
         $this->login($customer);
 
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -132,13 +132,13 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
         // The order survives a dead gateway, so the customer must still be able to start the
         // payment later. Telling them to retry on a page with no way to retry is a dead end.
-        $this->client->request('GET', sprintf('/yeni/odeme/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/odeme/%s', $order->orderNumber()));
         self::assertResponseIsSuccessful();
         $crawler = $this->client->getCrawler();
-        self::assertGreaterThan(0, $crawler->filter(sprintf('form[action$="/yeni/odeme/%s/yeniden-dene"]', $order->orderNumber()))->count(), 'A payment with no record yet must still offer a way to start it.');
+        self::assertGreaterThan(0, $crawler->filter(sprintf('form[action$="/odeme/%s/yeniden-dene"]', $order->orderNumber()))->count(), 'A payment with no record yet must still offer a way to start it.');
 
         $this->gateway->queueInitiation(GatewayInitiationOutcome::redirect('https://pay.test/hosted/later', 'FAKE-LATER'));
-        $this->client->submit($crawler->filter(sprintf('form[action$="/yeni/odeme/%s/yeniden-dene"] button', $order->orderNumber()))->form());
+        $this->client->submit($crawler->filter(sprintf('form[action$="/odeme/%s/yeniden-dene"] button', $order->orderNumber()))->form());
 
         self::assertSame('https://pay.test/hosted/later', $this->client->getResponse()->headers->get('Location'));
     }
@@ -150,7 +150,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->cartLine($customer);
         $this->login($customer);
 
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -173,7 +173,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->gateway->queueInitiation(GatewayInitiationOutcome::awaitingCallback('FAKE-PENDING'));
         $this->login($customer);
 
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -181,9 +181,9 @@ final class StorefrontPaymentFlowTest extends WebTestCase
             'payment_option' => 'gateway_checkout',
         ]);
         $order = $this->onlyOrder();
-        $this->client->request('GET', sprintf('/yeni/siparis/%s/basarili', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/siparis/%s/basarili', $order->orderNumber()));
 
-        self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/yeni/odeme/%s', $order->orderNumber())));
+        self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/odeme/%s', $order->orderNumber())));
     }
 
     public function testAVerifiedCallbackConfirmsTheOrderAndShowsTheSuccessPage(): void
@@ -194,7 +194,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->selectFakeProvider();
         $this->gateway->queueInitiation(GatewayInitiationOutcome::awaitingCallback('FAKE-CB'));
         $this->login($customer);
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -206,11 +206,11 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
         $this->postCallback($token, 'FAKE-CB', 'succeeded', $order->grandTotal()->minorAmount(), 'valid');
 
-        self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/yeni/odeme/%s', $order->orderNumber())));
+        self::assertTrue($this->client->getResponse()->isRedirect(sprintf('/odeme/%s', $order->orderNumber())));
         $this->client->followRedirect();
         self::assertStringContainsString('Ödemeniz alındı', (string) $this->client->getResponse()->getContent());
 
-        $this->client->request('GET', sprintf('/yeni/siparis/%s/basarili', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/siparis/%s/basarili', $order->orderNumber()));
         self::assertResponseIsSuccessful();
         self::assertSame('confirmed', $this->reload($order)->state()->value);
     }
@@ -223,7 +223,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->selectFakeProvider();
         $this->gateway->queueInitiation(GatewayInitiationOutcome::awaitingCallback('FAKE-RP'));
         $this->login($customer);
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -250,7 +250,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->selectFakeProvider();
         $this->gateway->queueInitiation(GatewayInitiationOutcome::awaitingCallback('FAKE-FG'));
         $this->login($customer);
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -279,10 +279,10 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
         // A cancel URL is handed to the provider and travels through the address bar, browser
         // history and proxy logs. It must not be able to kill a payment with a bare GET.
-        $this->client->request('GET', sprintf('/yeni/odeme/iptal/%s', $token));
+        $this->client->request('GET', sprintf('/odeme/iptal/%s', $token));
         self::assertResponseStatusCodeSame(405);
 
-        $this->client->request('POST', sprintf('/yeni/odeme/iptal/%s', $token), [
+        $this->client->request('POST', sprintf('/odeme/iptal/%s', $token), [
             'payment_cancel' => ['_token' => 'not-a-real-token'],
         ]);
         self::assertContains($this->client->getResponse()->getStatusCode(), [302, 401, 403]);
@@ -300,9 +300,9 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         self::getContainer()->get(\App\Module\Payment\PaymentInitiationService::class)->start($order, 'FAKE');
         $token = $this->tokenFor($order);
         $this->login($customer);
-        $csrf = $this->csrfFromPage('/yeni/odeme/'.$orderNumber, 'input[name="payment_cancel[_token]"]');
+        $csrf = $this->csrfFromPage('/odeme/'.$orderNumber, 'input[name="payment_cancel[_token]"]');
 
-        $this->client->request('POST', sprintf('/yeni/odeme/iptal/%s', $token), [
+        $this->client->request('POST', sprintf('/odeme/iptal/%s', $token), [
             'payment_cancel' => ['_token' => $csrf],
         ]);
 
@@ -314,7 +314,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
 
     public function testAnAnonymousVisitorCannotReachAPaymentPage(): void
     {
-        $this->client->request('GET', '/yeni/odeme/EOA-20260925-ABCDEF123456');
+        $this->client->request('GET', '/odeme/EOA-20260925-ABCDEF123456');
 
         self::assertContains($this->client->getResponse()->getStatusCode(), [302, 401, 403]);
     }
@@ -327,7 +327,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $this->selectFakeProvider();
         $this->gateway->queueInitiation(GatewayInitiationOutcome::awaitingCallback('FAKE-HOOK'));
         $this->login($customer);
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $this->csrf('checkout_place'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -355,7 +355,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $intruder = $this->customer('intruder@example.com');
         $this->login($intruder);
 
-        $this->client->request('GET', sprintf('/yeni/odeme/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/odeme/%s', $order->orderNumber()));
 
         // A foreign order is indistinguishable from a nonexistent one: revealing that the
         // number exists would leak order volume to an unauthenticated reader.
@@ -368,7 +368,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $order = $this->order($customer);
         $this->login($customer);
 
-        $this->client->request('POST', sprintf('/yeni/odeme/%s/yeniden-dene', $order->orderNumber()), ['_token' => 'forged']);
+        $this->client->request('POST', sprintf('/odeme/%s/yeniden-dene', $order->orderNumber()), ['_token' => 'forged']);
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -382,7 +382,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
         $payment = self::getContainer()->get(\App\Module\Payment\PaymentInitiationService::class)->start($order, 'FAKE');
         self::assertFalse($payment->requiresRedirect());
 
-        $this->client->request('GET', sprintf('/yeni/odeme/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/odeme/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.payment-status-secondary-actions button', 'Tekrar dene');
@@ -403,7 +403,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
             [],
         ));
 
-        $this->client->request('GET', sprintf('/yeni/odeme/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/odeme/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('.payment-status-actions');
@@ -418,7 +418,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
     {
         $this->client->request(
             'POST',
-            sprintf('/yeni/odeme/sonuc/%s', $token),
+            sprintf('/odeme/sonuc/%s', $token),
             [],
             [],
             [
@@ -432,7 +432,7 @@ final class StorefrontPaymentFlowTest extends WebTestCase
     /** Opens a session and renders the checkout page so its real CSRF token is used. */
     private function csrf(string $intention): string
     {
-        return $this->csrfFromPage('/yeni/odeme', 'input[name="_token"]');
+        return $this->csrfFromPage('/odeme', 'input[name="_token"]');
     }
 
     /**

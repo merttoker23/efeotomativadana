@@ -26,7 +26,7 @@ final class SeoEndpointsTest extends WebTestCase
 
     public function testTheSitemapIndexIsServedAsXmlAtBothTheRootAndTheApplicationPrefix(): void
     {
-        foreach (['/sitemap.xml', '/yeni/sitemap.xml'] as $uri) {
+        foreach (['/sitemap.xml', '/sitemap.xml'] as $uri) {
             $this->client->request('GET', $uri);
 
             self::assertResponseIsSuccessful();
@@ -78,7 +78,7 @@ final class SeoEndpointsTest extends WebTestCase
 
     public function testRobotsIsAlsoReachableUnderTheApplicationPrefix(): void
     {
-        $this->client->request('GET', '/yeni/robots.txt');
+        $this->client->request('GET', '/robots.txt');
 
         self::assertResponseIsSuccessful();
     }

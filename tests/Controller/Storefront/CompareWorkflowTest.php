@@ -43,10 +43,10 @@ final class CompareWorkflowTest extends WebTestCase
         $second = $this->product('COMPARE-002', 'Arka Amortisör', 'arka-amortisor', ['aks' => 'Arka', 'malzeme' => 'Çelik']);
 
         foreach ([$first, $second] as $product) {
-            $crawler = $this->client->request('GET', '/yeni/urun/'.$product->slug());
+            $crawler = $this->client->request('GET', '/urun/'.$product->slug());
             self::assertSelectorExists('.compare-add-form');
             $this->client->submit($crawler->selectButton('Karşılaştırmaya ekle')->form());
-            self::assertResponseRedirects('/yeni/karsilastir');
+            self::assertResponseRedirects('/karsilastir');
         }
 
         $this->client->followRedirect();
@@ -70,9 +70,9 @@ final class CompareWorkflowTest extends WebTestCase
                 'karsilastirma-urunu-'.$index,
                 [],
             );
-            $crawler = $this->client->request('GET', '/yeni/urun/'.$product->slug());
+            $crawler = $this->client->request('GET', '/urun/'.$product->slug());
             $this->client->submit($crawler->selectButton('Karşılaştırmaya ekle')->form());
-            self::assertResponseRedirects('/yeni/karsilastir');
+            self::assertResponseRedirects('/karsilastir');
         }
 
         $this->client->followRedirect();
@@ -84,13 +84,13 @@ final class CompareWorkflowTest extends WebTestCase
     public function testGuestCanRemoveAProductFromComparison(): void
     {
         $product = $this->product('COMPARE-REMOVE', 'Karşılaştırmadan Çıkacak', 'karsilastirmadan-cikacak', []);
-        $crawler = $this->client->request('GET', '/yeni/urun/'.$product->slug());
+        $crawler = $this->client->request('GET', '/urun/'.$product->slug());
         $this->client->submit($crawler->selectButton('Karşılaştırmaya ekle')->form());
 
         $crawler = $this->client->followRedirect();
         $this->client->submit($crawler->selectButton('Kaldır')->form());
 
-        self::assertResponseRedirects('/yeni/karsilastir');
+        self::assertResponseRedirects('/karsilastir');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.cart-empty', 'Karşılaştırma listeniz boş');
     }

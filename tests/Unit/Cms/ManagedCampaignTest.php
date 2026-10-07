@@ -66,7 +66,7 @@ final class ManagedCampaignTest extends TestCase
 
     public function testPopupRejectsUnsafeLinksImagesAndInvalidOptions(): void
     {
-        $config = ['description' => '', 'image' => '', 'mobileImage' => '', 'cta' => 'Keşfet', 'link' => '/yeni/urunler', 'delay' => 5, 'allowDismiss' => true];
+        $config = ['description' => '', 'image' => '', 'mobileImage' => '', 'cta' => 'Keşfet', 'link' => '/urunler', 'delay' => 5, 'allowDismiss' => true];
         foreach ([['link', 'javascript:alert(1)'], ['link', '//example.com'], ['link', 'https://example.com'], ['image', '/uploads/other.jpg'], ['mobileImage', 'https://example.com/a.jpg'], ['delay', -1], ['delay', 301], ['delay', '5'], ['allowDismiss', 'yes'], ['cta', '']] as [$key, $value]) {
             try {
                 SectionConfiguration::validate(HomeSectionType::PopupAd, array_replace($config, [$key => $value]));
@@ -101,7 +101,7 @@ final class ManagedCampaignTest extends TestCase
         $desktop = '/uploads/cms/'.str_repeat('a', 32).'.jpg';
         $mobile = '/uploads/cms/'.str_repeat('b', 32).'.webp';
         foreach ([[$desktop, $mobile], [$desktop, ''], ['', '']] as [$image, $mobileImage]) {
-            $html = $this->twig()->render('storefront/home/sections/_popup_ad.html.twig', ['section' => ['title' => '<b>Kampanya</b>', 'data' => ['description' => '<script>test</script>', 'image' => $image, 'mobileImage' => $mobileImage, 'cta' => 'Keşfet', 'link' => '/yeni/urunler', 'delay' => 5, 'allowDismiss' => true, 'campaignKey' => 'campaign-1']]]);
+            $html = $this->twig()->render('storefront/home/sections/_popup_ad.html.twig', ['section' => ['title' => '<b>Kampanya</b>', 'data' => ['description' => '<script>test</script>', 'image' => $image, 'mobileImage' => $mobileImage, 'cta' => 'Keşfet', 'link' => '/urunler', 'delay' => 5, 'allowDismiss' => true, 'campaignKey' => 'campaign-1']]]);
             self::assertStringContainsString('aria-labelledby="campaign-popup-title"', $html);
             self::assertStringContainsString('aria-describedby="campaign-popup-description"', $html);
             self::assertStringContainsString('&lt;b&gt;Kampanya&lt;/b&gt;', $html);

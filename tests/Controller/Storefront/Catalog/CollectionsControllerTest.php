@@ -31,7 +31,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class CollectionsControllerTest extends WebTestCase
 {
-    private const COLLECTIONS = '/yeni/koleksiyonlar';
+    private const COLLECTIONS = '/koleksiyonlar';
 
     private KernelBrowser $client;
     private Connection $connection;
@@ -198,11 +198,11 @@ final class CollectionsControllerTest extends WebTestCase
 
         // Collections does not light up the catalogue link, and the catalogue does not light up the
         // collections link: they are two different pages and only one of them is the current one.
-        $this->client->request('GET', '/yeni/katalog');
+        $this->client->request('GET', '/katalog');
 
         self::assertSelectorCount(0, '.main-navigation a[href="'.self::COLLECTIONS.'"][aria-current="page"]');
         self::assertSelectorCount(0, '#mobile-navigation a[href="'.self::COLLECTIONS.'"][aria-current="page"]');
-        self::assertSame(1, $this->client->getCrawler()->filter('.main-navigation a[href="/yeni/katalog"][aria-current="page"]')->count());
+        self::assertSame(1, $this->client->getCrawler()->filter('.main-navigation a[href="/katalog"][aria-current="page"]')->count());
     }
 
     private function discounted(

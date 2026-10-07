@@ -79,7 +79,7 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         self::assertSame(13, \count($sections), implode(',', array_map(static fn (HomeSection $s): string => $s->type()->value, $sections)));
 
         foreach ($sections as $section) {
-            $crawler = $this->client->request('GET', sprintf('/yeni/admin/cms/home/%d/edit', $section->id()));
+            $crawler = $this->client->request('GET', sprintf('/admin/cms/home/%d/edit', $section->id()));
             self::assertResponseIsSuccessful();
 
             $type = $section->type();
@@ -227,7 +227,7 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         $this->signIn();
 
         $hero = $this->sectionOf(HomeSectionType::HeroSlider);
-        $crawler = $this->client->request('GET', sprintf('/yeni/admin/cms/home/%d/edit', $hero->id()));
+        $crawler = $this->client->request('GET', sprintf('/admin/cms/home/%d/edit', $hero->id()));
         $image = $hero->configuration()['slides'][0]['image'];
 
         $this->client->submit($crawler->selectButton('Bölümü kaydet')->form([
@@ -240,14 +240,14 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
             'slides_1_label' => 'İkinci etiket',
             'slides_1_title' => 'İkinci başlık',
             'slides_1_primaryText' => 'Hemen başla',
-            'slides_1_primaryLink' => '/yeni/katalog',
+            'slides_1_primaryLink' => '/katalog',
             'slides_1_secondaryText' => 'Kategoriler',
-            'slides_1_secondaryLink' => '/yeni/kategoriler',
+            'slides_1_secondaryLink' => '/kategoriler',
             'slides_1_image' => $image,
         ]));
-        self::assertResponseRedirects('/yeni/admin/cms/home');
+        self::assertResponseRedirects('/admin/cms/home');
 
-        $this->client->request('GET', '/yeni/');
+        $this->client->request('GET', '/');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.hero-slide.active .hero-label', 'Editör etiketi');
         self::assertSelectorTextContains('.hero-slide.active .hero-title', 'Editör başlığı');
@@ -256,8 +256,8 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         // The slide that now carries both calls to action is the theme's left-aligned composition.
         $slides = $this->client->getCrawler()->filter('.hero-slide');
         self::assertStringContainsString('mobile-feature', (string) $slides->eq(1)->attr('class'));
-        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .shop-now[href="/yeni/katalog"]')->count());
-        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .learn-more[href="/yeni/kategoriler"]')->count());
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .shop-now[href="/katalog"]')->count());
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .learn-more[href="/kategoriler"]')->count());
     }
 
     public function testMobileBannerCanBeSelectedAndClearedWithoutChangingDesktop(): void
@@ -266,24 +266,24 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         self::assertSame(0, $this->seed());
         $this->signIn();
         $hero = $this->sectionOf(HomeSectionType::HeroSlider);
-        $url = sprintf('/yeni/admin/cms/home/%d/edit', $hero->id());
+        $url = sprintf('/admin/cms/home/%d/edit', $hero->id());
         $desktop = $hero->configuration()['slides'][0]['image'];
         $crawler = $this->client->request('GET', $url);
         self::assertSame(1, $crawler->filter('.cms-rows > .cms-row [name="slides_0_mobileImage_file"]')->count());
         self::assertSame(1, $crawler->filter('.cms-rows > .cms-row[data-index="0"] .cms-image img[alt="Mobil banner seçilmedi; mağazada placeholder gösterilir"]:not([hidden])')->count());
 
         $this->client->submit($crawler->selectButton('Bölümü kaydet')->form(['slides_0_mobileImage' => $desktop]));
-        self::assertResponseRedirects('/yeni/admin/cms/home');
+        self::assertResponseRedirects('/admin/cms/home');
         self::assertSame($desktop, $this->sectionOf(HomeSectionType::HeroSlider)->configuration()['slides'][0]['mobileImage']);
         $crawler = $this->client->request('GET', $url);
         self::assertSame(1, $crawler->filter('[name="slides_0_mobileImage"] option[selected][value="'.$desktop.'"]')->count());
 
         $this->client->submit($crawler->selectButton('Bölümü kaydet')->form(['slides_0_mobileImage' => '']));
-        self::assertResponseRedirects('/yeni/admin/cms/home');
+        self::assertResponseRedirects('/admin/cms/home');
         $saved = $this->sectionOf(HomeSectionType::HeroSlider)->configuration()['slides'][0];
         self::assertSame('', $saved['mobileImage']);
         self::assertSame($desktop, $saved['image']);
-        $crawler = $this->client->request('GET', '/yeni/');
+        $crawler = $this->client->request('GET', '/');
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('product-placeholder-', (string) $crawler->filter('.hero-slide')->eq(0)->filter('source')->attr('srcset'));
     }
@@ -295,7 +295,7 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         $this->signIn();
 
         $split = $this->sectionOf(HomeSectionType::SplitBuilder);
-        $crawler = $this->client->request('GET', sprintf('/yeni/admin/cms/home/%d/edit', $split->id()));
+        $crawler = $this->client->request('GET', sprintf('/admin/cms/home/%d/edit', $split->id()));
         self::assertSame(1, $crawler->filter('[name="label"]')->count());
         self::assertSame(1, $crawler->filter('[name="headline"]')->count());
         self::assertSame(1, $crawler->filter('[name="description"]')->count());
@@ -309,11 +309,11 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
             'headline' => 'Editör kampanya başlığı',
             'description' => 'Editör açıklaması.',
             'cta' => 'Editör butonu',
-            'link' => '/yeni/markalar',
+            'link' => '/markalar',
         ]));
-        self::assertResponseRedirects('/yeni/admin/cms/home');
+        self::assertResponseRedirects('/admin/cms/home');
 
-        $this->client->request('GET', '/yeni/');
+        $this->client->request('GET', '/');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.split-builder .section-head h2', 'Editör fren setleri');
         self::assertSelectorTextContains('.split-builder .section-head p', 'Editör alt başlığı');
@@ -321,7 +321,7 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         self::assertSelectorTextContains('.split-builder .big-promo h2', 'Editör kampanya başlığı');
         self::assertSelectorTextContains('.split-builder .big-promo p', 'Editör açıklaması.');
         self::assertSelectorTextContains('.split-builder .big-promo .big-promo-cta', 'Editör butonu');
-        self::assertSame('/yeni/markalar', $this->client->getCrawler()->filter('.split-builder .big-promo-cta')->attr('href'));
+        self::assertSame('/markalar', $this->client->getCrawler()->filter('.split-builder .big-promo-cta')->attr('href'));
         self::assertSame(3, $this->client->getCrawler()->filter('.split-builder .split-builder-grid .product-card')->count());
     }
 
@@ -336,7 +336,7 @@ final class SeededHomepageModulesAdminTest extends WebTestCase
         $this->signIn();
 
         $hero = $this->sectionOf(HomeSectionType::HeroSlider);
-        $crawler = $this->client->request('GET', sprintf('/yeni/admin/cms/home/%d/edit', $hero->id()));
+        $crawler = $this->client->request('GET', sprintf('/admin/cms/home/%d/edit', $hero->id()));
         $image = $hero->configuration()['slides'][0]['image'];
 
         $this->client->submit($crawler->selectButton('Bölümü kaydet')->form([

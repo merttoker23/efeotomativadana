@@ -86,7 +86,7 @@ final class SeoMetadataFactoryTest extends TestCase
             label: 'Yag Filtresi',
         ));
 
-        self::assertSame('https://magaza.example/yeni/urun/yag-filtresi', $metadata->canonicalUrl);
+        self::assertSame('https://magaza.example/urun/yag-filtresi', $metadata->canonicalUrl);
     }
 
     public function testAPageIsIndexableByDefaultAndHiddenWhenThePageOrAnOverrideSaysSo(): void
@@ -114,7 +114,7 @@ final class SeoMetadataFactoryTest extends TestCase
         ));
 
         self::assertSame('article', $metadata->type);
-        self::assertSame('https://magaza.example/yeni/uploads/products/filtre.jpg', $metadata->imageUrl);
+        self::assertSame('https://magaza.example/uploads/products/filtre.jpg', $metadata->imageUrl);
         self::assertSame('Efe Otomotiv Adana', $metadata->siteName);
     }
 
@@ -123,8 +123,8 @@ final class SeoMetadataFactoryTest extends TestCase
         $metadata = $this->factory()->for($this->page(
             label: 'Yag Filtresi',
             breadcrumbs: [
-                new SeoBreadcrumb('Ana Sayfa', 'https://magaza.example/yeni/'),
-                new SeoBreadcrumb('Yag Filtresi', 'https://magaza.example/yeni/urun/yag-filtresi'),
+                new SeoBreadcrumb('Ana Sayfa', 'https://magaza.example/'),
+                new SeoBreadcrumb('Yag Filtresi', 'https://magaza.example/urun/yag-filtresi'),
             ],
         ));
 
@@ -147,7 +147,7 @@ final class SeoMetadataFactoryTest extends TestCase
     {
         $metadata = $this->factory()->for($this->page(
             label: 'Markalar',
-            breadcrumbs: [new SeoBreadcrumb('Ana Sayfa', 'https://magaza.example/yeni/')],
+            breadcrumbs: [new SeoBreadcrumb('Ana Sayfa', 'https://magaza.example/')],
         ));
 
         // A consumer that believes a one-step trail would render a breadcrumb that goes nowhere.
@@ -222,10 +222,10 @@ final class SeoMetadataFactoryTest extends TestCase
     private function urls(): SeoUrlFactory
     {
         $routes = new RouteCollection();
-        $routes->add('storefront_catalog_index', new Route('/yeni/katalog'));
-        $routes->add('storefront_catalog_product', new Route('/yeni/urun/{slug}'));
-        $routes->add('storefront_customer_account', new Route('/yeni/hesabim'));
-        $routes->add('app_home', new Route('/yeni/'));
+        $routes->add('storefront_catalog_index', new Route('/katalog'));
+        $routes->add('storefront_catalog_product', new Route('/urun/{slug}'));
+        $routes->add('storefront_customer_account', new Route('/hesabim'));
+        $routes->add('app_home', new Route('/'));
 
         return new SeoUrlFactory(
             new PublicUrlGenerator(
@@ -233,8 +233,8 @@ final class SeoMetadataFactoryTest extends TestCase
                 'https://magaza.example',
             ),
             new StorefrontMediaExtension(
-                new Packages(new PathPackage('/yeni', new EmptyVersionStrategy())),
-                '/yeni',
+                new Packages(new PathPackage('/', new EmptyVersionStrategy())),
+                '/',
             ),
         );
     }

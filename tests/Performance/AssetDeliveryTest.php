@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
  * Guards the contract between the URLs Symfony emits and the files the web server can serve.
  *
  * The storefront runs under the `/yeni` router prefix, so every asset and upload URL it renders
- * is prefixed: `/yeni/assets/styles/storefront.css`, `/yeni/uploads/...`. The application's
+ * is prefixed: `/assets/styles/storefront.css`, `/uploads/...`. The application's
  * document root, however, is `public/`, where those same files live unprefixed. FrankenPHP and
  * Caddy serve that root directly, so a prefixed path had no file to match, fell through to
  * PHP, and returned the framework's 404 page with an HTML content type.
@@ -55,12 +55,12 @@ final class AssetDeliveryTest extends TestCase
             'The deployment no longer passes extra Caddy directives, so nothing can serve the prefixed static paths.',
         );
         self::assertMatchesRegularExpression(
-            '~path\s+/yeni/assets/\*\s+/yeni/uploads/\*~',
+            '~path\s+/assets/\*\s+/uploads/\*~',
             $compose,
             'The Caddy matcher no longer covers the prefixed asset and upload paths.',
         );
         self::assertStringContainsString(
-            'uri strip_prefix /yeni',
+            'uri strip_prefix /',
             $compose,
             'The Caddy rule no longer strips the storefront prefix, so every prefixed asset still 404s.',
         );
@@ -85,10 +85,10 @@ final class AssetDeliveryTest extends TestCase
 
         $missing = [];
         foreach ($urls as $url) {
-            if (!str_starts_with($url, '/yeni/')) {
+            if (!str_starts_with($url, '/')) {
                 continue;
             }
-            $file = self::root('public/'.substr($url, \strlen('/yeni/')));
+            $file = self::root('public/'.substr($url, \strlen('/')));
             if (!is_file($file)) {
                 $missing[] = $url;
             }
@@ -134,7 +134,7 @@ final class AssetDeliveryTest extends TestCase
                 self::assertArrayHasKey($logical, $entries, sprintf('%s references an asset the manifest does not contain.', $template));
                 // The framework prefixes these with the router path; that is exactly the pairing
                 // under test, so the prefix is applied here rather than read back from a request.
-                $urls[] = '/yeni/'.$entries[$logical];
+                $urls[] = '/'.$entries[$logical];
             }
         }
 

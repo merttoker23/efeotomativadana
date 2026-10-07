@@ -71,21 +71,21 @@ final class PrivilegeEscalationTest extends WebTestCase
      */
     public static function adminPaths(): iterable
     {
-        yield 'dashboard' => ['/yeni/admin'];
-        yield 'settings' => ['/yeni/admin/settings'];
-        yield 'products' => ['/yeni/admin/catalog/products'];
-        yield 'categories' => ['/yeni/admin/catalog/categories'];
-        yield 'brands' => ['/yeni/admin/catalog/brands'];
-        yield 'cms media' => ['/yeni/admin/cms/media'];
-        yield 'cms content' => ['/yeni/admin/cms/blog'];
-        yield 'homepage sections' => ['/yeni/admin/cms/home'];
-        yield 'orders' => ['/yeni/admin/orders'];
-        yield 'payments' => ['/yeni/admin/odemeler'];
-        yield 'customers' => ['/yeni/admin/customers'];
-        yield 'shipments' => ['/yeni/admin/gonderiler'];
-        yield 'returns' => ['/yeni/admin/iadeler'];
-        yield 'b2b integration' => ['/yeni/admin/integration/b2b'];
-        yield 'seo overrides' => ['/yeni/admin/catalog/products/1/seo'];
+        yield 'dashboard' => ['/admin'];
+        yield 'settings' => ['/admin/settings'];
+        yield 'products' => ['/admin/catalog/products'];
+        yield 'categories' => ['/admin/catalog/categories'];
+        yield 'brands' => ['/admin/catalog/brands'];
+        yield 'cms media' => ['/admin/cms/media'];
+        yield 'cms content' => ['/admin/cms/blog'];
+        yield 'homepage sections' => ['/admin/cms/home'];
+        yield 'orders' => ['/admin/orders'];
+        yield 'payments' => ['/admin/odemeler'];
+        yield 'customers' => ['/admin/customers'];
+        yield 'shipments' => ['/admin/gonderiler'];
+        yield 'returns' => ['/admin/iadeler'];
+        yield 'b2b integration' => ['/admin/integration/b2b'];
+        yield 'seo overrides' => ['/admin/catalog/products/1/seo'];
     }
 
     /**
@@ -100,7 +100,7 @@ final class PrivilegeEscalationTest extends WebTestCase
 
         // A redirect to the admin login, never the page. Asserting the exact target is what
         // makes this a firewall result rather than "some redirect happened".
-        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertResponseRedirects('/admin/login');
         self::assertStringNotContainsString('panel', (string) $this->client->getResponse()->getContent());
     }
 
@@ -116,9 +116,9 @@ final class PrivilegeEscalationTest extends WebTestCase
     {
         $this->client->loginUser($this->customer('writer@example.com'), 'main');
 
-        foreach (['/yeni/admin/catalog/products/1/delete', '/yeni/admin/customers/1/status', '/yeni/admin/cms/home/1/delete'] as $path) {
+        foreach (['/admin/catalog/products/1/delete', '/admin/customers/1/status', '/admin/cms/home/1/delete'] as $path) {
             $this->client->request('POST', $path, ['_token' => 'anything']);
-            self::assertResponseRedirects('/yeni/admin/login');
+            self::assertResponseRedirects('/admin/login');
         }
 
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM catalog_product'));
@@ -128,9 +128,9 @@ final class PrivilegeEscalationTest extends WebTestCase
     {
         $this->client->loginUser($this->administrator('boss@example.com'), 'admin');
 
-        foreach (['/yeni/hesabim', '/yeni/hesabim/adresler', '/yeni/hesabim/siparisler', '/yeni/hesabim/profil'] as $path) {
+        foreach (['/hesabim', '/hesabim/adresler', '/hesabim/siparisler', '/hesabim/profil'] as $path) {
             $this->client->request('GET', $path);
-            self::assertResponseRedirects('/yeni/giris');
+            self::assertResponseRedirects('/giris');
             self::assertNotSame($path, (string) $this->client->getResponse()->headers->get('Location'));
         }
     }
@@ -156,11 +156,11 @@ final class PrivilegeEscalationTest extends WebTestCase
         self::assertNotContains('ROLE_CUSTOMER', $user->getRoles());
 
         $this->client->loginUser($user, 'admin');
-        $this->client->request('GET', '/yeni/admin');
+        $this->client->request('GET', '/admin');
         self::assertResponseStatusCodeSame(403);
 
         $this->client->loginUser($user, 'main');
-        $this->client->request('GET', '/yeni/hesabim');
+        $this->client->request('GET', '/hesabim');
         self::assertResponseStatusCodeSame(403);
     }
 
@@ -174,7 +174,7 @@ final class PrivilegeEscalationTest extends WebTestCase
 
         $this->client->loginUser($attacker, 'main');
 
-        foreach (['/yeni/hesabim/siparisler/'.$order->orderNumber(), '/yeni/odeme/'.$order->orderNumber()] as $path) {
+        foreach (['/hesabim/siparisler/'.$order->orderNumber(), '/odeme/'.$order->orderNumber()] as $path) {
             $this->client->request('GET', $path);
             self::assertResponseStatusCodeSame(404);
         }
@@ -214,16 +214,16 @@ final class PrivilegeEscalationTest extends WebTestCase
         $victimToken = $this->returnTokenOf($victimOrder);
 
         $this->client->loginUser($attacker, 'main');
-        $this->client->request('GET', '/yeni/odeme/'.$attackerOrder->orderNumber());
+        $this->client->request('GET', '/odeme/'.$attackerOrder->orderNumber());
         $field = $this->client->getCrawler()->filter('form[action*="/odeme/iptal/"] input[name="payment_cancel[_token]"]');
         self::assertGreaterThan(0, $field->count(), 'The attacker must hold a genuine cancel token for their own payment.');
         $token = (string) $field->attr('value');
 
         // The attacker's own order is reachable, or the test proves nothing about the other one.
-        $this->client->request('GET', '/yeni/odeme/'.$victimOrder->orderNumber());
+        $this->client->request('GET', '/odeme/'.$victimOrder->orderNumber());
         self::assertResponseStatusCodeSame(404);
 
-        $this->client->request('POST', '/yeni/odeme/iptal/'.$victimToken, ['payment_cancel' => ['_token' => $token]]);
+        $this->client->request('POST', '/odeme/iptal/'.$victimToken, ['payment_cancel' => ['_token' => $token]]);
 
         self::assertResponseStatusCodeSame(404);
         $this->entityManager->clear();
@@ -245,7 +245,7 @@ final class PrivilegeEscalationTest extends WebTestCase
         $victimToken = $this->returnTokenOf($victimOrder);
 
         $this->client->loginUser($attacker, 'main');
-        $this->client->request('POST', '/yeni/odeme/iptal/'.$victimToken, ['payment_cancel' => ['_token' => '']]);
+        $this->client->request('POST', '/odeme/iptal/'.$victimToken, ['payment_cancel' => ['_token' => '']]);
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -259,14 +259,14 @@ final class PrivilegeEscalationTest extends WebTestCase
 
         $this->client->loginUser($attacker, 'main');
 
-        $this->client->request('GET', '/yeni/hesabim/iadeler/'.$return->returnNumber());
+        $this->client->request('GET', '/hesabim/iadeler/'.$return->returnNumber());
         self::assertResponseStatusCodeSame(404);
 
         // The intention is per-return (`customer_return_withdraw_<number>`), so no token for
         // somebody else's return can be minted at all, which is itself a barrier. The 404 below
         // is the ownership check, and it answers identically whether the token was forged or
         // valid, so the difference cannot be used to probe for an existing return.
-        $this->client->request('POST', '/yeni/hesabim/iadeler/'.$return->returnNumber().'/geri-al', [
+        $this->client->request('POST', '/hesabim/iadeler/'.$return->returnNumber().'/geri-al', [
             '_token' => 'minted-for-a-different-return',
         ]);
         self::assertResponseStatusCodeSame(404);
@@ -295,7 +295,7 @@ final class PrivilegeEscalationTest extends WebTestCase
         $token = $this->addressDeleteToken((int) $own->id());
         self::assertNotSame('', $token, 'The attacker must hold a genuine token for their own address.');
 
-        $this->client->request('POST', '/yeni/hesabim/adresler/'.$foreign->id().'/sil', ['_token' => $token]);
+        $this->client->request('POST', '/hesabim/adresler/'.$foreign->id().'/sil', ['_token' => $token]);
 
         self::assertResponseStatusCodeSame(404);
         self::assertSame(2, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM customer_address'));
@@ -319,7 +319,7 @@ final class PrivilegeEscalationTest extends WebTestCase
         self::assertInstanceOf(OrderItem::class, $foreignItem);
 
         $this->client->loginUser($attacker, 'main');
-        $path = '/yeni/hesabim/siparisler/'.$ownOrder->orderNumber().'/iade';
+        $path = '/hesabim/siparisler/'.$ownOrder->orderNumber().'/iade';
         $token = $this->returnRequestToken($path);
         $this->client->request('POST', $path, [
             'customer_return_request' => [
@@ -341,11 +341,11 @@ final class PrivilegeEscalationTest extends WebTestCase
      */
     public function testAnUnknownReturnTokenIsIndistinguishableFromAForeignOne(): void
     {
-        $this->client->request('POST', '/yeni/odeme/sonuc/'.str_repeat('a', 64));
-        self::assertResponseRedirects('/yeni/katalog');
+        $this->client->request('POST', '/odeme/sonuc/'.str_repeat('a', 64));
+        self::assertResponseRedirects('/katalog');
 
-        $this->client->request('POST', '/yeni/odeme/sonuc/'.str_repeat('b', 64));
-        self::assertResponseRedirects('/yeni/katalog');
+        $this->client->request('POST', '/odeme/sonuc/'.str_repeat('b', 64));
+        self::assertResponseRedirects('/katalog');
     }
 
     // ----------------------------------------------------------------- helpers
@@ -454,7 +454,7 @@ final class PrivilegeEscalationTest extends WebTestCase
 
     private function addressDeleteToken(int $addressId): string
     {
-        $this->client->request('GET', '/yeni/hesabim/adresler');
+        $this->client->request('GET', '/hesabim/adresler');
         $field = $this->client->getCrawler()->filter(sprintf('form[action$="/adresler/%d/sil"] input[name="_token"]', $addressId));
 
         return 0 === $field->count() ? '' : (string) $field->attr('value');

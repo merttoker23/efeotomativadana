@@ -49,13 +49,13 @@ final class CartWorkflowTest extends WebTestCase
 
     public function testGuestCanOpenAnEmptyServerRenderedCart(): void
     {
-        $this->client->request('GET', '/yeni/sepet');
+        $this->client->request('GET', '/sepet');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Sepetim');
         self::assertSelectorTextContains('.cart-empty', 'Sepetiniz boş');
         self::assertSelectorNotExists('[data-testid="free-shipping-message"]');
-        self::assertSelectorExists('a.header-action[href="/yeni/sepet"]');
+        self::assertSelectorExists('a.header-action[href="/sepet"]');
     }
 
     /**
@@ -140,7 +140,7 @@ final class CartWorkflowTest extends WebTestCase
         $debugData->reset();
         $this->client->enableProfiler();
 
-        $this->client->request('GET', '/yeni/katalog');
+        $this->client->request('GET', '/katalog');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.cart-action', $expectedCount);
@@ -156,17 +156,17 @@ final class CartWorkflowTest extends WebTestCase
     public function testGuestAddsAProductAndPostedPriceIsIgnored(): void
     {
         $product = $this->sellableProduct('CART-001', 'Fren Balatası', 'fren-balatasi', 12_345, 5);
-        $crawler = $this->client->request('GET', '/yeni/urun/fren-balatasi');
+        $crawler = $this->client->request('GET', '/urun/fren-balatasi');
         self::assertSelectorExists('.cart-add-form input[name="_token"]');
         $token = $crawler->filter('.cart-add-form input[name="_token"]')->attr('value');
 
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $token,
             'quantity' => 2,
             'price' => 1,
         ]);
 
-        self::assertResponseRedirects('/yeni/sepet');
+        self::assertResponseRedirects('/sepet');
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart'));
         self::assertSame(2, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_cart_item'));
         $persistedToken = $this->connection->fetchOne('SELECT guest_token FROM commerce_cart');
@@ -183,20 +183,20 @@ final class CartWorkflowTest extends WebTestCase
     public function testCumulativeAddsCannotExceedTheCartQuantityLimit(): void
     {
         $product = $this->sellableProduct('CART-LIMIT', 'Fren Hidroliği', 'fren-hidroligi', 8_000, 150);
-        $crawler = $this->client->request('GET', '/yeni/urun/fren-hidroligi');
+        $crawler = $this->client->request('GET', '/urun/fren-hidroligi');
         self::assertSelectorExists('.cart-add-form input[name="quantity"][max="99"]');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 60,
         ]);
 
-        $crawler = $this->client->request('GET', '/yeni/urun/fren-hidroligi');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/fren-hidroligi');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 60,
         ]);
 
-        self::assertResponseRedirects('/yeni/sepet');
+        self::assertResponseRedirects('/sepet');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.storefront-flash-error', '99');
         self::assertSame(60, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_cart_item'));
@@ -205,8 +205,8 @@ final class CartWorkflowTest extends WebTestCase
     public function testGuestCanUpdateAOwnedCartLineWithinCurrentStock(): void
     {
         $product = $this->sellableProduct('CART-UPDATE', 'Yağ Filtresi', 'yag-filtresi', 10_000, 5);
-        $crawler = $this->client->request('GET', '/yeni/urun/yag-filtresi');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/yag-filtresi');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 1,
         ]);
@@ -217,7 +217,7 @@ final class CartWorkflowTest extends WebTestCase
             'quantity' => 4,
         ]));
 
-        self::assertResponseRedirects('/yeni/sepet');
+        self::assertResponseRedirects('/sepet');
         $this->client->followRedirect();
         self::assertSelectorExists('.cart-line input[name="quantity"][value="4"]');
         self::assertSelectorTextContains('.cart-summary', '400,00 TL');
@@ -227,15 +227,15 @@ final class CartWorkflowTest extends WebTestCase
     public function testCartKeepsAnUnavailablePriceLineVisibleWithoutCalculatingATotal(): void
     {
         $product = $this->sellableProduct('CART-NO-PRICE', 'Yakıt Filtresi', 'yakit-filtresi', 13_500, 4);
-        $crawler = $this->client->request('GET', '/yeni/urun/yakit-filtresi');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/yakit-filtresi');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 1,
         ]);
         $this->connection->executeStatement('DELETE FROM commerce_product_price WHERE product_id = ?', [$product->id()]);
         $this->entityManager->clear();
 
-        $this->client->request('GET', '/yeni/sepet');
+        $this->client->request('GET', '/sepet');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(1, '.cart-line');
@@ -250,8 +250,8 @@ final class CartWorkflowTest extends WebTestCase
         $available = $this->sellableProduct('CART-AVAILABLE', 'Şanzıman Yağı', 'sanziman-yagi', 22_500, 4);
         $unavailable = $this->sellableProduct('CART-UNAVAILABLE', 'Direksiyon Yağı', 'direksiyon-yagi', 17_500, 4);
         foreach ([$available, $unavailable] as $product) {
-            $crawler = $this->client->request('GET', '/yeni/urun/'.$product->slug());
-            $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+            $crawler = $this->client->request('GET', '/urun/'.$product->slug());
+            $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
                 '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
                 'quantity' => 1,
             ]);
@@ -259,7 +259,7 @@ final class CartWorkflowTest extends WebTestCase
         $this->connection->executeStatement('DELETE FROM commerce_product_price WHERE product_id = ?', [$unavailable->id()]);
         $this->entityManager->clear();
 
-        $this->client->request('GET', '/yeni/sepet');
+        $this->client->request('GET', '/sepet');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(2, '.cart-line');
@@ -270,8 +270,8 @@ final class CartWorkflowTest extends WebTestCase
     public function testGuestCanRemoveAnOwnedCartLine(): void
     {
         $product = $this->sellableProduct('CART-REMOVE', 'Hava Filtresi', 'hava-filtresi', 20_000, 2);
-        $crawler = $this->client->request('GET', '/yeni/urun/hava-filtresi');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/hava-filtresi');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 1,
         ]);
@@ -280,7 +280,7 @@ final class CartWorkflowTest extends WebTestCase
         self::assertSelectorExists('.cart-line form.cart-remove-form');
         $this->client->submit($crawler->selectButton('Kaldır')->form());
 
-        self::assertResponseRedirects('/yeni/sepet');
+        self::assertResponseRedirects('/sepet');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.cart-empty', 'Sepetiniz boş');
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart_item'));
@@ -295,21 +295,21 @@ final class CartWorkflowTest extends WebTestCase
         $this->entityManager->persist($customerCart);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/urun/polen-filtresi');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/polen-filtresi');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 2,
         ]);
         self::assertSame(2, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart'));
 
-        $crawler = $this->client->request('GET', '/yeni/giris');
+        $crawler = $this->client->request('GET', '/giris');
         $this->client->submit($crawler->selectButton('Giriş yap')->form([
             '_username' => 'merge@example.com',
             '_password' => 'VeryStrong!123',
         ]));
 
-        self::assertResponseRedirects('/yeni/hesabim');
-        $this->client->request('GET', '/yeni/sepet');
+        self::assertResponseRedirects('/hesabim');
+        $this->client->request('GET', '/sepet');
         self::assertSelectorCount(1, '.cart-line');
         self::assertSelectorExists('.cart-line input[name="quantity"][value="3"]');
         self::assertSelectorTextContains('.storefront-flash-warning', 'stok');
@@ -327,8 +327,8 @@ final class CartWorkflowTest extends WebTestCase
         $this->entityManager->persist($customerCart);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/urun/motor-takozu');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/motor-takozu');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 1,
         ]);
@@ -337,14 +337,14 @@ final class CartWorkflowTest extends WebTestCase
         $inventory->replace(3, true);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/giris');
+        $crawler = $this->client->request('GET', '/giris');
         $this->client->submit($crawler->selectButton('Giriş yap')->form([
             '_username' => 'stale-merge@example.com',
             '_password' => 'VeryStrong!123',
         ]));
 
-        self::assertResponseRedirects('/yeni/hesabim');
-        $this->client->request('GET', '/yeni/sepet');
+        self::assertResponseRedirects('/hesabim');
+        $this->client->request('GET', '/sepet');
         self::assertSelectorExists('.cart-line input[name="quantity"][value="3"]');
         self::assertSelectorTextContains('.storefront-flash-warning', 'stok');
         self::assertSame(3, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_cart_item'));
@@ -353,13 +353,13 @@ final class CartWorkflowTest extends WebTestCase
     public function testExcessQuantityDoesNotCreateACartLine(): void
     {
         $product = $this->sellableProduct('CART-STOCK', 'Rot Başı', 'rot-basi', 9_000, 3);
-        $crawler = $this->client->request('GET', '/yeni/urun/rot-basi');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/rot-basi');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 4,
         ]);
 
-        self::assertResponseRedirects('/yeni/sepet');
+        self::assertResponseRedirects('/sepet');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.storefront-flash-error', 'En fazla 3');
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart_item'));
@@ -369,7 +369,7 @@ final class CartWorkflowTest extends WebTestCase
     {
         $product = $this->sellableProduct('CART-CSRF', 'Z Rot', 'z-rot', 11_000, 3);
 
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             'quantity' => 1,
         ]);
 
@@ -380,8 +380,8 @@ final class CartWorkflowTest extends WebTestCase
     public function testGuestCannotUpdateAnotherSessionCart(): void
     {
         $product = $this->sellableProduct('CART-OWNER', 'Aks Kafası', 'aks-kafasi', 18_000, 5);
-        $crawler = $this->client->request('GET', '/yeni/urun/aks-kafasi');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), [
+        $crawler = $this->client->request('GET', '/urun/aks-kafasi');
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 2,
         ]);
@@ -389,19 +389,19 @@ final class CartWorkflowTest extends WebTestCase
 
         $this->client->getCookieJar()->clear();
         $attackerProduct = $this->sellableProduct('CART-ATTACKER', 'Debriyaj Seti', 'debriyaj-seti', 40_000, 5);
-        $crawler = $this->client->request('GET', '/yeni/urun/debriyaj-seti');
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$attackerProduct->id(), [
+        $crawler = $this->client->request('GET', '/urun/debriyaj-seti');
+        $this->client->request('POST', '/sepet/ekle/'.$attackerProduct->id(), [
             '_token' => $crawler->filter('.cart-add-form input[name="_token"]')->attr('value'),
             'quantity' => 1,
         ]);
         $crawler = $this->client->followRedirect();
         $token = $crawler->filter('.cart-update-form input[name="_token"]')->attr('value');
-        $this->client->request('POST', '/yeni/sepet/'.$itemId.'/guncelle', [
+        $this->client->request('POST', '/sepet/'.$itemId.'/guncelle', [
             '_token' => $token,
             'quantity' => 5,
         ]);
 
-        self::assertResponseRedirects('/yeni/sepet');
+        self::assertResponseRedirects('/sepet');
         self::assertSame(2, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_cart_item WHERE id = ?', [$itemId]));
     }
 

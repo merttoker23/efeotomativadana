@@ -37,16 +37,16 @@ final class B2bControllerTest extends WebTestCase
 
     public function testAnonymousUserCannotAccessB2bOperations(): void
     {
-        $this->client->request('GET', '/yeni/admin/integration/b2b');
+        $this->client->request('GET', '/admin/integration/b2b');
 
-        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertResponseRedirects('/admin/login');
     }
 
     public function testNonAdminUserCannotAccessB2bOperations(): void
     {
         $this->client->loginUser(new InMemoryUser('viewer@example.com', 'test-only-not-used-for-form-login', ['ROLE_USER']), 'admin');
 
-        $this->client->request('GET', '/yeni/admin/integration/b2b');
+        $this->client->request('GET', '/admin/integration/b2b');
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -55,10 +55,10 @@ final class B2bControllerTest extends WebTestCase
     {
         $this->client->loginUser($this->createAdministrator(), 'admin');
 
-        $this->client->request('GET', '/yeni/admin/integration/b2b/full');
+        $this->client->request('GET', '/admin/integration/b2b/full');
         self::assertResponseStatusCodeSame(405);
 
-        $this->client->request('POST', '/yeni/admin/integration/b2b/daily', ['_token' => 'invalid-token']);
+        $this->client->request('POST', '/admin/integration/b2b/daily', ['_token' => 'invalid-token']);
         self::assertResponseStatusCodeSame(422);
         self::assertSame(0, $this->rowCount('integration_b2b_sync_run'));
     }
@@ -69,9 +69,9 @@ final class B2bControllerTest extends WebTestCase
         $token = $this->csrfToken();
         self::assertCount(2, $this->client->getCrawler()->filter('.integration-actions button[disabled]'));
 
-        $this->client->request('POST', '/yeni/admin/integration/b2b/full', ['_token' => $token]);
+        $this->client->request('POST', '/admin/integration/b2b/full', ['_token' => $token]);
 
-        self::assertResponseRedirects('/yeni/admin/integration/b2b');
+        self::assertResponseRedirects('/admin/integration/b2b');
         self::assertSame(0, $this->rowCount('integration_b2b_sync_run'));
         self::assertSame(0, $this->rowCount('messenger_messages'));
     }
@@ -83,16 +83,16 @@ final class B2bControllerTest extends WebTestCase
         $token = $this->csrfToken();
         self::assertCount(0, $this->client->getCrawler()->filter('.integration-actions button[disabled]'));
 
-        $this->client->request('POST', '/yeni/admin/integration/b2b/full', ['_token' => $token]);
-        self::assertResponseRedirects('/yeni/admin/integration/b2b');
+        $this->client->request('POST', '/admin/integration/b2b/full', ['_token' => $token]);
+        self::assertResponseRedirects('/admin/integration/b2b');
         self::assertSame(1, $this->rowCount('integration_b2b_sync_run'));
         self::assertSame(1, $this->rowCount('messenger_messages'));
         $this->client->followRedirect();
         self::assertSelectorTextContains('.alert-success', 'kuyruğa alındı');
         self::assertCount(2, $this->client->getCrawler()->filter('.integration-actions button[disabled]'));
 
-        $this->client->request('POST', '/yeni/admin/integration/b2b/daily', ['_token' => $token]);
-        self::assertResponseRedirects('/yeni/admin/integration/b2b');
+        $this->client->request('POST', '/admin/integration/b2b/daily', ['_token' => $token]);
+        self::assertResponseRedirects('/admin/integration/b2b');
         self::assertSame(1, $this->rowCount('integration_b2b_sync_run'));
         self::assertSame(1, $this->rowCount('messenger_messages'));
         $this->client->followRedirect();
@@ -131,7 +131,7 @@ final class B2bControllerTest extends WebTestCase
         $runId = $run->id();
         self::assertNotNull($runId);
 
-        $this->client->request('GET', '/yeni/admin/integration/b2b', ['run_id' => $runId]);
+        $this->client->request('GET', '/admin/integration/b2b', ['run_id' => $runId]);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="provider-host"]', 'b2b.efeotoyedekparca.com.tr');
@@ -167,7 +167,7 @@ final class B2bControllerTest extends WebTestCase
         $runId = $run->id();
         self::assertNotNull($runId);
 
-        $this->client->request('GET', '/yeni/admin/integration/b2b', ['run_id' => $runId]);
+        $this->client->request('GET', '/admin/integration/b2b', ['run_id' => $runId]);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="selected-run-error"]', 'Product image transport timed out.');
@@ -175,7 +175,7 @@ final class B2bControllerTest extends WebTestCase
 
     private function csrfToken(): string
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/integration/b2b');
+        $crawler = $this->client->request('GET', '/admin/integration/b2b');
         self::assertResponseIsSuccessful();
         $token = $crawler->filter('form[data-testid="b2b-full-form"] input[name="_token"]')->attr('value');
         self::assertIsString($token);
@@ -195,7 +195,7 @@ final class B2bControllerTest extends WebTestCase
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $em->persist($run);
         $em->flush();
-        $this->client->request('GET', '/yeni/admin/integration/b2b', ['run_id' => $run->id()]);
+        $this->client->request('GET', '/admin/integration/b2b', ['run_id' => $run->id()]);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.run-state', 'Tamamlandı (hatalı kayıtlar var)');
         self::assertSelectorTextContains('[data-testid="run-result"]', '1 kayıt uygulandı; 1 kayıt atlandı/hata verdi');

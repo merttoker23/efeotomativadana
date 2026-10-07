@@ -70,16 +70,16 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $this->entityManager->flush();
 
         $pages = [
-            '/yeni/' => 'https://localhost/yeni/',
-            '/yeni/katalog' => 'https://localhost/yeni/katalog',
-            '/yeni/kategori/frenler' => 'https://localhost/yeni/kategori/frenler',
-            '/yeni/markalar' => 'https://localhost/yeni/markalar',
-            '/yeni/marka/bosch' => 'https://localhost/yeni/marka/bosch',
-            '/yeni/urun/yag-filtresi' => 'https://localhost/yeni/urun/yag-filtresi',
-            '/yeni/blog' => 'https://localhost/yeni/blog',
-            '/yeni/blog/yag-degisimi' => 'https://localhost/yeni/blog/yag-degisimi',
-            '/yeni/bilgi' => 'https://localhost/yeni/bilgi',
-            '/yeni/bilgi/kargo-politikasi' => 'https://localhost/yeni/bilgi/kargo-politikasi',
+            '/' => 'https://localhost/',
+            '/katalog' => 'https://localhost/katalog',
+            '/kategori/frenler' => 'https://localhost/kategori/frenler',
+            '/markalar' => 'https://localhost/markalar',
+            '/marka/bosch' => 'https://localhost/marka/bosch',
+            '/urun/yag-filtresi' => 'https://localhost/urun/yag-filtresi',
+            '/blog' => 'https://localhost/blog',
+            '/blog/yag-degisimi' => 'https://localhost/blog/yag-degisimi',
+            '/bilgi' => 'https://localhost/bilgi',
+            '/bilgi/kargo-politikasi' => 'https://localhost/bilgi/kargo-politikasi',
         ];
 
         foreach ($pages as $uri => $canonical) {
@@ -97,7 +97,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
 
     public function testAPublicPageCarriesNoRobotsDirective(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/');
+        $crawler = $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('head meta[name="robots"]'));
@@ -107,7 +107,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
     {
         $product = $this->publishedProduct('SEO-R-2', 'Yag Filtresi', 'yag-filtresi-2', 129_900, 6);
 
-        $crawler = $this->client->request('GET', '/yeni/urun/yag-filtresi-2');
+        $crawler = $this->client->request('GET', '/urun/yag-filtresi-2');
 
         self::assertResponseIsSuccessful();
         $offer = $this->productGraph($crawler)['offers'];
@@ -125,7 +125,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
             ['2020-01-01 00:00:00', '2099-01-01 00:00:00', $product->id()],
         );
 
-        $crawler = $this->client->request('GET', '/yeni/urun/indirimli-filtre');
+        $crawler = $this->client->request('GET', '/urun/indirimli-filtre');
 
         self::assertResponseIsSuccessful();
         self::assertSame('750.00', $this->productGraph($crawler)['offers']['price']);
@@ -135,7 +135,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
     {
         $this->publishedProduct('SEO-R-4', 'Tukenen Filtre', 'tukenen-filtre', 5_000, 0);
 
-        $crawler = $this->client->request('GET', '/yeni/urun/tukenen-filtre');
+        $crawler = $this->client->request('GET', '/urun/tukenen-filtre');
 
         self::assertResponseIsSuccessful();
         self::assertSame('https://schema.org/OutOfStock', $this->productGraph($crawler)['offers']['availability']);
@@ -145,7 +145,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
     {
         $product = $this->publishedProduct('SEO-R-5', 'Fiyatsiz Parca', 'fiyatsiz-parca', null, 2);
 
-        $crawler = $this->client->request('GET', '/yeni/urun/fiyatsiz-parca');
+        $crawler = $this->client->request('GET', '/urun/fiyatsiz-parca');
 
         self::assertResponseIsSuccessful();
         self::assertArrayNotHasKey('offers', $this->productGraph($crawler));
@@ -156,20 +156,20 @@ final class SeoMetadataRenderingTest extends WebTestCase
     {
         $this->publishedProduct('SEO-R-6', 'MANN Filtre', 'mann-filtre', 4_250, 1);
 
-        $crawler = $this->client->request('GET', '/yeni/urun/mann-filtre');
+        $crawler = $this->client->request('GET', '/urun/mann-filtre');
 
         self::assertResponseIsSuccessful();
         $graph = $this->productGraph($crawler);
         self::assertSame('MANN Filtre', $graph['name']);
         self::assertSame('SEO-R-6', $graph['sku']);
-        self::assertSame('https://localhost/yeni/urun/mann-filtre', $graph['url']);
+        self::assertSame('https://localhost/urun/mann-filtre', $graph['url']);
     }
 
     public function testOrganizationAndBreadcrumbGraphsArePresentOnAProductPage(): void
     {
         $product = $this->publishedProduct('SEO-R-7', 'Kırıntı Filtresi', 'kirinti-filtresi', 9_900, 2);
 
-        $crawler = $this->client->request('GET', '/yeni/urun/kirinti-filtresi');
+        $crawler = $this->client->request('GET', '/urun/kirinti-filtresi');
 
         self::assertResponseIsSuccessful();
         $types = array_column($this->jsonLd($crawler), '@type');
@@ -178,12 +178,12 @@ final class SeoMetadataRenderingTest extends WebTestCase
 
         $trail = $this->graphOfType($crawler, 'BreadcrumbList');
         self::assertSame([1, 2, 3], array_column($trail['itemListElement'], 'position'));
-        self::assertSame('https://localhost/yeni/', $trail['itemListElement'][0]['item']);
+        self::assertSame('https://localhost/', $trail['itemListElement'][0]['item']);
     }
 
     public function testTheHomePageCarriesNoBreadcrumbListBecauseItIsTheStartOfTheTrail(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/');
+        $crawler = $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
         self::assertNotContains('BreadcrumbList', array_column($this->jsonLd($crawler), '@type'));
@@ -196,10 +196,10 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $this->entityManager->persist($post);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/blog/yag-degisimi-2');
+        $crawler = $this->client->request('GET', '/blog/yag-degisimi-2');
 
         self::assertResponseIsSuccessful();
-        self::assertSame('https://localhost/yeni/blog/yag-degisimi-2', $crawler->filter('link[rel="canonical"]')->attr('href'));
+        self::assertSame('https://localhost/blog/yag-degisimi-2', $crawler->filter('link[rel="canonical"]')->attr('href'));
         self::assertSame('Yag Degisimi | Efe Otomotiv Adana', $crawler->filter('head title')->text());
     }
 
@@ -214,7 +214,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $this->publishedProduct('SEO-R-10', 'Balata', 'balata-kirinti', 4_400, 2, $category);
         $this->entityManager->flush();
 
-        foreach (['/yeni/kategori/frenler-kirinti' => 'Frenler', '/yeni/urun/balata-kirinti' => 'Balata'] as $uri => $expectedLast) {
+        foreach (['/kategori/frenler-kirinti' => 'Frenler', '/urun/balata-kirinti' => 'Balata'] as $uri => $expectedLast) {
             $crawler = $this->client->request('GET', $uri);
             self::assertResponseIsSuccessful($uri);
 
@@ -236,7 +236,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $this->entityManager->persist($page);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi/kargo-politikasi-2');
+        $crawler = $this->client->request('GET', '/bilgi/kargo-politikasi-2');
 
         self::assertResponseIsSuccessful();
         self::assertSame(
@@ -258,7 +258,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $this->entityManager->flush();
         $this->client->loginUser($customer);
 
-        foreach (['/yeni/hesabim', '/yeni/hesabim/siparisler', '/yeni/odeme', '/yeni/sepet'] as $uri) {
+        foreach (['/hesabim', '/hesabim/siparisler', '/odeme', '/sepet'] as $uri) {
             $this->client->request('GET', $uri);
             self::assertResponseIsSuccessful($uri);
             self::assertResponseHeaderSame('x-robots-tag', 'noindex, follow', $uri);
@@ -267,7 +267,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
 
     public function testTheAdminAreaIsNoindexToo(): void
     {
-        $this->client->request('GET', '/yeni/admin/login');
+        $this->client->request('GET', '/admin/login');
 
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('x-robots-tag', 'noindex, follow');
@@ -285,7 +285,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
     public function testNoPublicPageIsMarkedNoindexFollowByThisStoresPolicy(): void
     {
         $marked = [];
-        foreach (['/yeni/', '/yeni/katalog', '/yeni/markalar', '/yeni/blog', '/yeni/bilgi', '/robots.txt'] as $uri) {
+        foreach (['/', '/katalog', '/markalar', '/blog', '/bilgi', '/robots.txt'] as $uri) {
             $this->client->request('GET', $uri);
             self::assertResponseIsSuccessful($uri);
             if ('noindex, follow' === $this->client->getResponse()->headers->get('X-Robots-Tag')) {
@@ -301,7 +301,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $this->client->request('GET', '/sitemap.xml');
         self::assertResponseHeaderSame('x-robots-tag', 'noindex, follow');
 
-        $this->client->request('GET', '/yeni/');
+        $this->client->request('GET', '/');
         self::assertNotSame('noindex, follow', $this->client->getResponse()->headers->get('X-Robots-Tag'));
     }
 
@@ -311,7 +311,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $category = $this->publishedCategory('Filtre', 'filtre');
         $this->entityManager->flush();
 
-        foreach (['/yeni/', '/yeni/urun/b2b-urun-2', '/yeni/kategori/filtre', '/yeni/katalog'] as $uri) {
+        foreach (['/', '/urun/b2b-urun-2', '/kategori/filtre', '/katalog'] as $uri) {
             $this->client->request('GET', $uri);
             self::assertResponseIsSuccessful($uri);
             $html = (string) $this->client->getResponse()->getContent();
@@ -322,14 +322,14 @@ final class SeoMetadataRenderingTest extends WebTestCase
 
     public function testTheCanonicalIsNeverTakenFromTheRequestHost(): void
     {
-        $this->client->request('GET', '/yeni/', server: ['HTTP_HOST' => 'attacker.example']);
+        $this->client->request('GET', '/', server: ['HTTP_HOST' => 'attacker.example']);
 
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString(
             'attacker.example',
             (string) $this->client->getResponse()->getContent(),
         );
-        self::assertSame('https://localhost/yeni/', $this->client->getCrawler()->filter('link[rel="canonical"]')->attr('href'));
+        self::assertSame('https://localhost/', $this->client->getCrawler()->filter('link[rel="canonical"]')->attr('href'));
     }
 
     public function testTheStructuredDataCannotBeBrokenOutOfByAProductName(): void
@@ -337,7 +337,7 @@ final class SeoMetadataRenderingTest extends WebTestCase
         $hostile = '</script><script>alert(1)</script>';
         $this->publishedProduct('SEO-R-9', $hostile, 'kirli-ad-2', 3_300, 1);
 
-        $crawler = $this->client->request('GET', '/yeni/urun/kirli-ad-2');
+        $crawler = $this->client->request('GET', '/urun/kirli-ad-2');
 
         self::assertResponseIsSuccessful();
         $html = (string) $this->client->getResponse()->getContent();

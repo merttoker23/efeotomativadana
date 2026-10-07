@@ -54,14 +54,14 @@ final class CustomerOrderOperationsTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/customers?q=%40example.com');
+        $crawler = $this->client->request('GET', '/admin/customers?q=%40example.com');
         self::assertResponseIsSuccessful();
         self::assertCount(20, $crawler->filter('[data-testid="customer-row"]'));
         self::assertSelectorExists('a[rel="next"]');
 
         $customer = $this->entityManager->getRepository(CustomerUser::class)->findOneBy(['email' => 'customer01@example.com']);
         self::assertInstanceOf(CustomerUser::class, $customer);
-        $this->client->request('GET', '/yeni/admin/customers/'.$customer->id());
+        $this->client->request('GET', '/admin/customers/'.$customer->id());
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'Workshop');
         self::assertStringNotContainsString('hash-secret-01', (string) $this->client->getResponse()->getContent());
@@ -72,7 +72,7 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $customer = $this->customer('status@example.com', 'unchanged-password-hash');
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id());
+        $crawler = $this->client->request('GET', '/admin/customers/'.$customer->id());
         $this->client->submit($crawler->selectButton('Müşteriyi pasifleştir')->form());
 
         self::assertResponseRedirects();
@@ -87,8 +87,8 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $customer = $this->customer('stale-status@example.com', 'unchanged-password-hash');
         $this->entityManager->flush();
 
-        $firstForm = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id())->selectButton('Müşteriyi pasifleştir')->form();
-        $secondForm = $this->client->request('GET', '/yeni/admin/customers/'.$customer->id())->selectButton('Müşteriyi pasifleştir')->form();
+        $firstForm = $this->client->request('GET', '/admin/customers/'.$customer->id())->selectButton('Müşteriyi pasifleştir')->form();
+        $secondForm = $this->client->request('GET', '/admin/customers/'.$customer->id())->selectButton('Müşteriyi pasifleştir')->form();
         $this->client->submit($firstForm);
         self::assertResponseRedirects();
         $this->client->submit($secondForm);
@@ -102,14 +102,14 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $customer = $this->customer('session-status@example.com', 'unchanged-password-hash');
         $this->entityManager->flush();
         $this->client->loginUser($customer, 'main');
-        $this->client->request('GET', '/yeni/hesabim');
+        $this->client->request('GET', '/hesabim');
         self::assertResponseIsSuccessful();
 
         $this->connection->executeStatement('UPDATE customer_user SET active = 0 WHERE id = ?', [$customer->id()]);
         $this->entityManager->clear();
-        $this->client->request('GET', '/yeni/hesabim');
+        $this->client->request('GET', '/hesabim');
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
     }
 
     public function testValidOrderTransitionIsPersistedWithActorReasonAndVersion(): void
@@ -118,7 +118,7 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $this->entityManager->flush();
         $orderId = $order->id();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/orders/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/admin/orders/'.$order->orderNumber());
         $form = $crawler->selectButton('Sipariş durumunu güncelle')->form([
             'order_transition[nextState]' => OrderState::Confirmed->value,
             'order_transition[reason]' => 'Payment checked manually.',
@@ -142,9 +142,9 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $orderId = $order->id();
         $orderVersion = $order->version();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/orders/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/admin/orders/'.$order->orderNumber());
         $token = (string) $crawler->filter('input[name="order_transition[_token]"]')->attr('value');
-        $this->client->request('POST', '/yeni/admin/orders/'.$order->orderNumber().'/status', [
+        $this->client->request('POST', '/admin/orders/'.$order->orderNumber().'/status', [
             'order_transition' => [
                 'nextState' => OrderState::Completed->value,
                 'reason' => 'Skipping confirmation must fail.',
@@ -157,9 +157,9 @@ final class CustomerOrderOperationsTest extends WebTestCase
         self::assertSame('placed', $this->connection->fetchOne('SELECT state FROM commerce_customer_order WHERE id = ?', [$orderId]));
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_order_status_change WHERE order_id = ?', [$orderId]));
 
-        $crawler = $this->client->request('GET', '/yeni/admin/orders/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/admin/orders/'.$order->orderNumber());
         $token = (string) $crawler->filter('input[name="order_transition[_token]"]')->attr('value');
-        $this->client->request('POST', '/yeni/admin/orders/'.$order->orderNumber().'/status', [
+        $this->client->request('POST', '/admin/orders/'.$order->orderNumber().'/status', [
             'order_transition' => [
                 'nextState' => OrderState::Confirmed->value,
                 'reason' => 'Stale browser tab.',
@@ -176,7 +176,7 @@ final class CustomerOrderOperationsTest extends WebTestCase
         $order = $this->order('EOA-20260921-AAAABBBB0003');
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/admin/orders/'.$order->orderNumber());
+        $this->client->request('GET', '/admin/orders/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'Teslimat adresi');
@@ -209,7 +209,7 @@ final class CustomerOrderOperationsTest extends WebTestCase
             'changed_at' => $changedAt,
         ]);
 
-        $crawler = $this->client->request('GET', '/yeni/admin/orders/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/admin/orders/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Second transition.', $crawler->filter('article.subpanel')->eq(2)->text());

@@ -48,16 +48,16 @@ final class SeoOverrideTest extends WebTestCase
 
     public function testAnonymousUsersCannotReachTheSeoOverrideScreen(): void
     {
-        $this->client->request('GET', '/yeni/admin/catalog/products/1/seo');
+        $this->client->request('GET', '/admin/catalog/products/1/seo');
 
-        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertResponseRedirects('/admin/login');
     }
 
     public function testACustomerCannotReachTheSeoOverrideScreen(): void
     {
         $this->client->loginUser(new \Symfony\Component\Security\Core\User\InMemoryUser('viewer@example.com', 'test-only-not-used-for-form-login', ['ROLE_USER']), 'admin');
 
-        $this->client->request('GET', '/yeni/admin/catalog/products/1/seo');
+        $this->client->request('GET', '/admin/catalog/products/1/seo');
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -67,7 +67,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->loginAdmin();
         $product = $this->product('SEO-A-1', 'Yag Filtresi', 'yag-filtresi-a');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/seo');
         self::assertResponseIsSuccessful();
         $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = 'MANN HWK 11/2 Yag Filtresi';
@@ -86,7 +86,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->loginAdmin();
         $product = $this->product('SEO-A-2', 'Yag Filtresi', 'yag-filtresi-b');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/seo');
         $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = 'MANN HWK 11/2';
         $form['admin_seo[metaDescription]'] = 'Adana deposundan ayni gun kargoya verilir.';
@@ -94,7 +94,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->client->submit($form);
         self::assertResponseRedirects();
 
-        $this->client->request('GET', '/yeni/urun/yag-filtresi-b');
+        $this->client->request('GET', '/urun/yag-filtresi-b');
 
         self::assertResponseIsSuccessful();
         self::assertSame('MANN HWK 11/2', $this->client->getCrawler()->filter('head title')->text());
@@ -113,7 +113,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->loginAdmin();
         $product = $this->product('SEO-A-3', 'Fren Diski', 'fren-diski-a');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/seo');
 
         self::assertResponseIsSuccessful();
         $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
@@ -126,7 +126,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->loginAdmin();
         $product = $this->product('SEO-A-4', 'Balata', 'balata-a');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/seo');
         $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = '   ';
         $form['admin_seo[metaDescription]'] = '';
@@ -146,7 +146,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->loginAdmin();
         $product = $this->product('SEO-A-5', 'Rakam', 'rakam-a');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/seo');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/seo');
         $form = $crawler->selectButton('SEO ayarlarını kaydet')->form();
         $form['admin_seo[metaTitle]'] = str_repeat('a', 256);
         $this->client->submit($form);
@@ -171,10 +171,10 @@ final class SeoOverrideTest extends WebTestCase
         $this->entityManager->flush();
 
         foreach ([
-            '/yeni/admin/catalog/categories/'.$category->id().'/seo',
-            '/yeni/admin/catalog/brands/'.$brand->id().'/seo',
-            '/yeni/admin/cms/blog/'.$post->id().'/seo',
-            '/yeni/admin/cms/pages/'.$page->id().'/seo',
+            '/admin/catalog/categories/'.$category->id().'/seo',
+            '/admin/catalog/brands/'.$brand->id().'/seo',
+            '/admin/cms/blog/'.$post->id().'/seo',
+            '/admin/cms/pages/'.$page->id().'/seo',
         ] as $uri) {
             $this->client->request('GET', $uri);
             self::assertResponseIsSuccessful($uri);
@@ -185,7 +185,7 @@ final class SeoOverrideTest extends WebTestCase
     {
         $this->loginAdmin();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('input[name="store_settings[seoIndexingEnabled]"]');
@@ -195,7 +195,7 @@ final class SeoOverrideTest extends WebTestCase
     public function testTurningIndexingOffInSettingsClosesEveryPublicPage(): void
     {
         $this->loginAdmin();
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $indexing = $form['store_settings[seoIndexingEnabled]'];
         // A checkbox has to be unticked rather than assigned a value: assigning a non-string
@@ -206,7 +206,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->client->submit($form);
         self::assertResponseRedirects();
 
-        $this->client->request('GET', '/yeni/');
+        $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
         self::assertSame(
@@ -237,7 +237,7 @@ final class SeoOverrideTest extends WebTestCase
         $this->entityManager->persist($post);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/cms/blog/'.$post->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/cms/blog/'.$post->id().'/edit');
         self::assertResponseIsSuccessful();
         self::assertNull($crawler->filter('#slug')->attr('readonly'), 'A published slug must still be editable.');
 
@@ -250,10 +250,10 @@ final class SeoOverrideTest extends WebTestCase
             $this->connection->fetchOne('SELECT slug FROM cms_blog_post WHERE id = ?', [$post->id()]),
         );
 
-        $this->client->request('GET', '/yeni/blog/eski-yazi-redirect');
+        $this->client->request('GET', '/blog/eski-yazi-redirect');
 
         self::assertResponseStatusCodeSame(301);
-        self::assertResponseRedirects('https://localhost/yeni/blog/yeni-yazi-redirect');
+        self::assertResponseRedirects('https://localhost/blog/yeni-yazi-redirect');
     }
 
     private function product(string $sku, string $name, string $slug): Product

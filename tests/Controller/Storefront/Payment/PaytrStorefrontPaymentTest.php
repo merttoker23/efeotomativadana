@@ -31,7 +31,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class PaytrStorefrontPaymentTest extends WebTestCase
 {
     use ResetsRateLimits;
-    private const string NOTIFICATION_PATH = '/yeni/odeme/paytr/bildirim';
+    private const string NOTIFICATION_PATH = '/odeme/paytr/bildirim';
 
     private KernelBrowser $client;
     private Connection $connection;
@@ -175,10 +175,10 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
 
         // PayTR sends no signed result to merchant_ok_url. The browser visit may happen before
         // its server notification, so it must be informational and cannot settle this order.
-        $this->client->request('GET', '/yeni/odeme/sonuc/'.$token);
+        $this->client->request('GET', '/odeme/sonuc/'.$token);
 
         self::assertSame(302, $this->client->getResponse()->getStatusCode());
-        self::assertSame('/yeni/odeme/'.$order->orderNumber(), $this->client->getResponse()->headers->get('Location'));
+        self::assertSame('/odeme/'.$order->orderNumber(), $this->client->getResponse()->headers->get('Location'));
         self::assertSame(PaymentState::RequiresAction, $this->paymentFor($order)->state());
 
         $this->client->followRedirect();
@@ -258,12 +258,12 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $order = $this->orderWithPaytrAttempt();
         $this->client->loginUser($order->customer());
         $token = $this->paymentFor($order)->latestAttempt()?->returnToken();
-        $this->client->request('POST', '/yeni/odeme/iptal/'.$token);
+        $this->client->request('POST', '/odeme/iptal/'.$token);
         self::assertResponseStatusCodeSame(403);
         self::assertSame(PaymentState::RequiresAction, $this->paymentFor($order)->state());
-        $crawler = $this->client->request('GET', '/yeni/odeme/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/odeme/'.$order->orderNumber());
         $csrf = $crawler->filter('input[name="payment_cancel[_token]"]')->attr('value');
-        $this->client->request('POST', '/yeni/odeme/iptal/'.$token, ['payment_cancel' => ['_token' => $csrf]]);
+        $this->client->request('POST', '/odeme/iptal/'.$token, ['payment_cancel' => ['_token' => $csrf]]);
         self::assertResponseRedirects();
         [$payment, $reloaded] = $this->reload($order);
         self::assertSame(PaymentState::Cancelled, $payment->state());
@@ -291,10 +291,10 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         self::assertSelectorExists('details.account-menu > summary');
         self::assertSelectorNotExists('.account-menu-panel[hidden]');
         self::assertSelectorExists('details.script-free-mobile-menu > summary');
-        self::assertSelectorExists('details.script-free-mobile-menu nav a[href="/yeni/hesabim"]');
+        self::assertSelectorExists('details.script-free-mobile-menu nav a[href="/hesabim"]');
         self::assertSelectorNotExists('.notice-close');
         self::assertSelectorTextContains('main h1', 'Güvenli Ödeme');
-        self::assertSelectorExists(sprintf('a.payment-back-link[href="/yeni/odeme/%s"]', $order->orderNumber()));
+        self::assertSelectorExists(sprintf('a.payment-back-link[href="/odeme/%s"]', $order->orderNumber()));
         self::assertSelectorExists('.payment-card-expiry input[autocomplete="cc-exp-month"][inputmode="numeric"][maxlength="2"][pattern="[0-9]{1,2}"]');
         self::assertSelectorExists('.payment-card-expiry input[autocomplete="cc-exp-year"][inputmode="numeric"][maxlength="4"][pattern="[0-9]{2,4}"]');
         self::assertSelectorExists('.payment-card-expiry input[autocomplete="cc-csc"][inputmode="numeric"][maxlength="4"][pattern="[0-9]{3,4}"]');
@@ -320,11 +320,11 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $this->entityManager->flush();
         $this->selectPaytrProvider();
         $this->client->loginUser($customer);
-        $this->client->request('GET', '/yeni/sepet');
+        $this->client->request('GET', '/sepet');
         self::assertResponseIsSuccessful();
-        $crawler = $this->client->request('GET', '/yeni/odeme');
+        $crawler = $this->client->request('GET', '/odeme');
         self::assertSelectorExists('input[value="gateway_checkout"]');
-        $crawler = $this->client->request('POST', '/yeni/odeme', [
+        $crawler = $this->client->request('POST', '/odeme', [
             '_token' => $crawler->filter('input[name="_token"]')->attr('value'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -361,7 +361,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $order = $this->orderWithPaytrAttempt();
         $this->client->loginUser($order->customer());
         $token = $this->paymentFor($order)->latestAttempt()?->returnToken();
-        $this->client->request('POST', '/yeni/odeme/sonuc/'.$token, [], [], [], $this->notificationBody($order));
+        $this->client->request('POST', '/odeme/sonuc/'.$token, [], [], [], $this->notificationBody($order));
         self::assertSame(PaymentState::RequiresAction, $this->paymentFor($order)->state());
         $this->client->followRedirect();
         self::assertStringNotContainsString('Ödeme doğrulanamadı', (string) $this->client->getResponse()->getContent());
@@ -373,7 +373,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $order = $this->orderWithPaytrAttempt();
         $this->client->loginUser($order->customer());
         $token = $this->paymentFor($order)->latestAttempt()?->returnToken();
-        $this->client->request('POST', '/yeni/odeme/sonuc/'.$token);
+        $this->client->request('POST', '/odeme/sonuc/'.$token);
         $this->client->followRedirect();
         self::assertStringNotContainsString('Ödeme doğrulanamadı', (string) $this->client->getResponse()->getContent());
         self::assertSame(PaymentState::RequiresAction, $this->paymentFor($order)->state());
@@ -402,7 +402,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $tester = new \Symfony\Component\Console\Tester\CommandTester($application->find('app:paytr:check'));
         self::assertSame(0, $tester->execute([]));
         self::assertStringContainsString('SANDBOX', $tester->getDisplay());
-        self::assertStringContainsString('https://localhost/yeni/odeme/paytr/bildirim', $tester->getDisplay());
+        self::assertStringContainsString('https://localhost/odeme/paytr/bildirim', $tester->getDisplay());
         self::assertStringNotContainsString($this->merchantKey(), $tester->getDisplay());
         self::assertStringNotContainsString($this->merchantSalt(), $tester->getDisplay());
     }
@@ -475,7 +475,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
     {
         $order = $this->orderWithPaytrAttempt();
 
-        $this->client->request('POST', sprintf('/yeni/odeme/%s/odeme-formu', $order->orderNumber()), ['_token' => 'x']);
+        $this->client->request('POST', sprintf('/odeme/%s/odeme-formu', $order->orderNumber()), ['_token' => 'x']);
 
         self::assertContains($this->client->getResponse()->getStatusCode(), [302, 401, 403]);
     }
@@ -485,9 +485,9 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $order = $this->orderWithPaytrAttempt();
         $this->client->loginUser($order->customer());
         $this->selectPaytrProvider();
-        $crawler = $this->client->request('GET', '/yeni/odeme/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/odeme/'.$order->orderNumber());
         $token = $crawler->filter('form[action$="/yeniden-dene"] input[name="_token"]')->attr('value');
-        $this->client->request('POST', '/yeni/odeme/'.$order->orderNumber().'/yeniden-dene', ['_token' => $token]);
+        $this->client->request('POST', '/odeme/'.$order->orderNumber().'/yeniden-dene', ['_token' => $token]);
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('form[action="https://www.paytr.com/odeme"] input[name="paytr_token"]');
         self::assertSelectorNotExists('script');
@@ -498,7 +498,7 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
         $order = $this->orderWithPaytrAttempt();
         $this->client->loginUser($order->customer());
 
-        $this->client->request('GET', sprintf('/yeni/odeme/%s/odeme-formu', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/odeme/%s/odeme-formu', $order->orderNumber()));
 
         self::assertSame(405, $this->client->getResponse()->getStatusCode());
     }
@@ -514,19 +514,19 @@ final class PaytrStorefrontPaymentTest extends WebTestCase
 
         // A valid session for the wrong customer, which must be indistinguishable from an
         // order that does not exist.
-        $this->client->request('POST', sprintf('/yeni/odeme/%s/odeme-formu', $order->orderNumber()), ['_token' => 'x']);
+        $this->client->request('POST', sprintf('/odeme/%s/odeme-formu', $order->orderNumber()), ['_token' => 'x']);
 
         self::assertSame(404, $this->client->getResponse()->getStatusCode());
     }
 
     private function submitFormPage(CustomerOrder $order): void
     {
-        $this->client->request('GET', sprintf('/yeni/odeme/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/odeme/%s', $order->orderNumber()));
         $field = $this->client->getCrawler()->filter('input[name="_token"]')->first();
         self::assertGreaterThan(0, $field->count(), 'The order page rendered no CSRF field.');
         $token = (string) $field->attr('value');
 
-        $this->client->request('POST', sprintf('/yeni/odeme/%s/odeme-formu', $order->orderNumber()), [
+        $this->client->request('POST', sprintf('/odeme/%s/odeme-formu', $order->orderNumber()), [
             '_token' => $token,
         ]);
     }

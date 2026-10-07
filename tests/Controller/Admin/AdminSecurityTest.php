@@ -37,16 +37,16 @@ final class AdminSecurityTest extends WebTestCase
 
     public function testAnonymousAdministratorRequestRedirectsToLogin(): void
     {
-        $this->client->request('GET', '/yeni/admin');
+        $this->client->request('GET', '/admin');
 
-        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertResponseRedirects('/admin/login');
     }
 
     public function testAdministratorCanAuthenticateWithTheLoginForm(): void
     {
         $this->createAdministrator('admin@example.com', 'VeryStrong!123');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/login');
+        $crawler = $this->client->request('GET', '/admin/login');
         self::assertSelectorNotExists('#username[autofocus]');
         $form = $crawler->selectButton('Giriş yap')->form([
             '_username' => 'ADMIN@example.com',
@@ -54,13 +54,13 @@ final class AdminSecurityTest extends WebTestCase
         ]);
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/yeni/admin');
+        self::assertResponseRedirects('/admin');
 
         $this->client->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Genel bakış');
         self::assertSelectorExists('html[lang="tr"]');
-        self::assertSelectorExists('.admin-sidebar a[aria-current="page"][href="/yeni/admin"]');
+        self::assertSelectorExists('.admin-sidebar a[aria-current="page"][href="/admin"]');
         self::assertSelectorExists('[data-testid="dashboard-products"]');
         self::assertSelectorExists('[data-admin-shell-target="toggle"][aria-expanded="false"]');
     }
@@ -73,7 +73,7 @@ final class AdminSecurityTest extends WebTestCase
             ['ROLE_USER'],
         ), 'admin');
 
-        $this->client->request('GET', '/yeni/admin');
+        $this->client->request('GET', '/admin');
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -83,17 +83,17 @@ final class AdminSecurityTest extends WebTestCase
         $administrator = $this->createAdministrator('admin@example.com', 'VeryStrong!123');
         $this->client->loginUser($administrator, 'admin');
 
-        $this->client->request('GET', '/yeni/admin/logout');
+        $this->client->request('GET', '/admin/logout');
         self::assertResponseStatusCodeSame(405);
 
-        $crawler = $this->client->request('GET', '/yeni/admin');
+        $crawler = $this->client->request('GET', '/admin');
         $form = $crawler->selectButton('Çıkış yap')->form();
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/yeni/admin/login');
+        self::assertResponseRedirects('/admin/login');
 
-        $this->client->request('GET', '/yeni/admin');
-        self::assertResponseRedirects('/yeni/admin/login');
+        $this->client->request('GET', '/admin');
+        self::assertResponseRedirects('/admin/login');
     }
 
     private function createAdministrator(string $email, string $plainPassword): AdminUser

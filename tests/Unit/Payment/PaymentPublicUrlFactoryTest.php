@@ -26,10 +26,10 @@ final class PaymentPublicUrlFactoryTest extends TestCase
 
     public function testABasePathIsPreserved(): void
     {
-        $factory = new PaymentPublicUrlFactory($this->router(), 'https://www.efeotomotivadana.com.tr/yeni/');
+        $factory = new PaymentPublicUrlFactory($this->router(), 'https://www.efeotomotivadana.com.tr/');
 
         self::assertSame(
-            'https://www.efeotomotivadana.com.tr/yeni/odeme/sonuc/abc',
+            'https://www.efeotomotivadana.com.tr/odeme/sonuc/abc',
             $factory->absolute('storefront_payment_callback', ['token' => 'abc']),
         );
     }
@@ -44,7 +44,7 @@ final class PaymentPublicUrlFactoryTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('DEFAULT_URI must be an absolute URL');
 
-        new PaymentPublicUrlFactory($this->router(), '/yeni');
+        new PaymentPublicUrlFactory($this->router(), '/');
     }
 
     public function testAPlainHttpBaseIsRejectedBecauseAProviderWouldSendTheTokenBackInClear(): void

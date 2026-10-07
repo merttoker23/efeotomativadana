@@ -268,7 +268,7 @@ final class ProductTabsSourcesTest extends WebTestCase
         $this->manager->persist($grid);
         $split = new HomeSection(HomeSectionType::SplitBuilder, 'Stock split', [
             'label' => 'Stock', 'headline' => 'Stock', 'description' => 'Stock',
-            'cta' => 'Products', 'link' => '/yeni/katalog', 'slugs' => $manual,
+            'cta' => 'Products', 'link' => '/katalog', 'slugs' => $manual,
         ]);
         $split->setEnabled(true);
         $this->manager->persist($split);
@@ -283,7 +283,7 @@ final class ProductTabsSourcesTest extends WebTestCase
             self::assertSame(['stock-tab-2', 'stock-tab-0', 'stock-tab-3', 'stock-tab-1'], $this->slugs($panels[$index]));
         }
         self::assertSame($manual, $this->slugs($panels[3]));
-        self::assertSame(array_map(static fn (string $slug): string => '/yeni/urun/'.$slug, $manual), $crawler->filter('.top-sellers a.seller')->extract(['href']));
+        self::assertSame(array_map(static fn (string $slug): string => '/urun/'.$slug, $manual), $crawler->filter('.top-sellers a.seller')->extract(['href']));
         foreach (['Stock grid', 'Stock split'] as $title) {
             self::assertSame($manual, $this->slugs($crawler->filter('section[aria-label="'.$title.'"]')));
         }
@@ -334,7 +334,7 @@ final class ProductTabsSourcesTest extends WebTestCase
         $debugData->reset();
         $this->client->enableProfiler();
 
-        $this->client->request('GET', '/yeni/');
+        $this->client->request('GET', '/');
 
         self::assertResponseIsSuccessful();
         $profile = $this->client->getProfile();
@@ -347,7 +347,7 @@ final class ProductTabsSourcesTest extends WebTestCase
 
     private function home(): Crawler
     {
-        $crawler = $this->client->request('GET', '/yeni/');
+        $crawler = $this->client->request('GET', '/');
         self::assertResponseIsSuccessful();
 
         return $crawler;

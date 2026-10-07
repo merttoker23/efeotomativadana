@@ -1,7 +1,7 @@
 <?php
 
 require dirname(__DIR__, 3).'/vendor/autoload.php';
-$request = Symfony\Component\HttpFoundation\Request::create('http://localhost'.($argv[1] ?? '/yeni/katalog'));
+$request = Symfony\Component\HttpFoundation\Request::create('http://localhost'.($argv[1] ?? '/katalog'));
 $request->attributes->set('_route', 'storefront_catalog_index');
 $criteria = App\Module\Catalog\Query\CatalogCriteria::fromQuery($request->query);
 $twig = new Twig\Environment(new Twig\Loader\FilesystemLoader(dirname(__DIR__, 3).'/templates'), ['autoescape' => 'html']);
@@ -9,9 +9,9 @@ $twig->addExtension(new App\Twig\StorefrontMoneyExtension());
 $twig->addFunction(new Twig\TwigFunction('path', static function (string $route, array $parameters): string {
     $fragment = $parameters['_fragment'] ?? null;
     unset($parameters['_fragment']);
-    $path = '/yeni/katalog';
+    $path = '/katalog';
     if (isset($parameters['slug'])) {
-        $path = '/yeni/'.(str_contains($route, 'brand') ? 'marka/' : 'kategori/').$parameters['slug'];
+        $path = '/'.(str_contains($route, 'brand') ? 'marka/' : 'kategori/').$parameters['slug'];
         unset($parameters['slug']);
     }
     return $path.($parameters ? '?'.http_build_query($parameters) : '').($fragment ? '#'.$fragment : '');

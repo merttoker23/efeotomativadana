@@ -65,7 +65,7 @@ final class FooterContentTest extends WebTestCase
         $this->informationPage('Mesafeli Satış Politikası', 'mesafeli-satis', published: true);
         $this->informationPage('Yayımlanmayan Taslak', 'taslak', published: false);
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
 
         self::assertResponseIsSuccessful();
         self::assertSame('Bilgi Sayfaları', $crawler->filter('#footer-info-title')->text());
@@ -79,9 +79,9 @@ final class FooterContentTest extends WebTestCase
     {
         $this->informationPage('Gizlilik Politikası', 'gizlilik-politikasi', published: true);
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
         $href = $crawler->filter(self::INFO_COLUMN.' a[href$="/bilgi/gizlilik-politikasi"]')->attr('href');
-        self::assertSame('/yeni/bilgi/gizlilik-politikasi', $href);
+        self::assertSame('/bilgi/gizlilik-politikasi', $href);
 
         $this->client->request('GET', (string) $href);
         self::assertResponseIsSuccessful();
@@ -92,10 +92,10 @@ final class FooterContentTest extends WebTestCase
     {
         $this->informationPage('Gizlilik Politikası', 'gizlilik-politikasi', published: true);
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
 
         self::assertSame(
-            ['/yeni/blog'],
+            ['/blog'],
             $crawler->filter(self::INFO_COLUMN.' a[href*="/blog"]')->each(static fn ($node) => (string) $node->attr('href')),
         );
         self::assertCount(2, $crawler->filter(self::INFO_COLUMN.' a'));
@@ -105,7 +105,7 @@ final class FooterContentTest extends WebTestCase
     {
         $this->storeSetting('store.contact_email', null);
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
 
         self::assertSelectorNotExists('.site-footer .footer-address');
         self::assertSelectorExists('.site-footer .footer-bottom .payments img');
@@ -118,7 +118,7 @@ final class FooterContentTest extends WebTestCase
         $this->storeSetting('store.district', 'Seyhan');
         $this->storeSetting('store.contact_email', 'iletisim@example.com');
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
 
         self::assertSelectorTextContains('.site-footer .footer-address', 'Türkiye / Adana');
         self::assertSelectorTextNotContains('.site-footer .footer-address', 'Seyhan');
@@ -137,7 +137,7 @@ final class FooterContentTest extends WebTestCase
         $this->storeSetting('store.city', 'Adaa');
         $this->storeSetting('store.district', 'Seyhan');
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
         self::assertSelectorNotExists('.site-footer .footer-address');
         self::assertStringNotContainsString('444', $crawler->filter('.site-footer')->text());
 
@@ -145,7 +145,7 @@ final class FooterContentTest extends WebTestCase
         $this->storeSetting('store.city', 'Adana');
         $this->storeSetting('store.district', 'Şehitkamil');
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
         self::assertSelectorTextContains('.site-footer .footer-address', '+90 322 123 45 67');
         self::assertStringNotContainsString('Şehitkamil', $crawler->filter('.site-footer')->text());
     }
@@ -154,7 +154,7 @@ final class FooterContentTest extends WebTestCase
     {
         $this->storeSetting('store.phone', '+90 532 123 45 67');
 
-        $crawler = $this->client->request('GET', '/yeni/bilgi');
+        $crawler = $this->client->request('GET', '/bilgi');
 
         self::assertSelectorTextContains('.site-footer .footer-address', '+90 532 123 45 67');
         self::assertCount(1, $crawler->filter('.site-footer .footer-address > *'));

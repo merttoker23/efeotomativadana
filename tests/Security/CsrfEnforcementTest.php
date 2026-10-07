@@ -61,7 +61,7 @@ final class CsrfEnforcementTest extends WebTestCase
         $customer = $this->customer('csrf@example.com');
         $this->client->loginUser($customer, 'main');
 
-        $this->client->request('POST', '/yeni/hesabim/profil', [
+        $this->client->request('POST', '/hesabim/profil', [
             'customer_profile' => ['firstName' => 'Yazilmis', 'lastName' => 'Değer', 'phone' => '05320000000'],
         ]);
 
@@ -78,11 +78,11 @@ final class CsrfEnforcementTest extends WebTestCase
         // A genuine token, from this session, for this page — but minted for the *password*
         // form, which is a different action on the same screen. This is the forgery that a
         // single "is there any valid token?" check would happily accept.
-        $crawler = $this->client->request('GET', '/yeni/hesabim/parola');
+        $crawler = $this->client->request('GET', '/hesabim/parola');
         $foreign = $crawler->filter('input[name="customer_password_change[_token]"]');
         self::assertGreaterThan(0, $foreign->count(), 'The password form must render its own token.');
 
-        $this->client->request('POST', '/yeni/hesabim/profil', [
+        $this->client->request('POST', '/hesabim/profil', [
             'customer_profile' => ['firstName' => 'Yazilmis', 'lastName' => 'Deger', 'phone' => '05320000000'],
             '_token' => (string) $foreign->attr('value'),
         ]);
@@ -95,7 +95,7 @@ final class CsrfEnforcementTest extends WebTestCase
         $customer = $this->customer('csrf-good@example.com');
         $this->client->loginUser($customer, 'main');
 
-        $crawler = $this->client->request('GET', '/yeni/hesabim/profil');
+        $crawler = $this->client->request('GET', '/hesabim/profil');
         self::assertResponseIsSuccessful();
         $this->client->submit($crawler->filter('form[name="customer_profile"]')->form([
             'customer_profile[firstName]' => 'Guncel',
@@ -118,7 +118,7 @@ final class CsrfEnforcementTest extends WebTestCase
         // Only the removal endpoint is exercised: `karsilastir/ekle/{id}` resolves the product
         // before the token is read, so a missing product answers 404 and would prove nothing
         // about CSRF. Removal addresses nothing but the session list, which is the point.
-        $this->client->request('POST', '/yeni/karsilastir/sil/1', ['_token' => '']);
+        $this->client->request('POST', '/karsilastir/sil/1', ['_token' => '']);
 
         self::assertResponseStatusCodeSame(403);
         self::assertSame(
@@ -135,7 +135,7 @@ final class CsrfEnforcementTest extends WebTestCase
      */
     public function testTheBasketIntentionsAreNotInterchangeable(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/sepet');
+        $crawler = $this->client->request('GET', '/sepet');
         self::assertResponseIsSuccessful();
 
         self::assertSame(0, $crawler->filter('form[action*="/karsilastir/"]')->count(), 'An empty cart must render no per-line forms; this test needs a seeded basket to be meaningful.');
@@ -152,7 +152,7 @@ final class CsrfEnforcementTest extends WebTestCase
         $this->client->loginUser($this->administrator('csrf-admin@example.com'), 'admin');
 
         $before = $this->connection->fetchOne('SELECT value FROM store_setting WHERE setting_key = ?', ['store.name']);
-        $this->client->request('POST', '/yeni/admin/settings', ['_token' => '']);
+        $this->client->request('POST', '/admin/settings', ['_token' => '']);
 
         self::assertSame(
             $before,
@@ -173,7 +173,7 @@ final class CsrfEnforcementTest extends WebTestCase
         $directory = \dirname(__DIR__, 2).'/public/uploads/cms';
         $before = glob($directory.'/*') ?: [];
 
-        $this->client->request('POST', '/yeni/admin/cms/media', [
+        $this->client->request('POST', '/admin/cms/media', [
             '_token' => '',
             'image' => new \Symfony\Component\HttpFoundation\File\UploadedFile(
                 $this->onePixelPng(),
@@ -200,10 +200,10 @@ final class CsrfEnforcementTest extends WebTestCase
     {
         $this->client->loginUser($this->customer('csrf-logout@example.com'), 'main');
 
-        $this->client->request('GET', '/yeni/hesabim');
-        $this->client->request('POST', '/yeni/cikis', ['_token' => 'a-token-for-another-intention']);
+        $this->client->request('GET', '/hesabim');
+        $this->client->request('POST', '/cikis', ['_token' => 'a-token-for-another-intention']);
 
-        $this->client->request('GET', '/yeni/hesabim');
+        $this->client->request('GET', '/hesabim');
         self::assertResponseIsSuccessful('A logout with an invalid token ended the session.');
     }
 

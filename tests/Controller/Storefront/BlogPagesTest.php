@@ -46,11 +46,11 @@ final class BlogPagesTest extends WebTestCase
         $draft->setPublished(false);
         $this->manager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/blog');
+        $crawler = $this->client->request('GET', '/blog');
 
         self::assertResponseIsSuccessful();
 
-        self::assertSame(1, $crawler->filter('nav.breadcrumbs a[href="/yeni/"]')->count());
+        self::assertSame(1, $crawler->filter('nav.breadcrumbs a[href="/"]')->count());
         self::assertSame('Blog', trim($crawler->filter('main h1.page-title')->text()));
 
         $cards = $crawler->filter('.blog-list .blog-post-card');
@@ -58,19 +58,19 @@ final class BlogPagesTest extends WebTestCase
 
         // The archive is newest first, and the newest published post is the one this store has.
         $card = $cards->eq(0);
-        self::assertSame('/yeni/blog/yag-degisimi', $card->attr('href'));
+        self::assertSame('/blog/yag-degisimi', $card->attr('href'));
         // The whole card is the link, and its cover block is decoration inside it.
         self::assertSame(1, $card->filter('.blog-post-cover')->count());
         self::assertSame('Yağ değişimi', trim($card->filter('h2')->text()));
         self::assertStringContainsString('Periyodik bakım.', $card->text());
 
-        self::assertSame(1, $cards->filter('a[href="/yeni/blog/fren-bakimi"]')->count());
+        self::assertSame(1, $cards->filter('a[href="/blog/fren-bakimi"]')->count());
     }
 
     /** A store that has published nothing says so inside the same card the posts would have been. */
     public function testAnEmptyArchiveSaysSo(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/blog');
+        $crawler = $this->client->request('GET', '/blog');
 
         self::assertResponseIsSuccessful();
         self::assertSame('Blog', trim($crawler->filter('main h1.page-title')->text()));
@@ -83,7 +83,7 @@ final class BlogPagesTest extends WebTestCase
         $this->post('Fren bakımı', 'fren-bakimi', 'Fren balatasının ömrü.', "İlk cümle.\n\nİkinci cümle.");
         $this->manager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/blog/fren-bakimi');
+        $crawler = $this->client->request('GET', '/blog/fren-bakimi');
 
         self::assertResponseIsSuccessful();
 
@@ -94,7 +94,7 @@ final class BlogPagesTest extends WebTestCase
         self::assertStringContainsString('İkinci cümle.', $crawler->filter('.blog-prose')->text());
 
         // The reference's breadcrumb: home, then back to the archive.
-        self::assertSame(1, $crawler->filter('nav.breadcrumbs a[href="/yeni/blog"]')->count());
+        self::assertSame(1, $crawler->filter('nav.breadcrumbs a[href="/blog"]')->count());
     }
 
     public function testAnUnpublishedPostIsNotReachable(): void
@@ -103,7 +103,7 @@ final class BlogPagesTest extends WebTestCase
         $post->setPublished(false);
         $this->manager->flush();
 
-        $this->client->request('GET', '/yeni/blog/gizli');
+        $this->client->request('GET', '/blog/gizli');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -115,12 +115,12 @@ final class BlogPagesTest extends WebTestCase
         $post->setCoverImagePath($path);
         $this->manager->flush();
         $this->manager->clear();
-        $crawler = $this->client->request('GET', '/yeni/blog');
+        $crawler = $this->client->request('GET', '/blog');
         self::assertResponseIsSuccessful();
-        self::assertSame('/yeni'.$path, $crawler->filter('.blog-post-cover img')->attr('src'));
-        $crawler = $this->client->request('GET', '/yeni/blog/kapakli-yazi');
+        self::assertSame('/'.$path, $crawler->filter('.blog-post-cover img')->attr('src'));
+        $crawler = $this->client->request('GET', '/blog/kapakli-yazi');
         self::assertResponseIsSuccessful();
-        self::assertSame('/yeni'.$path, $crawler->filter('.blog-post-hero img')->attr('src'));
+        self::assertSame('/'.$path, $crawler->filter('.blog-post-hero img')->attr('src'));
     }
 
     private function post(string $title, string $slug, string $excerpt, string $body): BlogPost

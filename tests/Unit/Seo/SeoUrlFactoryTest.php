@@ -28,11 +28,11 @@ final class SeoUrlFactoryTest extends TestCase
         $factory = $this->factory('https://magaza.example');
 
         self::assertSame(
-            'https://magaza.example/yeni/urun/yag-filtresi',
+            'https://magaza.example/urun/yag-filtresi',
             $factory->absolute('storefront_catalog_product', ['slug' => 'yag-filtresi']),
         );
         self::assertSame(
-            'https://magaza.example/yeni/katalog',
+            'https://magaza.example/katalog',
             $factory->absolute('storefront_catalog_index'),
         );
     }
@@ -43,7 +43,7 @@ final class SeoUrlFactoryTest extends TestCase
 
         $url = $factory->absolute('storefront_catalog_brand', ['slug' => 'bosch']);
 
-        self::assertStringStartsWith('https://magaza.example/yeni/marka/bosch', $url);
+        self::assertStringStartsWith('https://magaza.example/marka/bosch', $url);
         self::assertStringNotContainsString('b2b.efeotoyedekparca.com.tr', $url);
     }
 
@@ -52,7 +52,7 @@ final class SeoUrlFactoryTest extends TestCase
         $factory = $this->factory('https://magaza.example');
 
         self::assertSame(
-            'https://magaza.example/yeni/uploads/products/filtre.jpg',
+            'https://magaza.example/uploads/products/filtre.jpg',
             $factory->media('/uploads/products/filtre.jpg'),
         );
     }
@@ -73,13 +73,13 @@ final class SeoUrlFactoryTest extends TestCase
     private function factory(string $base): SeoUrlFactory
     {
         $routes = new RouteCollection();
-        $routes->add('storefront_catalog_index', new Route('/yeni/katalog'));
-        $routes->add('storefront_catalog_product', new Route('/yeni/urun/{slug}'));
-        $routes->add('storefront_catalog_brand', new Route('/yeni/marka/{slug}'));
+        $routes->add('storefront_catalog_index', new Route('/katalog'));
+        $routes->add('storefront_catalog_product', new Route('/urun/{slug}'));
+        $routes->add('storefront_catalog_brand', new Route('/marka/{slug}'));
 
         $media = new StorefrontMediaExtension(
-            new Packages(new PathPackage('/yeni', new EmptyVersionStrategy())),
-            '/yeni',
+            new Packages(new PathPackage('/', new EmptyVersionStrategy())),
+            '/',
         );
 
         return new SeoUrlFactory(

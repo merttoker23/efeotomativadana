@@ -77,7 +77,7 @@ final class CustomerOrderCancellationTest extends WebTestCase
 
         $this->client->request('POST', $this->cancelUrl($order), ['_token' => 'invalid']);
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
         self::assertSame('placed', $this->persistedState($order));
     }
 
@@ -91,7 +91,7 @@ final class CustomerOrderCancellationTest extends WebTestCase
         $this->client->request('POST', $this->cancelUrl($foreign), ['_token' => $token]);
         self::assertResponseStatusCodeSame(404);
         self::assertSame('placed', $this->persistedState($foreign));
-        $this->client->request('POST', '/yeni/hesabim/siparisler/EOA-20261005-000000000000/iptal', ['_token' => $token]);
+        $this->client->request('POST', '/hesabim/siparisler/EOA-20261005-000000000000/iptal', ['_token' => $token]);
         self::assertResponseStatusCodeSame(404);
         self::assertSame('placed', $this->persistedState($own));
     }
@@ -220,7 +220,7 @@ final class CustomerOrderCancellationTest extends WebTestCase
 
     private function detailUrl(CustomerOrder $order): string
     {
-        return '/yeni/hesabim/siparisler/'.$order->orderNumber();
+        return '/hesabim/siparisler/'.$order->orderNumber();
     }
 
     private function cancelUrl(CustomerOrder $order): string

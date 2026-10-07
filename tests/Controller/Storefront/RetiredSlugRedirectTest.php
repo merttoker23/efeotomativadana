@@ -65,10 +65,10 @@ final class RetiredSlugRedirectTest extends WebTestCase
         $product->changeSlug('yeni-ad');
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/urun/eski-ad');
+        $this->client->request('GET', '/urun/eski-ad');
 
         self::assertResponseStatusCodeSame(301);
-        self::assertResponseRedirects('https://localhost/yeni/urun/yeni-ad');
+        self::assertResponseRedirects('https://localhost/urun/yeni-ad');
     }
 
     public function testTheCurrentUrlIsServedDirectlyAndNotRedirected(): void
@@ -77,7 +77,7 @@ final class RetiredSlugRedirectTest extends WebTestCase
         $this->retire(SeoResourceType::Product, (int) $product->id(), 'onceki-ad-2', 'yeni-ad-2');
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/urun/yeni-ad-2');
+        $this->client->request('GET', '/urun/yeni-ad-2');
 
         self::assertResponseIsSuccessful();
         self::assertFalse($this->client->getResponse()->headers->has('Location'));
@@ -90,7 +90,7 @@ final class RetiredSlugRedirectTest extends WebTestCase
         $product->changeSlug('kalici-ad-yeni');
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/urun/kalici-ad');
+        $this->client->request('GET', '/urun/kalici-ad');
 
         self::assertResponseStatusCodeSame(301);
     }
@@ -103,7 +103,7 @@ final class RetiredSlugRedirectTest extends WebTestCase
         $this->entityManager->remove($product);
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/urun/silinecek-ad');
+        $this->client->request('GET', '/urun/silinecek-ad');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -117,7 +117,7 @@ final class RetiredSlugRedirectTest extends WebTestCase
         $product->unpublish();
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/urun/gizlenecek-ad');
+        $this->client->request('GET', '/urun/gizlenecek-ad');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -149,10 +149,10 @@ final class RetiredSlugRedirectTest extends WebTestCase
         $this->entityManager->flush();
 
         foreach ([
-            '/yeni/kategori/eski-kategori' => 'https://localhost/yeni/kategori/yeni-kategori',
-            '/yeni/marka/eski-marka' => 'https://localhost/yeni/marka/yeni-marka',
-            '/yeni/blog/eski-yazi' => 'https://localhost/yeni/blog/yeni-yazi',
-            '/yeni/bilgi/eski-sayfa' => 'https://localhost/yeni/bilgi/yeni-sayfa',
+            '/kategori/eski-kategori' => 'https://localhost/kategori/yeni-kategori',
+            '/marka/eski-marka' => 'https://localhost/marka/yeni-marka',
+            '/blog/eski-yazi' => 'https://localhost/blog/yeni-yazi',
+            '/bilgi/eski-sayfa' => 'https://localhost/bilgi/yeni-sayfa',
         ] as $old => $expected) {
             $this->client->request('GET', $old);
             self::assertResponseStatusCodeSame(301, $old);
@@ -162,7 +162,7 @@ final class RetiredSlugRedirectTest extends WebTestCase
 
     public function testAnUnknownSlugIsStillAPlain404AndNotARedirect(): void
     {
-        $this->client->request('GET', '/yeni/urun/hic-boyle-bir-urun-yok');
+        $this->client->request('GET', '/urun/hic-boyle-bir-urun-yok');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -180,7 +180,7 @@ final class RetiredSlugRedirectTest extends WebTestCase
         $this->retire(SeoResourceType::Product, (int) $product->id(), 'gonderilen-eski', 'gonderilen-urun');
         $this->entityManager->flush();
 
-        $this->client->request('POST', '/yeni/urun/gonderilen-eski');
+        $this->client->request('POST', '/urun/gonderilen-eski');
 
         self::assertResponseStatusCodeSame(405);
         self::assertFalse($this->client->getResponse()->headers->has('Location'));

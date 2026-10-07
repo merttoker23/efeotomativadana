@@ -54,7 +54,7 @@ final class ShipmentAdminTest extends WebTestCase
 
     public function testAnAnonymousVisitorCannotReachTheShipmentList(): void
     {
-        $this->client->request('GET', '/yeni/admin/gonderiler');
+        $this->client->request('GET', '/admin/gonderiler');
 
         self::assertResponseRedirects();
     }
@@ -68,7 +68,7 @@ final class ShipmentAdminTest extends WebTestCase
             ['ROLE_USER'],
         ), 'admin');
 
-        $this->client->request('GET', '/yeni/admin/gonderiler');
+        $this->client->request('GET', '/admin/gonderiler');
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -80,7 +80,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->orchestrator->handOver($shipment, 'VAN-LIST-1', 'admin@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin/gonderiler');
+        $this->client->request('GET', '/admin/gonderiler');
 
         self::assertResponseIsSuccessful();
         $content = (string) $this->client->getResponse()->getContent();
@@ -96,7 +96,7 @@ final class ShipmentAdminTest extends WebTestCase
         $pending = $this->orchestrator->createForOrder($this->confirmedOrder('filter-pending@example.com')->orderNumber(), 'admin@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin/gonderiler?state=ready');
+        $this->client->request('GET', '/admin/gonderiler?state=ready');
 
         self::assertResponseIsSuccessful();
         $content = (string) $this->client->getResponse()->getContent();
@@ -108,7 +108,7 @@ final class ShipmentAdminTest extends WebTestCase
     {
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin/gonderiler?state=not-a-state');
+        $this->client->request('GET', '/admin/gonderiler?state=not-a-state');
 
         self::assertResponseIsSuccessful();
     }
@@ -121,7 +121,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->entityManager->flush();
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         $crawler = $this->client->getCrawler();
@@ -129,7 +129,7 @@ final class ShipmentAdminTest extends WebTestCase
         self::assertStringContainsString('FAKE-TRK-1', $content);
         self::assertStringContainsString('FAKE-SHIP-1', $content);
         self::assertGreaterThan(0, $crawler->filter('table')->count(), 'The shipment history table must render.');
-        self::assertGreaterThan(0, $crawler->filter(sprintf('a[href$="/yeni/admin/orders/%s"]', $order->orderNumber()))->count(), 'The shipment page must link back to its order.');
+        self::assertGreaterThan(0, $crawler->filter(sprintf('a[href$="/admin/orders/%s"]', $order->orderNumber()))->count(), 'The shipment page must link back to its order.');
         // Nothing in this phase may turn a carrier's host into a clickable target, and no carrier
         // document URL may be persisted. The page legitimately links only to this application.
         self::assertStringNotContainsString('carrier.test', $content);
@@ -144,7 +144,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->entityManager->flush();
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         $content = (string) $this->client->getResponse()->getContent();
@@ -157,10 +157,10 @@ final class ShipmentAdminTest extends WebTestCase
         $order = $this->confirmedOrder('create-offer@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/orders/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/orders/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString(sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()), (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString(sprintf('/admin/gonderiler/%s', $order->orderNumber()), (string) $this->client->getResponse()->getContent());
     }
 
     public function testTheShipmentPageOffersToCreateTheMissingShipment(): void
@@ -168,7 +168,7 @@ final class ShipmentAdminTest extends WebTestCase
         $order = $this->confirmedOrder('create-form@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $this->client->getCrawler()->filter(sprintf('form[action$="/%s/olustur"]', $order->orderNumber())));
@@ -181,7 +181,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->entityManager->flush();
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $this->client->getCrawler()->filter(sprintf('form[action$="/%s/olustur"]', $order->orderNumber())));
@@ -192,16 +192,16 @@ final class ShipmentAdminTest extends WebTestCase
         // The plan's central requirement, exercised through the UI a double-click actually uses.
         $order = $this->confirmedOrder('double@example.com');
         $this->loginAsAdmin();
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
         $form = $this->client->getCrawler()->filter(sprintf('form[action$="/%s/olustur"]', $order->orderNumber()))->form();
         $token = $form->getPhpValues()['shipment_create']['_token'] ?? null;
         self::assertIsString($token);
 
-        $this->post(sprintf('/yeni/admin/gonderiler/%s/olustur', $order->orderNumber()), ['shipment_create' => ['_token' => $token]]);
-        self::assertResponseRedirects(sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
-        $this->post(sprintf('/yeni/admin/gonderiler/%s/olustur', $order->orderNumber()), ['shipment_create' => ['_token' => $token]]);
+        $this->post(sprintf('/admin/gonderiler/%s/olustur', $order->orderNumber()), ['shipment_create' => ['_token' => $token]]);
+        self::assertResponseRedirects(sprintf('/admin/gonderiler/%s', $order->orderNumber()));
+        $this->post(sprintf('/admin/gonderiler/%s/olustur', $order->orderNumber()), ['shipment_create' => ['_token' => $token]]);
 
-        self::assertResponseRedirects(sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        self::assertResponseRedirects(sprintf('/admin/gonderiler/%s', $order->orderNumber()));
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_shipment WHERE order_id = ?', [$order->id()]));
         $this->client->followRedirect();
         self::assertStringContainsString('yeni gönderi oluşturulmadı', (string) $this->client->getResponse()->getContent());
@@ -212,7 +212,7 @@ final class ShipmentAdminTest extends WebTestCase
         $order = $this->confirmedOrder('create-csrf@example.com');
         $this->loginAsAdmin();
 
-        $this->post(sprintf('/yeni/admin/gonderiler/%s/olustur', $order->orderNumber()), ['shipment_create' => ['_token' => 'not-a-real-token']]);
+        $this->post(sprintf('/admin/gonderiler/%s/olustur', $order->orderNumber()), ['shipment_create' => ['_token' => 'not-a-real-token']]);
 
         self::assertResponseStatusCodeSame(403);
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_shipment'));
@@ -222,22 +222,22 @@ final class ShipmentAdminTest extends WebTestCase
     {
         $shipment = $this->localShipment('hand@example.com');
         $this->loginAsAdmin();
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $crawler = $this->client->getCrawler();
         $handover = $crawler->filter('form[action$="/teslimata-hazir"]')->form();
         $handover['shipment_handover[trackingNumber]'] = 'VAN-HAND-1';
         $this->client->submit($handover);
 
-        self::assertResponseRedirects(sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        self::assertResponseRedirects(sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $shipment = $this->reload($shipment);
         self::assertSame(ShipmentState::Ready, $shipment->state());
         self::assertSame('VAN-HAND-1', $shipment->trackingNumber());
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $this->client->submit($this->client->getCrawler()->filter('form[action$="/yolda"] button')->form());
         self::assertSame(ShipmentState::InTransit, $this->reload($shipment)->state());
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $this->client->submit($this->client->getCrawler()->filter('form[action$="/teslim"] button')->form());
         $delivered = $this->reload($shipment);
         self::assertSame(ShipmentState::Delivered, $delivered->state());
@@ -251,7 +251,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->orchestrator->markInTransit($this->reload($shipment), 'admin@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $content = (string) $this->client->getResponse()->getContent();
         // Not offered...
         self::assertStringNotContainsString('/iptal', $content);
@@ -259,7 +259,7 @@ final class ShipmentAdminTest extends WebTestCase
         // ...and refused with 403 when a crafted request walks past the hidden button, using a real
         // token taken from a cancellable shipment rendered in the same session.
         $token = $this->cancellationTokenFor($this->localShipment('token-source@example.com'));
-        $this->post(sprintf('/yeni/admin/gonderiler/%s/iptal', $shipment->orderNumber()), [
+        $this->post(sprintf('/admin/gonderiler/%s/iptal', $shipment->orderNumber()), [
             'shipment_cancel' => ['reason' => 'Yanlış adres', '_token' => $token],
         ]);
 
@@ -271,7 +271,7 @@ final class ShipmentAdminTest extends WebTestCase
     {
         $shipment = $this->localShipment('cancel-reason@example.com');
         $this->loginAsAdmin();
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $form = $this->client->getCrawler()->filter('form[action$="/iptal"]')->form();
         $form['shipment_cancel[reason]'] = '   ';
         $this->client->submit($form);
@@ -285,7 +285,7 @@ final class ShipmentAdminTest extends WebTestCase
     {
         $shipment = $this->localShipment('cancel-recorded@example.com');
         $this->loginAsAdmin();
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $form = $this->client->getCrawler()->filter('form[action$="/iptal"]')->form();
         $form['shipment_cancel[reason]'] = 'Müşteri siparişi iptal etti';
         $this->client->submit($form);
@@ -304,7 +304,7 @@ final class ShipmentAdminTest extends WebTestCase
         $shipment = $this->orchestrator->createForOrder($order->orderNumber(), 'admin@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         self::assertStringNotContainsString('/teslimata-hazir', (string) $this->client->getResponse()->getContent());
         self::assertSame(ShipmentState::Pending, $this->reload($shipment)->state());
@@ -318,7 +318,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->entityManager->flush();
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $this->client->getCrawler()->filter('form[action$="/yeniden-dene"]'));
@@ -330,7 +330,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->orchestrator->createForOrder($order->orderNumber(), 'admin@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         self::assertCount(0, $this->client->getCrawler()->filter('form[action$="/yeniden-dene"]'));
     }
@@ -339,7 +339,7 @@ final class ShipmentAdminTest extends WebTestCase
     {
         $pending = $this->orchestrator->createForOrder($this->confirmedOrder('pending-actions@example.com', 'carrier_express')->orderNumber(), 'admin@example.com');
         $this->loginAsAdmin();
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $pending->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $pending->orderNumber()));
         self::assertStringNotContainsString('/durum', (string) $this->client->getResponse()->getContent());
         self::assertStringNotContainsString('/etiket', (string) $this->client->getResponse()->getContent());
 
@@ -347,7 +347,7 @@ final class ShipmentAdminTest extends WebTestCase
         $shipment = $this->orchestrator->createForOrder($accepted->orderNumber(), 'admin@example.com');
         $shipment->markReady('FAKE-SHIP-9', 'FAKE-TRK-9', new \DateTimeImmutable());
         $this->entityManager->flush();
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $accepted->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $accepted->orderNumber()));
 
         self::assertCount(1, $this->client->getCrawler()->filter('form[action$="/durum"]'));
         self::assertCount(1, $this->client->getCrawler()->filter('form[action$="/etiket"]'));
@@ -364,9 +364,9 @@ final class ShipmentAdminTest extends WebTestCase
         $provider->queueStatus(\App\Module\Shipping\Gateway\ShipmentStatusReport::reporting(ShipmentState::InTransit, 'FAKE-TRK-S2', 'Yola çıktı'));
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
         $this->client->submit($this->client->getCrawler()->filter('form[action$="/durum"] button')->form());
-        self::assertResponseRedirects(sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        self::assertResponseRedirects(sprintf('/admin/gonderiler/%s', $order->orderNumber()));
 
         $updated = $this->reload($shipment);
         self::assertSame(ShipmentState::InTransit, $updated->state());
@@ -377,17 +377,17 @@ final class ShipmentAdminTest extends WebTestCase
     {
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin');
+        $this->client->request('GET', '/admin');
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('/yeni/admin/gonderiler', (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('/admin/gonderiler', (string) $this->client->getResponse()->getContent());
     }
 
     public function testAShipmentForAnUnknownOrderIsNotFound(): void
     {
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin/gonderiler/EOA-20260928-000000000000');
+        $this->client->request('GET', '/admin/gonderiler/EOA-20260928-000000000000');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -397,7 +397,7 @@ final class ShipmentAdminTest extends WebTestCase
         $shipment = $this->localShipment('forbidden@example.com');
         $this->client->loginUser(new InMemoryUser('viewer@example.com', 'test-only-not-used-for-form-login', ['ROLE_USER']), 'admin');
 
-        $this->post(sprintf('/yeni/admin/gonderiler/%s/yolda', $shipment->orderNumber()), ['shipment_transit' => ['_token' => 'anything']]);
+        $this->post(sprintf('/admin/gonderiler/%s/yolda', $shipment->orderNumber()), ['shipment_transit' => ['_token' => 'anything']]);
 
         self::assertResponseStatusCodeSame(403);
         self::assertSame(ShipmentState::Pending, $this->reload($shipment)->state());
@@ -409,7 +409,7 @@ final class ShipmentAdminTest extends WebTestCase
         // tracking number in the database that no longer matches what was typed.
         $shipment = $this->localShipment('long-tracking@example.com');
         $this->loginAsAdmin();
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $form = $this->client->getCrawler()->filter('form[action$="/teslimata-hazir"]')->form();
         $form['shipment_handover[trackingNumber]'] = str_repeat('9', 200);
         $this->client->submit($form);
@@ -428,7 +428,7 @@ final class ShipmentAdminTest extends WebTestCase
         $this->entityManager->flush();
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
         $content = (string) $this->client->getResponse()->getContent();
         self::assertStringNotContainsString('/yolda', $content);
         self::assertStringNotContainsString('/teslim"', $content);
@@ -438,7 +438,7 @@ final class ShipmentAdminTest extends WebTestCase
         // And refused when a crafted request walks past the hidden buttons, using a real token taken
         // from a hand-fulfilled parcel rendered in the same session.
         $token = $this->actionTokenFor($this->handedOverShipment('token-source-handover@example.com'), 'shipment_transit');
-        $this->post(sprintf('/yeni/admin/gonderiler/%s/yolda', $order->orderNumber()), ['shipment_transit' => ['_token' => $token]]);
+        $this->post(sprintf('/admin/gonderiler/%s/yolda', $order->orderNumber()), ['shipment_transit' => ['_token' => $token]]);
 
         self::assertSame(ShipmentState::Ready, $this->reload($shipment)->state());
     }
@@ -463,12 +463,12 @@ final class ShipmentAdminTest extends WebTestCase
         $shipment = $this->orchestrator->createForOrder($order->orderNumber(), 'admin@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $order->orderNumber()));
         $form = $this->client->getCrawler()->filter('form[action$="/iptal"]')->form();
         $form['shipment_cancel[reason]'] = 'Müşteri siparişten vazgeçti';
         $this->client->submit($form);
 
-        self::assertResponseRedirects(sprintf('/yeni/admin/gonderiler/%s', $order->orderNumber()));
+        self::assertResponseRedirects(sprintf('/admin/gonderiler/%s', $order->orderNumber()));
         self::assertSame(ShipmentState::Cancelled, $this->reload($shipment)->state());
     }
 
@@ -481,7 +481,7 @@ final class ShipmentAdminTest extends WebTestCase
 
     private function actionTokenFor(Shipment $shipment, string $block): string
     {
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $token = $this->client->getCrawler()->filter(sprintf('input[name="%s[_token]"]', $block))->attr('value');
 
         self::assertIsString($token);
@@ -497,7 +497,7 @@ final class ShipmentAdminTest extends WebTestCase
 
     private function cancellationTokenFor(Shipment $shipment): string
     {
-        $this->client->request('GET', sprintf('/yeni/admin/gonderiler/%s', $shipment->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/gonderiler/%s', $shipment->orderNumber()));
         $token = $this->client->getCrawler()->filter('input[name="shipment_cancel[_token]"]')->attr('value');
 
         self::assertIsString($token);

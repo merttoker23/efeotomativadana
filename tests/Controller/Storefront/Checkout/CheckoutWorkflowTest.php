@@ -47,9 +47,9 @@ final class CheckoutWorkflowTest extends WebTestCase
 
     public function testAnonymousCustomerIsRedirectedToLogin(): void
     {
-        $this->client->request('GET', '/yeni/odeme');
+        $this->client->request('GET', '/odeme');
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
     }
 
     public function testCustomerPlacesLocalOrderAndPostedTotalsAreIgnored(): void
@@ -59,7 +59,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         $this->cartLine($customer, 12_345, 4, 2);
         $this->client->loginUser($customer, 'main');
 
-        $crawler = $this->client->request('GET', '/yeni/odeme');
+        $crawler = $this->client->request('GET', '/odeme');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Ödeme ve sipariş');
         self::assertSelectorTextContains('.checkout-payment-warning', 'üretim dışı');
@@ -70,7 +70,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSelectorExists('textarea[name="order_note"][maxlength="1000"]');
         $token = $crawler->filter('input[name="_token"]')->attr('value');
         self::assertIsString($token);
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $token,
             'shipping_address' => (string) $address->id(),
             'billing_address' => (string) $address->id(),
@@ -84,7 +84,7 @@ final class CheckoutWorkflowTest extends WebTestCase
 
         $order = $this->connection->fetchAssociative('SELECT order_number, subtotal_minor_amount, tax_minor_amount, grand_total_minor_amount FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]);
         self::assertIsArray($order);
-        self::assertResponseRedirects('/yeni/siparis/'.$order['order_number'].'/basarili');
+        self::assertResponseRedirects('/siparis/'.$order['order_number'].'/basarili');
         self::assertSame(24_690, (int) $order['subtotal_minor_amount']);
         self::assertSame(4_115, (int) $order['tax_minor_amount']);
         self::assertSame(49_690, (int) $order['grand_total_minor_amount']);
@@ -99,7 +99,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSelectorTextContains('.order-payment', 'üretim dışı');
         self::assertSelectorTextContains('.order-line', 'Web Checkout Ürünü');
 
-        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order['order_number']);
+        $this->client->request('GET', '/hesabim/siparisler/'.$order['order_number']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="order-note"]', 'Öğleden sonra teslim edin.');
         self::assertStringContainsString('A &amp; B', $this->client->getResponse()->getContent());
@@ -108,7 +108,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         $this->entityManager->persist($administrator);
         $this->entityManager->flush();
         $this->client->loginUser($administrator, 'admin');
-        $this->client->request('GET', '/yeni/admin/orders/'.$order['order_number']);
+        $this->client->request('GET', '/admin/orders/'.$order['order_number']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="order-note"]', 'Öğleden sonra teslim edin.');
         self::assertStringContainsString('A &amp; B', $this->client->getResponse()->getContent());
@@ -117,19 +117,19 @@ final class CheckoutWorkflowTest extends WebTestCase
         $legacyNote = '<script data-legacy-order-note>alert(1)</script>';
         $this->connection->update('commerce_customer_order', ['order_note' => $legacyNote], ['order_number' => $order['order_number']]);
         $this->entityManager->clear();
-        $this->client->request('GET', '/yeni/admin/orders/'.$order['order_number']);
+        $this->client->request('GET', '/admin/orders/'.$order['order_number']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="order-note"]', $legacyNote);
         self::assertSelectorNotExists('script[data-legacy-order-note]');
         $this->client->loginUser($customer, 'main');
-        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order['order_number']);
+        $this->client->request('GET', '/hesabim/siparisler/'.$order['order_number']);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="order-note"]', $legacyNote);
         self::assertSelectorNotExists('script[data-legacy-order-note]');
 
         $attacker = $this->customer('other@example.com');
         $this->client->loginUser($attacker, 'main');
-        $this->client->request('GET', '/yeni/siparis/'.$order['order_number'].'/basarili');
+        $this->client->request('GET', '/siparis/'.$order['order_number'].'/basarili');
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -140,8 +140,8 @@ final class CheckoutWorkflowTest extends WebTestCase
         $address = $this->address($customer, 'Ev', 'Not Cad. 1');
         $this->cartLine($customer, 10_000, 3, 1);
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/odeme');
-        $this->client->request('POST', '/yeni/odeme', [
+        $crawler = $this->client->request('GET', '/odeme');
+        $this->client->request('POST', '/odeme', [
             '_token' => $crawler->filter('input[name="_token"]')->attr('value'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -149,7 +149,7 @@ final class CheckoutWorkflowTest extends WebTestCase
             'payment_option' => 'local_manual',
             'order_note' => $note,
         ]);
-        self::assertResponseRedirects('/yeni/odeme');
+        self::assertResponseRedirects('/odeme');
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]));
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart WHERE customer_id = ?', [$customer->id()]));
         self::assertSame(3, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_product_inventory'));
@@ -172,7 +172,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         $this->cartLine($customer, 10_000, 3, 1);
         $this->client->loginUser($customer, 'main');
 
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
             'shipping_option' => 'local_standard',
@@ -198,17 +198,17 @@ final class CheckoutWorkflowTest extends WebTestCase
             $configuration->save($settings);
         }
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/sepet');
+        $crawler = $this->client->request('GET', '/sepet');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.cart-summary-subtotal', 'Ara Toplam');
         self::assertSelectorTextContains('.cart-summary-shipping', $shipping);
         self::assertSelectorTextContains('.cart-summary-total', $total);
         self::assertStringNotContainsString('TRY', $crawler->filter('main')->text());
-        $crawler = $this->client->request('GET', '/yeni/odeme');
+        $crawler = $this->client->request('GET', '/odeme');
         self::assertResponseIsSuccessful();
         self::assertStringContainsString($shipping, $crawler->filter('.checkout-summary-line')->last()->text());
         self::assertSelectorTextContains('.checkout-summary-total', $total);
-        $this->client->request('POST', '/yeni/odeme', [
+        $this->client->request('POST', '/odeme', [
             '_token' => $crawler->filter('input[name="_token"]')->attr('value'),
             'shipping_address' => $address->id(),
             'billing_address' => $address->id(),
@@ -225,7 +225,7 @@ final class CheckoutWorkflowTest extends WebTestCase
         self::assertSame($totalMinor, (int) $order['grand_total_minor_amount']);
         self::assertNull($this->connection->fetchOne('SELECT order_note FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]));
         $orderNumber = $this->connection->fetchOne('SELECT order_number FROM commerce_customer_order WHERE customer_id = ?', [$customer->id()]);
-        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$orderNumber);
+        $this->client->request('GET', '/hesabim/siparisler/'.$orderNumber);
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('[data-testid="order-note"]');
     }
@@ -253,7 +253,7 @@ final class CheckoutWorkflowTest extends WebTestCase
 
         $cost = self::getContainer()->get(\App\Module\Checkout\LocalStandardShippingOption::class)->cost(Money::ofMinor($subtotal, 'TRY'));
         $formatter = self::getContainer()->get(\App\Twig\StorefrontMoneyExtension::class);
-        foreach (['/yeni/sepet' => 'cart', '/yeni/odeme' => 'checkout'] as $url => $page) {
+        foreach (['/sepet' => 'cart', '/odeme' => 'checkout'] as $url => $page) {
             $crawler = $this->client->request('GET', $url);
             self::assertResponseIsSuccessful();
             self::assertStringNotContainsString('kazandınız', $crawler->filter('main')->text());

@@ -48,11 +48,11 @@ final class WishlistWorkflowTest extends WebTestCase
         $product = $this->product('WISH-001', 'Amortisör', 'amortisor');
         $this->client->loginUser($customer, 'main');
 
-        $crawler = $this->client->request('GET', '/yeni/urun/amortisor');
+        $crawler = $this->client->request('GET', '/urun/amortisor');
         self::assertSelectorExists('.wishlist-add-form');
         $this->client->submit($crawler->selectButton('İstek listesine ekle')->form());
 
-        self::assertResponseRedirects('/yeni/istek-listem');
+        self::assertResponseRedirects('/istek-listem');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.wishlist-item', 'Amortisör');
         self::assertSame($customer->id(), (int) $this->connection->fetchOne('SELECT customer_id FROM commerce_wishlist_item'));
@@ -71,7 +71,7 @@ final class WishlistWorkflowTest extends WebTestCase
         $this->entityManager->persist(new WishlistItem($stranger, $privateProduct));
         $this->entityManager->flush();
         $this->client->loginUser($customer, 'main');
-        $this->client->request('GET', '/yeni/istek-listem');
+        $this->client->request('GET', '/istek-listem');
 
         $names = [];
         $queryCounts = [];
@@ -81,14 +81,14 @@ final class WishlistWorkflowTest extends WebTestCase
             $debugData->reset();
             $this->entityManager->clear();
             $this->client->enableProfiler();
-            $crawler = $this->client->request('GET', '/yeni/istek-listem', ['page' => $page]);
+            $crawler = $this->client->request('GET', '/istek-listem', ['page' => $page]);
             self::assertResponseIsSuccessful();
             self::assertCount($expectedCount, $crawler->filter('.wishlist-item'));
             self::assertSelectorTextContains('.wishlist-summary', '53 ürün');
             self::assertSelectorTextContains('.pagination [aria-current="page"]', (string) $page);
             self::assertSelectorTextNotContains('main', 'Başkasının favorisi');
             if ($page < 3) {
-                self::assertSame('/yeni/istek-listem?page='.($page + 1), $crawler->filter('.pagination a[rel="next"]')->attr('href'));
+                self::assertSame('/istek-listem?page='.($page + 1), $crawler->filter('.pagination a[rel="next"]')->attr('href'));
             }
             $names = array_merge($names, $crawler->filter('.wishlist-item strong')->each(static fn ($node): string => $node->text()));
             $profile = $this->client->getProfile();
@@ -100,11 +100,11 @@ final class WishlistWorkflowTest extends WebTestCase
         self::assertCount(53, array_unique($names), 'Every saved product must appear once across pages.');
         self::assertSame($queryCounts[0], $queryCounts[2], 'A page with 24 saved products must cost the same number of queries as one with 5.');
 
-        $this->client->request('GET', '/yeni/istek-listem?page=99');
+        $this->client->request('GET', '/istek-listem?page=99');
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(0, '.wishlist-item');
         self::assertSelectorTextNotContains('main', 'İstek listeniz boş.');
-        self::assertSelectorExists('a[href="/yeni/istek-listem?page=1"]');
+        self::assertSelectorExists('a[href="/istek-listem?page=1"]');
     }
 
     public function testCustomerCanRemoveAnOwnedWishlistItem(): void
@@ -112,14 +112,14 @@ final class WishlistWorkflowTest extends WebTestCase
         $customer = $this->customer('wishlist-remove@example.com');
         $product = $this->product('WISH-REMOVE', 'Fren Diski', 'fren-diski');
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/urun/fren-diski');
+        $crawler = $this->client->request('GET', '/urun/fren-diski');
         $this->client->submit($crawler->selectButton('İstek listesine ekle')->form());
 
         $crawler = $this->client->followRedirect();
         self::assertSelectorExists('.wishlist-remove-form');
         $this->client->submit($crawler->selectButton('Listeden kaldır')->form());
 
-        self::assertResponseRedirects('/yeni/istek-listem');
+        self::assertResponseRedirects('/istek-listem');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.cart-empty', 'İstek listeniz boş');
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_wishlist_item'));
@@ -128,11 +128,11 @@ final class WishlistWorkflowTest extends WebTestCase
     public function testGuestWishlistActionClearlyRedirectsToLogin(): void
     {
         $this->product('WISH-GUEST', 'Yağ Pompası', 'yag-pompasi');
-        $crawler = $this->client->request('GET', '/yeni/urun/yag-pompasi');
+        $crawler = $this->client->request('GET', '/urun/yag-pompasi');
 
         $this->client->submit($crawler->selectButton('İstek listesine ekle')->form());
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
         $this->client->followRedirect();
         self::assertSelectorTextContains('.storefront-flash-warning', 'giriş yapın');
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_wishlist_item'));
@@ -146,16 +146,16 @@ final class WishlistWorkflowTest extends WebTestCase
         $attackerProduct = $this->product('WISH-ATTACKER', 'Devirdaim', 'devirdaim');
 
         $this->client->loginUser($owner, 'main');
-        $crawler = $this->client->request('GET', '/yeni/urun/triger-seti');
+        $crawler = $this->client->request('GET', '/urun/triger-seti');
         $this->client->submit($crawler->selectButton('İstek listesine ekle')->form());
         $ownedItemId = (int) $this->connection->fetchOne('SELECT id FROM commerce_wishlist_item WHERE customer_id = ?', [$owner->id()]);
 
         $this->client->loginUser($attacker, 'main');
-        $crawler = $this->client->request('GET', '/yeni/urun/devirdaim');
+        $crawler = $this->client->request('GET', '/urun/devirdaim');
         $this->client->submit($crawler->selectButton('İstek listesine ekle')->form());
         $crawler = $this->client->followRedirect();
         $token = $crawler->filter('.wishlist-remove-form input[name="_token"]')->attr('value');
-        $this->client->request('POST', '/yeni/istek-listem/'.$ownedItemId.'/sil', ['_token' => $token]);
+        $this->client->request('POST', '/istek-listem/'.$ownedItemId.'/sil', ['_token' => $token]);
 
         self::assertResponseStatusCodeSame(404);
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_wishlist_item WHERE id = ?', [$ownedItemId]));

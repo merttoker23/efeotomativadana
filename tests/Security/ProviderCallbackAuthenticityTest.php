@@ -27,7 +27,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
  * cookie. Everything protecting them therefore has to be either an unguessable token or the
  * provider's own signature, and this file exists to prove that neither is optional.
  *
- * The case that changed this phase's design is here too: `GET /yeni/odeme/sonuc/{token}` used to
+ * The case that changed this phase's design is here too: `GET /odeme/sonuc/{token}` used to
  * settle money for any gateway that accepted a GET-shaped callback. A GET arrives from an address
  * bar, a prefetcher, a chat client's link preview and a browser history restore. A GET that moves
  * money is therefore now refused outright, for every provider, and that is asserted below with a
@@ -66,9 +66,9 @@ final class ProviderCallbackAuthenticityTest extends WebTestCase
     {
         $order = $this->orderWithPaymentAttempt();
 
-        $this->client->request('GET', '/yeni/odeme/sonuc/'.$this->returnTokenOf($order));
+        $this->client->request('GET', '/odeme/sonuc/'.$this->returnTokenOf($order));
 
-        self::assertResponseRedirects('/yeni/odeme/'.$order->orderNumber());
+        self::assertResponseRedirects('/odeme/'.$order->orderNumber());
         self::assertSame(OrderState::Placed, $this->reload($order)->state(), 'A GET settled the order.');
         self::assertSame(0, $this->capturedAmountOf($order), 'A GET captured money.');
     }
@@ -118,7 +118,7 @@ final class ProviderCallbackAuthenticityTest extends WebTestCase
 
         // The same redirect as a real-but-unknown token, so the endpoint cannot be used to probe
         // which return tokens exist.
-        self::assertResponseRedirects('/yeni/katalog');
+        self::assertResponseRedirects('/katalog');
     }
 
     /**
@@ -154,7 +154,7 @@ final class ProviderCallbackAuthenticityTest extends WebTestCase
      */
     public function testTheNotificationEndpointAnswersAccordingToWhatItActuallyDid(): void
     {
-        $path = '/yeni/odeme/paytr/bildirim';
+        $path = '/odeme/paytr/bildirim';
 
         $this->postNotification($path, []);
         self::assertSame(400, $this->client->getResponse()->getStatusCode());
@@ -179,7 +179,7 @@ final class ProviderCallbackAuthenticityTest extends WebTestCase
      */
     public function testAnOversizedNotificationBodyIsRefusedWithoutSideEffects(): void
     {
-        $this->postNotification('/yeni/odeme/paytr/bildirim', str_repeat('a', 200_000));
+        $this->postNotification('/odeme/paytr/bildirim', str_repeat('a', 200_000));
 
         self::assertSame(400, $this->client->getResponse()->getStatusCode());
         self::assertSame(0, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_payment_event'));
@@ -215,7 +215,7 @@ final class ProviderCallbackAuthenticityTest extends WebTestCase
     {
         $this->client->request(
             'POST',
-            '/yeni/odeme/sonuc/'.$token,
+            '/odeme/sonuc/'.$token,
             [],
             [],
             ['CONTENT_TYPE' => 'application/x-www-form-urlencoded', 'HTTP_X-Fake-Signature' => $signature],

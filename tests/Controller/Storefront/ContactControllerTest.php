@@ -56,13 +56,13 @@ final class ContactControllerTest extends WebTestCase
     public function testValidPostUsesConfiguredRecipientAndPrg(): void
     {
         $client = $this->clientWithRecipient();
-        $crawler = $client->request('GET', '/yeni/iletisim');
+        $crawler = $client->request('GET', '/iletisim');
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('header a.contact[href="/yeni/iletisim"]');
-        self::assertSelectorExists('footer a[href="/yeni/iletisim"]');
+        self::assertSelectorExists('header a.contact[href="/iletisim"]');
+        self::assertSelectorExists('footer a[href="/iletisim"]');
         self::assertSelectorCount(3, '.payments img');
         $client->submit($crawler->selectButton('Gönder')->form($this->values()));
-        self::assertResponseRedirects('/yeni/iletisim', 303);
+        self::assertResponseRedirects('/iletisim', 303);
         $client->followRedirect();
         self::assertSelectorTextContains('.storefront-flash-success', 'Mesajınız alındı');
     }
@@ -70,7 +70,7 @@ final class ContactControllerTest extends WebTestCase
     public function testMissingRecipientCannotSilentlySucceed(): void
     {
         $client = $this->clientWithRecipient(null);
-        $crawler = $client->request('GET', '/yeni/iletisim');
+        $crawler = $client->request('GET', '/iletisim');
         $client->submit($crawler->selectButton('Gönder')->form($this->values()));
         self::assertResponseStatusCodeSame(503);
         self::assertSelectorTextContains('.contact-errors', 'Mesajınız gönderilemedi');
@@ -80,7 +80,7 @@ final class ContactControllerTest extends WebTestCase
     public function testInvalidRecipientCannotSilentlySucceed(): void
     {
         $client = $this->clientWithRecipient('invalid-address');
-        $crawler = $client->request('GET', '/yeni/iletisim');
+        $crawler = $client->request('GET', '/iletisim');
         $client->submit($crawler->selectButton('Gönder')->form($this->values()));
         self::assertResponseStatusCodeSame(503);
     }
@@ -88,7 +88,7 @@ final class ContactControllerTest extends WebTestCase
     public function testNullTransportCannotDiscardMessage(): void
     {
         $client = $this->clientWithRecipient('contact@example.com', 'null://null');
-        $crawler = $client->request('GET', '/yeni/iletisim');
+        $crawler = $client->request('GET', '/iletisim');
         $client->submit($crawler->selectButton('Gönder')->form($this->values()));
         self::assertResponseStatusCodeSame(503);
     }
@@ -96,20 +96,20 @@ final class ContactControllerTest extends WebTestCase
     public function testValidationCsrfAndPostRateLimit(): void
     {
         $client = $this->clientWithRecipient(null);
-        $crawler = $client->request('GET', '/yeni/iletisim');
+        $crawler = $client->request('GET', '/iletisim');
         $form = $crawler->selectButton('Gönder')->form($this->values());
         $form['contact[_token]'] = 'invalid';
         $client->submit($form);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorNotExists('.storefront-flash-success');
         for ($i = 0; $i < 5; ++$i) {
-            $client->request('POST', '/yeni/iletisim', ['contact' => ['email' => 'invalid']]);
+            $client->request('POST', '/iletisim', ['contact' => ['email' => 'invalid']]);
         }
         self::assertResponseStatusCodeSame(429);
         $client->setServerParameter('REMOTE_ADDR', '2001:db8:'.implode(':', str_split(bin2hex(random_bytes(12)), 4)));
-        $client->request('POST', '/yeni/iletisim', ['contact' => ['email' => 'invalid']]);
+        $client->request('POST', '/iletisim', ['contact' => ['email' => 'invalid']]);
         self::assertResponseStatusCodeSame(422);
-        $client->request('GET', '/yeni/iletisim');
+        $client->request('GET', '/iletisim');
         self::assertResponseIsSuccessful();
     }
 

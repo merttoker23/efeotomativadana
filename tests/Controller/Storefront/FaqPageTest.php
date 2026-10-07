@@ -38,16 +38,16 @@ final class FaqPageTest extends WebTestCase
 
     public function testAnonymousFooterHasRealReturnsAndFaqLinksAndReturnsStillRequiresLogin(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/sikca-sorulan-sorular');
+        $crawler = $this->client->request('GET', '/sikca-sorulan-sorular');
 
         self::assertResponseIsSuccessful();
         $service = $crawler->filter('section[aria-labelledby="footer-service-title"]');
         self::assertCount(3, $service->filter('a'));
-        self::assertSame('/yeni/hesabim/iadeler', $service->selectLink('İade ve değişim')->attr('href'));
-        self::assertSame('/yeni/sikca-sorulan-sorular', $service->selectLink('Sıkça sorulan sorular')->attr('href'));
+        self::assertSame('/hesabim/iadeler', $service->selectLink('İade ve değişim')->attr('href'));
+        self::assertSame('/sikca-sorulan-sorular', $service->selectLink('Sıkça sorulan sorular')->attr('href'));
 
-        $this->client->request('GET', '/yeni/hesabim/iadeler');
-        self::assertResponseRedirects('/yeni/giris');
+        $this->client->request('GET', '/hesabim/iadeler');
+        self::assertResponseRedirects('/giris');
     }
 
     public function testSignedInCustomerCanReachReturnsFromTheSameProtectedRoute(): void
@@ -58,7 +58,7 @@ final class FaqPageTest extends WebTestCase
         $this->manager->flush();
 
         $this->client->loginUser($customer, 'main');
-        $this->client->request('GET', '/yeni/hesabim/iadeler');
+        $this->client->request('GET', '/hesabim/iadeler');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'İadelerim');
@@ -75,7 +75,7 @@ final class FaqPageTest extends WebTestCase
         self::assertNotNull($second->id());
         self::assertNotNull($hidden->id());
 
-        $crawler = $this->client->request('GET', '/yeni/sikca-sorulan-sorular');
+        $crawler = $this->client->request('GET', '/sikca-sorulan-sorular');
 
         self::assertResponseIsSuccessful();
         self::assertSame(
@@ -93,7 +93,7 @@ final class FaqPageTest extends WebTestCase
     {
         $this->faq(str_repeat('Uzun soru ', 18), str_repeat('uzuncavapkelimesi ', 30), true, 0);
 
-        $crawler = $this->client->request('GET', '/yeni/sikca-sorulan-sorular');
+        $crawler = $this->client->request('GET', '/sikca-sorulan-sorular');
         $html = (string) $this->client->getResponse()->getContent();
 
         self::assertResponseIsSuccessful();

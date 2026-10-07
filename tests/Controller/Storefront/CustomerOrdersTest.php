@@ -59,14 +59,14 @@ final class CustomerOrdersTest extends WebTestCase
         $customer = $this->createCustomer('orders@example.com');
         $order = $this->confirmedOrder($customer);
 
-        $this->client->request('GET', '/yeni/hesabim/siparisler');
-        self::assertResponseRedirects('/yeni/giris');
+        $this->client->request('GET', '/hesabim/siparisler');
+        self::assertResponseRedirects('/giris');
 
-        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
-        self::assertResponseRedirects('/yeni/giris');
+        $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
+        self::assertResponseRedirects('/giris');
 
-        $this->client->request('GET', '/yeni/hesabim/iadeler');
-        self::assertResponseRedirects('/yeni/giris');
+        $this->client->request('GET', '/hesabim/iadeler');
+        self::assertResponseRedirects('/giris');
     }
 
     public function testACustomerSeesTheirOwnOrderListNewestFirst(): void
@@ -78,7 +78,7 @@ final class CustomerOrdersTest extends WebTestCase
         $this->confirmedOrder($stranger, 'EOA-20260928-CCCC00000003', new \DateTimeImmutable('2026-09-28 11:00:00'));
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Siparişlerim');
@@ -104,13 +104,13 @@ final class CustomerOrdersTest extends WebTestCase
         }
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler', ['page' => 1]);
+        $crawler = $this->client->request('GET', '/hesabim/siparisler', ['page' => 1]);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('.pagination');
         self::assertCount(10, $crawler->filter('[data-testid="order-row"]'));
 
-         $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler', ['page' => 2]);
+         $crawler = $this->client->request('GET', '/hesabim/siparisler', ['page' => 2]);
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-testid="order-row"]'));
     }
@@ -147,14 +147,14 @@ final class CustomerOrdersTest extends WebTestCase
         }
         $this->entityManager->flush();
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler');
         self::assertResponseIsSuccessful();
         self::assertCount(4, $crawler->filter('summary .order-payment-link'));
         self::assertSame(array_fill(0, 4, 'Ödemeyi Tamamla'), $crawler->filter('summary .order-payment-link')->each(static fn ($link): string => $link->text()));
         foreach ($orders as $index => [$number, $canPay, $label]) {
-            $link = $crawler->filter(sprintf('a.order-payment-link[href="/yeni/odeme/%s"]', $number));
+            $link = $crawler->filter(sprintf('a.order-payment-link[href="/odeme/%s"]', $number));
             self::assertCount($canPay ? 1 : 0, $link);
-            $this->client->request('GET', '/yeni/odeme/'.$number);
+            $this->client->request('GET', '/odeme/'.$number);
             self::assertResponseIsSuccessful();
             self::assertSelectorTextContains('.payment-status-badge', $label);
             self::assertSelectorTextNotContains('main', 'requires_action');
@@ -238,7 +238,7 @@ final class CustomerOrdersTest extends WebTestCase
         $debugData->reset();
         $this->client->enableProfiler();
 
-        $this->client->request('GET', '/yeni/hesabim/siparisler');
+        $this->client->request('GET', '/hesabim/siparisler');
 
         self::assertResponseIsSuccessful();
         self::assertGreaterThanOrEqual(1, $this->client->getCrawler()->filter('[data-testid="order-row"]')->count());
@@ -255,7 +255,7 @@ final class CustomerOrdersTest extends WebTestCase
         $customer = $this->createCustomer('empty@example.com');
         $this->client->loginUser($customer, 'main');
 
-        $this->client->request('GET', '/yeni/hesabim/siparisler');
+        $this->client->request('GET', '/hesabim/siparisler');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'Henüz siparişiniz yok');
@@ -267,7 +267,7 @@ final class CustomerOrdersTest extends WebTestCase
         $order = $this->visualOrder($customer, 'EOA-20261004-AAAA00000001');
         $this->entityManager->clear();
         $this->client->loginUser($this->reloadCustomer($customer->id()), 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('details[data-testid="order-row"]:not([open]) > summary');
@@ -282,7 +282,7 @@ final class CustomerOrdersTest extends WebTestCase
         self::assertStringContainsString('product-placeholder', (string) $crawler->filter('.order-products img')->eq(2)->attr('src'));
         self::assertSelectorTextContains('.order-products', '200,00 TL');
 
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('/uploads/products/order-primary.jpg', (string) $crawler->filter('.order-products img')->first()->attr('src'));
         self::assertSelectorTextContains('.order-products', 'HISTORICAL-SKU');
@@ -345,7 +345,7 @@ final class CustomerOrdersTest extends WebTestCase
         $order = $this->confirmedOrder($customer);
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', $order->orderNumber());
@@ -365,7 +365,7 @@ final class CustomerOrdersTest extends WebTestCase
         $this->settlePayment($order);
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="payment-summary"]');
@@ -379,7 +379,7 @@ final class CustomerOrdersTest extends WebTestCase
         $shipment = $this->shippedParcel($order, ShipmentState::InTransit, 'TR-ABC-123');
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="shipment-summary"]');
@@ -394,7 +394,7 @@ final class CustomerOrdersTest extends WebTestCase
         $order = $this->confirmedOrder($customer);
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('[data-testid="shipment-summary"]');
@@ -415,7 +415,7 @@ final class CustomerOrdersTest extends WebTestCase
         $this->entityManager->flush();
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextNotContains('main', 'merchant_oid');
@@ -428,7 +428,7 @@ final class CustomerOrdersTest extends WebTestCase
         $order = $this->confirmedOrder($owner);
 
         $this->client->loginUser($stranger, 'main');
-        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber());
+        $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber());
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -438,7 +438,7 @@ final class CustomerOrdersTest extends WebTestCase
         $customer = $this->createCustomer('guess@example.com');
         $this->client->loginUser($customer, 'main');
 
-        $this->client->request('GET', '/yeni/hesabim/siparisler/EOA-20260928-FFFFFFFFFF');
+        $this->client->request('GET', '/hesabim/siparisler/EOA-20260928-FFFFFFFFFF');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -448,7 +448,7 @@ final class CustomerOrdersTest extends WebTestCase
         $customer = $this->createCustomer('malformed@example.com');
         $this->client->loginUser($customer, 'main');
 
-        $this->client->request('GET', '/yeni/hesabim/siparisler/../../../etc/passwd');
+        $this->client->request('GET', '/hesabim/siparisler/../../../etc/passwd');
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -460,7 +460,7 @@ final class CustomerOrdersTest extends WebTestCase
         $item = $order->items()[0];
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber().'/iade');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'İade talebi');
         self::assertSelectorExists('form[name="customer_return_request"]');
@@ -471,10 +471,10 @@ final class CustomerOrdersTest extends WebTestCase
             'customer_return_request[line_0][reason]' => 'Kutu ezik.',
         ]));
 
-        self::assertResponseRedirects('/yeni/hesabim/iadeler');
+        self::assertResponseRedirects('/hesabim/iadeler');
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_return_request WHERE order_id = ?', [$order->id()]));
 
-        $crawler = $this->client->request('GET', '/yeni/hesabim/iadeler');
+        $crawler = $this->client->request('GET', '/hesabim/iadeler');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'İadelerim');
         self::assertSelectorTextContains('main', $order->orderNumber());
@@ -486,7 +486,7 @@ final class CustomerOrdersTest extends WebTestCase
         $order = $this->confirmedOrder($customer, quantity: 2);
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber().'/iade');
         $this->client->submit($crawler->selectButton('İade talebini gönder')->form([
             'customer_return_request[customerReason]' => 'Hepsi bozuk.',
             'customer_return_request[line_0][quantity]' => 9,
@@ -503,7 +503,7 @@ final class CustomerOrdersTest extends WebTestCase
         $customer = $this->createCustomer('empty-selection@example.com');
         $order = $this->confirmedOrder($customer);
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber().'/iade');
         $this->client->submit($crawler->selectButton('İade talebini gönder')->form([
             'customer_return_request[customerReason]' => 'Kutusu hasarlı.',
             'customer_return_request[line_0][quantity]' => 0,
@@ -521,7 +521,7 @@ final class CustomerOrdersTest extends WebTestCase
         $order = $this->confirmedOrder($customer);
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber().'/iade');
         $this->client->submit($crawler->selectButton('İade talebini gönder')->form([
             'customer_return_request[customerReason]' => '',
             'customer_return_request[line_0][quantity]' => 0,
@@ -538,7 +538,7 @@ final class CustomerOrdersTest extends WebTestCase
         $order = $this->placedOrder($customer);
 
         $this->client->loginUser($customer, 'main');
-        $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber().'/iade');
 
         // The page explains rather than offering a form that is guaranteed to be refused.
         self::assertResponseIsSuccessful();
@@ -553,7 +553,7 @@ final class CustomerOrdersTest extends WebTestCase
         $this->openReturn($customer, $order, 2, 'İlk talep.');
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber().'/iade');
 
         self::assertResponseIsSuccessful();
         $quantity = $crawler->filter('input[name="customer_return_request[line_0][quantity]"]')->attr('max');
@@ -569,7 +569,7 @@ final class CustomerOrdersTest extends WebTestCase
         $this->entityManager->flush();
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/iadeler/'.$return->returnNumber());
+        $crawler = $this->client->request('GET', '/hesabim/iadeler/'.$return->returnNumber());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', $return->returnNumber());
@@ -586,7 +586,7 @@ final class CustomerOrdersTest extends WebTestCase
         $return = $this->openReturn($owner, $order, 1, 'Bozuk.');
 
         $this->client->loginUser($stranger, 'main');
-        $this->client->request('GET', '/yeni/hesabim/iadeler/'.$return->returnNumber());
+        $this->client->request('GET', '/hesabim/iadeler/'.$return->returnNumber());
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -599,10 +599,10 @@ final class CustomerOrdersTest extends WebTestCase
         $open = $this->openReturn($customer, $order, 1, 'Bir.');
 
         $this->client->loginUser($customer, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/iadeler/'.$open->returnNumber());
+        $crawler = $this->client->request('GET', '/hesabim/iadeler/'.$open->returnNumber());
         $this->client->submit($crawler->selectButton('Talebi geri al')->form());
 
-        self::assertResponseRedirects('/yeni/hesabim/iadeler');
+        self::assertResponseRedirects('/hesabim/iadeler');
         $this->entityManager->clear();
         self::assertSame(ReturnState::Withdrawn, $this->reload($open)->state());
 
@@ -613,7 +613,7 @@ final class CustomerOrdersTest extends WebTestCase
         $this->reload($approved)->approve('Kabul.', new \DateTimeImmutable('2026-09-28 12:00:00'), 'admin@example.com');
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/hesabim/iadeler/'.$approved->returnNumber());
+        $crawler = $this->client->request('GET', '/hesabim/iadeler/'.$approved->returnNumber());
         self::assertSelectorExists('form[action*="geri-al"]');
         // Minted while the button was still on the page, so the later refusal is proved by the
         // domain guard alone rather than by a stale or absent token.
@@ -622,12 +622,12 @@ final class CustomerOrdersTest extends WebTestCase
         $this->reload($approved)->markReceived(new \DateTimeImmutable('2026-09-28 13:00:00'), 'admin@example.com');
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/hesabim/iadeler/'.$approved->returnNumber());
+        $this->client->request('GET', '/hesabim/iadeler/'.$approved->returnNumber());
         self::assertSelectorNotExists('form[action*="geri-al"]');
 
         // Hidden *and* guarded: a well-formed, correctly-tokenised replay is still refused.
-        $this->client->request('POST', '/yeni/hesabim/iadeler/'.$approved->returnNumber().'/geri-al', ['_token' => $token]);
-        self::assertResponseRedirects('/yeni/hesabim/iadeler');
+        $this->client->request('POST', '/hesabim/iadeler/'.$approved->returnNumber().'/geri-al', ['_token' => $token]);
+        self::assertResponseRedirects('/hesabim/iadeler');
         $this->entityManager->clear();
         self::assertSame(ReturnState::Received, $this->reload($approved)->state());
     }
@@ -640,7 +640,7 @@ final class CustomerOrdersTest extends WebTestCase
         $return = $this->openReturn($owner, $order, 1, 'Bozuk.');
 
         $this->client->loginUser($stranger, 'main');
-        $this->client->request('POST', '/yeni/hesabim/iadeler/'.$return->returnNumber().'/geri-al', [
+        $this->client->request('POST', '/hesabim/iadeler/'.$return->returnNumber().'/geri-al', [
             '_token' => 'anything',
         ]);
 
@@ -654,7 +654,7 @@ final class CustomerOrdersTest extends WebTestCase
         $customer = $this->createCustomer('nav@example.com');
         $this->client->loginUser($customer, 'main');
 
-        $crawler = $this->client->request('GET', '/yeni/hesabim');
+        $crawler = $this->client->request('GET', '/hesabim');
 
         self::assertSelectorExists('a[href$="/hesabim/siparisler"]');
         self::assertSelectorExists('a[href$="/hesabim/iadeler"]');
@@ -666,7 +666,7 @@ final class CustomerOrdersTest extends WebTestCase
         $customer = $this->createCustomer('footer@example.com');
         $this->client->loginUser($customer, 'main');
 
-        $crawler = $this->client->request('GET', '/yeni/katalog');
+        $crawler = $this->client->request('GET', '/katalog');
 
         self::assertSelectorExists('.site-footer a[href$="/hesabim/siparisler"]');
         self::assertSelectorExists('.site-footer a[href$="/hesabim/iadeler"]');
@@ -680,12 +680,12 @@ final class CustomerOrdersTest extends WebTestCase
         $itemId = $order->items()[0]->id();
 
         $this->client->loginUser($stranger, 'main');
-        $crawler = $this->client->request('GET', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade');
+        $crawler = $this->client->request('GET', '/hesabim/siparisler/'.$order->orderNumber().'/iade');
 
         // The form is never rendered for a foreign order, and a hand-posted submit is refused too.
         self::assertResponseStatusCodeSame(404);
 
-        $this->client->request('POST', '/yeni/hesabim/siparisler/'.$order->orderNumber().'/iade', [
+        $this->client->request('POST', '/hesabim/siparisler/'.$order->orderNumber().'/iade', [
             'customer_return_request' => [
                 'customerReason' => 'Elle gönderiliyorum.',
                 'lines' => [['quantity' => 1, 'reason' => 'Elle.']],

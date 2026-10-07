@@ -34,7 +34,7 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testAdministratorCanEnableB2bAndPersistStoreSettings(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('input[type="checkbox"][name="store_settings[b2bEnabled]"]'));
@@ -48,7 +48,7 @@ final class SettingsControllerTest extends WebTestCase
         $form['store_settings[contactEmail]'] = 'contact@example.com';
         $this->client->submit($form);
 
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
 
         $configuration = self::getContainer()->get(StoreConfiguration::class);
         self::assertTrue($configuration->isB2bEnabled());
@@ -59,7 +59,7 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testInvalidTaxRateIsRejectedWithoutChangingStoredSettings(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['store_settings[defaultTaxRate]'] = '101';
 
@@ -72,7 +72,7 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testInvalidCsrfTokenIsRejectedWithoutEnablingB2b(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $b2bEnabled = $form['store_settings[b2bEnabled]'];
         self::assertInstanceOf(ChoiceFormField::class, $b2bEnabled);
@@ -87,7 +87,7 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testStorefrontColorsCanBeSavedAndAppearOnEveryStorefrontLayout(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         self::assertSelectorCount(9, 'fieldset input[type="color"]');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $colors = [
@@ -99,9 +99,9 @@ final class SettingsControllerTest extends WebTestCase
             $form['store_settings[storefront'.$name.']'] = $value;
         }
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
 
-        foreach (['/yeni/', '/yeni/katalog', '/yeni/markalar'] as $url) {
+        foreach (['/', '/katalog', '/markalar'] as $url) {
             $crawler = $this->client->request('GET', $url);
             self::assertResponseIsSuccessful();
             $css = $crawler->filter('style[data-storefront-colors]')->text();
@@ -113,7 +113,7 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testSettingsOrderAndShippingAmountsInLira(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('[name="store_settings[currency]"]');
         self::assertStringNotContainsString('TRY', $crawler->filter('main')->text());
@@ -122,14 +122,14 @@ final class SettingsControllerTest extends WebTestCase
         self::assertCount(1, $formNode->filter('button[type="submit"]'));
         self::assertSame(0, $formNode->filterXPath('.//button[@type="submit"]/following::fieldset')->count());
         self::assertCount(0, $formNode->filter('[name*="shipping"], [name*="seo"], [name*="paymentProvider"]'));
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/shipping');
+        $crawler = $this->client->request('GET', '/admin/settings/shipping');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         self::assertSame('250.00', $form['shipping_settings[shippingFee]']->getValue());
         self::assertSame('1500.00', $form['shipping_settings[freeShippingThreshold]']->getValue());
         $form['shipping_settings[shippingFee]'] = '325.50';
         $form['shipping_settings[freeShippingThreshold]'] = '2000';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings/shipping');
+        self::assertResponseRedirects('/admin/settings/shipping');
         $configuration = self::getContainer()->get(StoreConfiguration::class);
         self::assertSame(32_550, $configuration->shippingFee());
         self::assertSame(200_000, $configuration->freeShippingThreshold());
@@ -138,7 +138,7 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testNegativeShippingAmountIsRejected(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/shipping');
+        $crawler = $this->client->request('GET', '/admin/settings/shipping');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['shipping_settings[shippingFee]'] = '-1';
         $this->client->submit($form);
@@ -149,7 +149,7 @@ final class SettingsControllerTest extends WebTestCase
     public function testInvalidStorefrontColorsAreRejectedWithoutPersistence(): void
     {
         foreach (['#fff', '#1234567', '#zzzzzz', 'red', '#123456; color:red', "#123456\n", ''] as $invalid) {
-            $crawler = $this->client->request('GET', '/yeni/admin/settings');
+            $crawler = $this->client->request('GET', '/admin/settings');
             $form = $crawler->selectButton('Ayarları kaydet')->form();
             $form['store_settings[storefrontNavy]'] = $invalid;
             $this->client->submit($form);
@@ -161,24 +161,24 @@ final class SettingsControllerTest extends WebTestCase
     public function testAnonymousRequestsCannotChangeStorefrontColors(): void
     {
         $this->client->getCookieJar()->clear();
-        $this->client->request('POST', '/yeni/admin/settings', ['store_settings' => ['storefrontNavy' => '#123456']]);
-        self::assertResponseRedirects('/yeni/admin/login');
+        $this->client->request('POST', '/admin/settings', ['store_settings' => ['storefrontNavy' => '#123456']]);
+        self::assertResponseRedirects('/admin/login');
         self::assertSame('#092a53', self::getContainer()->get(StoreConfiguration::class)->current()->storefrontNavy);
     }
 
     public function testAnalyticsSnippetIsNormalizedRenderedOnceAndRemovedOnNextRequest(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/katalog');
+        $crawler = $this->client->request('GET', '/katalog');
         self::assertCount(0, $crawler->filter('head script[src*="googletagmanager.com"]'));
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['store_settings[ga4MeasurementId]'] = '<script async src="https://www.googletagmanager.com/gtag/js?id=G-ABC1234567"></script><script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag("js", new Date()); gtag("config", "G-ABC1234567");</script>';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
         self::assertSame('G-ABC1234567', json_decode($this->connection->fetchOne('SELECT value FROM store_setting WHERE setting_key = ?', ['analytics.ga4_measurement_id']), true));
         self::assertSame('TRY', self::getContainer()->get(StoreConfiguration::class)->currency());
 
-        foreach (['/yeni/', '/yeni/katalog', '/yeni/koleksiyonlar', '/yeni/giris', '/yeni/kayit', '/yeni/parolami-unuttum'] as $url) {
+        foreach (['/', '/katalog', '/koleksiyonlar', '/giris', '/kayit', '/parolami-unuttum'] as $url) {
             $crawler = $this->client->request('GET', $url);
             self::assertResponseIsSuccessful();
             self::assertCount(1, $crawler->filter('head script[async][src="https://www.googletagmanager.com/gtag/js?id=G-ABC1234567"]'));
@@ -188,14 +188,14 @@ final class SettingsControllerTest extends WebTestCase
             self::assertStringContainsString('https://region1.google-analytics.com', $policy);
             self::assertStringNotContainsString('unsafe-eval', $policy);
         }
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         self::assertCount(0, $crawler->filter('script[src*="googletagmanager.com"]'));
         self::assertStringNotContainsString('googletagmanager.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['store_settings[ga4MeasurementId]'] = '';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings');
-        $crawler = $this->client->request('GET', '/yeni/katalog');
+        self::assertResponseRedirects('/admin/settings');
+        $crawler = $this->client->request('GET', '/katalog');
         self::assertCount(0, $crawler->filter('script[src*="googletagmanager.com"], script[data-storefront-analytics]'));
         self::assertStringNotContainsString('googletagmanager.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
     }
@@ -203,7 +203,7 @@ final class SettingsControllerTest extends WebTestCase
     public function testInvalidAnalyticsValuesAreRejectedAndStoredScriptsNeverRender(): void
     {
         foreach (['UA-1234567-1', 'G-ABC', 'G-ABC1234567<script>alert(1)</script>', '<script>alert(1)</script>', '<script src="https://evil.example/?id=G-ABC1234567"></script>', '<script src="https://www.googletagmanager.com/gtag/js?id=G-ABC1234567"></script><script>gtag("config", "G-XYZ1234567");</script>'] as $invalid) {
-            $crawler = $this->client->request('GET', '/yeni/admin/settings');
+            $crawler = $this->client->request('GET', '/admin/settings');
             $form = $crawler->selectButton('Ayarları kaydet')->form();
             $form['store_settings[ga4MeasurementId]'] = $invalid;
             $this->client->submit($form);
@@ -211,7 +211,7 @@ final class SettingsControllerTest extends WebTestCase
             self::assertNull(self::getContainer()->get(StoreConfiguration::class)->current()->ga4MeasurementId);
         }
         $this->connection->update('store_setting', ['value' => json_encode('<script>alert(1)</script>')], ['setting_key' => 'analytics.ga4_measurement_id']);
-        $crawler = $this->client->request('GET', '/yeni/katalog');
+        $crawler = $this->client->request('GET', '/katalog');
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('script[src*="googletagmanager.com"], script[data-storefront-analytics]'));
         self::assertStringNotContainsString('<script>alert(1)</script>', $this->client->getResponse()->getContent());
@@ -236,29 +236,29 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testSeoAndGeneralFormsOnlyWriteTheirOwnSettings(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/seo');
+        $crawler = $this->client->request('GET', '/admin/settings/seo');
         self::assertResponseIsSuccessful();
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['seo_settings[seoIndexingEnabled]']->untick();
         $form['seo_settings[seoDefaultDescription]'] = 'Mağazanın SEO açıklaması';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings/seo');
+        self::assertResponseRedirects('/admin/settings/seo');
         self::assertSame(25_000, self::getContainer()->get(StoreConfiguration::class)->shippingFee());
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         // A different administrator changes SEO after the general form was opened.
         $this->connection->update('store_setting', ['value' => json_encode('Yeni açıklama')], ['setting_key' => 'seo.default_description']);
         $form['store_settings[storeName]'] = 'Yeni mağaza adı';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
         self::assertSame('Yeni açıklama', self::getContainer()->get(StoreConfiguration::class)->seoDefaultDescription());
         self::assertFalse(self::getContainer()->get(StoreConfiguration::class)->isSeoIndexingEnabled());
     }
 
     public function testPaymentSecretsAreEncryptedHiddenPreservedAndUsedImmediately(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        $crawler = $this->client->request('GET', '/admin/settings/payment');
         self::assertResponseIsSuccessful();
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['payment_settings[paymentProvider]'] = 'paytr';
@@ -266,7 +266,7 @@ final class SettingsControllerTest extends WebTestCase
         $form['payment_settings[merchantKey]'] = 'private-admin-key';
         $form['payment_settings[merchantSalt]'] = 'private-admin-salt';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings/payment');
+        self::assertResponseRedirects('/admin/settings/payment');
         $stored = $this->connection->fetchAssociative('SELECT * FROM payment_configuration WHERE id = 1');
         self::assertStringNotContainsString('private-admin-key', $stored['merchant_key_encrypted']);
         self::assertStringNotContainsString('private-admin-salt', $stored['merchant_salt_encrypted']);
@@ -279,7 +279,7 @@ final class SettingsControllerTest extends WebTestCase
             $source->current()->signature()->callbackHash('TEST', 'success', '100'),
         );
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        $crawler = $this->client->request('GET', '/admin/settings/payment');
         self::assertStringNotContainsString('private-admin-key', $this->client->getResponse()->getContent());
         self::assertStringNotContainsString('private-admin-salt', $this->client->getResponse()->getContent());
         self::assertSelectorTextContains('[data-paytr-status]', 'Yapılandırıldı');
@@ -291,17 +291,17 @@ final class SettingsControllerTest extends WebTestCase
         self::assertTrue($source->current()->testMode());
         $form['payment_settings[confirmLiveMode]']->tick();
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings/payment');
+        self::assertResponseRedirects('/admin/settings/payment');
         self::assertFalse($source->current()->testMode());
         self::assertSame($stored['merchant_key_encrypted'], $this->connection->fetchOne('SELECT merchant_key_encrypted FROM payment_configuration WHERE id = 1'));
         self::assertSame($stored['merchant_salt_encrypted'], $this->connection->fetchOne('SELECT merchant_salt_encrypted FROM payment_configuration WHERE id = 1'));
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        $crawler = $this->client->request('GET', '/admin/settings/payment');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['payment_settings[confirmLiveMode]']->tick();
         $form['payment_settings[merchantKey]'] = 'replacement-admin-key';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings/payment');
+        self::assertResponseRedirects('/admin/settings/payment');
         self::assertSame(
             (new \App\Module\Payment\Gateway\PayTR\PaytrSignature('replacement-admin-key', 'private-admin-salt'))->refundToken('654321', 'TEST', '1.00'),
             $source->current()->signature()->refundToken('654321', 'TEST', '1.00'),
@@ -313,10 +313,10 @@ final class SettingsControllerTest extends WebTestCase
 
     public function testDedicatedSettingsFormsRejectInvalidCsrfWithoutWriting(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         self::assertSame(['Mağaza Ayarları'], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
         foreach (['seo' => 'SEO', 'shipping' => 'Kargo Ayarları', 'payment' => 'Ödeme Ayarları', 'cookies' => 'Çerez Politikası'] as $page => $label) {
-            $crawler = $this->client->request('GET', '/yeni/admin/settings/'.$page);
+            $crawler = $this->client->request('GET', '/admin/settings/'.$page);
             self::assertSame([$label], $crawler->filter('.nav-link[aria-current="page"]')->each(static fn ($node) => $node->text()));
             $form = $crawler->selectButton('Ayarları kaydet')->form();
             $form[('cookies' === $page ? 'cookie' : $page).'_settings[_token]'] = 'invalid';
@@ -330,7 +330,7 @@ final class SettingsControllerTest extends WebTestCase
     public function testPaymentRequestsNeverPersistSecretsInProfilerEvenWithoutAuthentication(): void
     {
         $this->client->enableProfiler();
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/payment');
+        $crawler = $this->client->request('GET', '/admin/settings/payment');
         self::assertResponseIsSuccessful();
         self::assertNull($this->client->getProfile());
         $form = $crawler->selectButton('Ayarları kaydet')->form();
@@ -346,15 +346,15 @@ final class SettingsControllerTest extends WebTestCase
 
         $this->client->getCookieJar()->clear();
         $this->client->enableProfiler();
-        $this->client->request('POST', '/yeni/admin/settings/payment', ['payment_settings' => ['merchantKey' => 'unauthenticated-private-key']]);
-        self::assertResponseRedirects('/yeni/admin/login');
+        $this->client->request('POST', '/admin/settings/payment', ['payment_settings' => ['merchantKey' => 'unauthenticated-private-key']]);
+        self::assertResponseRedirects('/admin/login');
         self::assertNull($this->client->getProfile());
     }
 
     public function testCookieSnippetIsSavedRenderedOnlyOnStorefrontAndRemovedWhenCleared(): void
     {
         $snippet = '<script src="https://consent.example.com/embed.js" data-cookie-test="external"></script><script data-cookie-test="inline">window.cookieConsent = true;</script>';
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        $crawler = $this->client->request('GET', '/admin/settings/cookies');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Çerez Politikası');
         self::assertSame('Çerez Politikası', $crawler->filter('.admin-sidebar nav .nav-link')->last()->text());
@@ -362,12 +362,12 @@ final class SettingsControllerTest extends WebTestCase
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['cookie_settings[script]'] = '  '.$snippet.'  ';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings/cookies');
+        self::assertResponseRedirects('/admin/settings/cookies');
         self::assertSame($snippet, self::getContainer()->get(StoreConfiguration::class)->cookieScript());
         self::assertSame($snippet, json_decode($this->connection->fetchOne('SELECT value FROM store_setting WHERE setting_key = ?', ['cookies.script']), true));
         self::assertSame(25_000, self::getContainer()->get(StoreConfiguration::class)->shippingFee());
 
-        foreach (['/yeni/', '/yeni/katalog', '/yeni/giris'] as $url) {
+        foreach (['/', '/katalog', '/giris'] as $url) {
             $this->client->request('GET', $url);
             self::assertResponseIsSuccessful();
             self::assertSelectorCount(1, 'head script[data-cookie-test="external"]');
@@ -376,44 +376,44 @@ final class SettingsControllerTest extends WebTestCase
             self::assertStringContainsString('https://consent.example.com', $policy);
             self::assertStringNotContainsString('unsafe-eval', $policy);
         }
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        $crawler = $this->client->request('GET', '/admin/settings/cookies');
         self::assertSelectorNotExists('script[data-cookie-test]');
         self::assertStringNotContainsString('consent.example.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
         self::assertSame($snippet, $crawler->selectButton('Ayarları kaydet')->form()['cookie_settings[script]']->getValue());
 
-        $general = $this->client->request('GET', '/yeni/admin/settings')->selectButton('Ayarları kaydet')->form();
+        $general = $this->client->request('GET', '/admin/settings')->selectButton('Ayarları kaydet')->form();
         $general['store_settings[storeName]'] = 'Çerez testi mağazası';
         $this->client->submit($general);
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
         self::assertSame($snippet, self::getContainer()->get(StoreConfiguration::class)->cookieScript());
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        $crawler = $this->client->request('GET', '/admin/settings/cookies');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['cookie_settings[script]'] = '';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings/cookies');
+        self::assertResponseRedirects('/admin/settings/cookies');
         self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
-        $this->client->request('GET', '/yeni/katalog');
+        $this->client->request('GET', '/katalog');
         self::assertSelectorNotExists('script[data-cookie-test]');
         self::assertStringNotContainsString('consent.example.com', $this->client->getResponse()->headers->get('Content-Security-Policy'));
     }
 
     public function testCookieSettingsRejectAnonymousWritesInvalidCsrfAndOversizeCode(): void
     {
-        $crawler = $this->client->request('GET', '/yeni/admin/settings/cookies');
+        $crawler = $this->client->request('GET', '/admin/settings/cookies');
         $form = $crawler->selectButton('Ayarları kaydet')->form();
         $form['cookie_settings[script]'] = '<script>window.shouldNotRun = true;</script>';
         $form['cookie_settings[_token]'] = 'invalid';
         $this->client->submit($form);
         self::assertResponseStatusCodeSame(422);
         self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
-        $form = $this->client->request('GET', '/yeni/admin/settings/cookies')->selectButton('Ayarları kaydet')->form();
+        $form = $this->client->request('GET', '/admin/settings/cookies')->selectButton('Ayarları kaydet')->form();
         $form['cookie_settings[script]'] = str_repeat('x', 50001);
         $this->client->submit($form);
         self::assertResponseStatusCodeSame(422);
         self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
         $this->client->getCookieJar()->clear();
-        $this->client->request('POST', '/yeni/admin/settings/cookies', ['cookie_settings' => ['script' => '<script>window.shouldNotRun = true;</script>']]);
-        self::assertResponseRedirects('/yeni/admin/login');
+        $this->client->request('POST', '/admin/settings/cookies', ['cookie_settings' => ['script' => '<script>window.shouldNotRun = true;</script>']]);
+        self::assertResponseRedirects('/admin/login');
         self::assertNull(self::getContainer()->get(StoreConfiguration::class)->cookieScript());
     }
 

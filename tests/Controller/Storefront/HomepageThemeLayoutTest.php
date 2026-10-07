@@ -69,7 +69,7 @@ final class HomepageThemeLayoutTest extends WebTestCase
         $this->section(HomeSectionType::CategoryMenu, 'Kategoriler', ['slugs' => [$category->slug()]], 10);
         $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
             $this->slide(['title' => 'Yaza özel']),
-            $this->slide(['label' => 'Efe Otomotiv', 'title' => 'Doğru parça', 'secondaryText' => 'Kategoriler', 'secondaryLink' => '/yeni/kategoriler']),
+            $this->slide(['label' => 'Efe Otomotiv', 'title' => 'Doğru parça', 'secondaryText' => 'Kategoriler', 'secondaryLink' => '/kategoriler']),
         ]], 20);
         $this->section(HomeSectionType::ProductCarousel, 'Çok satanlar', ['slugs' => [$first->slug(), $second->slug(), $third->slug()]], 30);
 
@@ -175,9 +175,9 @@ final class HomepageThemeLayoutTest extends WebTestCase
                 'label' => 'Efe Otomotiv',
                 'title' => 'İki butonlu',
                 'primaryText' => 'Hemen başla',
-                'primaryLink' => '/yeni/katalog',
+                'primaryLink' => '/katalog',
                 'secondaryText' => 'Kategoriler',
-                'secondaryLink' => '/yeni/kategoriler',
+                'secondaryLink' => '/kategoriler',
             ]),
         ]], 10);
 
@@ -193,8 +193,8 @@ final class HomepageThemeLayoutTest extends WebTestCase
         // The second composition: two calls to action, no pill, and the theme's own left-aligned
         // feature frame.
         self::assertSame(0, $slides->eq(1)->filter('.price-pill')->count());
-        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .shop-now[href="/yeni/katalog"]')->count());
-        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .learn-more[href="/yeni/kategoriler"]')->count());
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .shop-now[href="/katalog"]')->count());
+        self::assertSame(1, $slides->eq(1)->filter('.hero-actions .learn-more[href="/kategoriler"]')->count());
         self::assertStringContainsString('mobile-feature', (string) $slides->eq(1)->attr('class'));
         self::assertStringContainsString('alt', (string) $slides->eq(1)->attr('class'));
 
@@ -288,7 +288,7 @@ final class HomepageThemeLayoutTest extends WebTestCase
         $brand = $this->brand('Brembo', 'brembo');
 
         $this->section(HomeSectionType::BannerGrid, 'Kampanyalar', ['banners' => [
-            ['title' => 'Yaz indirimi', 'image' => $image, 'link' => '/yeni/katalog'],
+            ['title' => 'Yaz indirimi', 'image' => $image, 'link' => '/katalog'],
         ]], 10);
         $this->section(HomeSectionType::Features, 'Güvence', ['features' => [
             ['title' => 'Hızlı kargo', 'description' => 'Aynı gün gönderim'],
@@ -329,7 +329,7 @@ final class HomepageThemeLayoutTest extends WebTestCase
             'headline' => '2.500 TL üzeri ücretsiz kargo',
             'description' => 'Fiyatlar stoklarla sınırlıdır.',
             'cta' => 'Kampanyayı İncele',
-            'link' => '/yeni/katalog',
+            'link' => '/katalog',
             'slugs' => [$first->slug(), $second->slug(), $third->slug()],
         ], 10);
 
@@ -343,7 +343,7 @@ final class HomepageThemeLayoutTest extends WebTestCase
         self::assertSelectorTextContains('.split-builder .big-promo h2', '2.500 TL üzeri ücretsiz kargo');
         self::assertSelectorTextContains('.split-builder .big-promo p', 'stoklarla sınırlıdır');
         self::assertSelectorTextContains('.split-builder .big-promo .big-promo-cta', 'Kampanyayı İncele');
-        self::assertSame('/yeni/katalog', $split->filter('.big-promo .big-promo-cta')->attr('href'));
+        self::assertSame('/katalog', $split->filter('.big-promo .big-promo-cta')->attr('href'));
         // The homepage's card, not the catalogue's: the catalogue list keeps its own partial.
         self::assertSame(3, $split->filter('.product-card.home-product-card')->count());
     }
@@ -486,14 +486,14 @@ final class HomepageThemeLayoutTest extends WebTestCase
         $this->section(HomeSectionType::CategoryMenu, 'Kategoriler', ['slugs' => [$category->slug()]], 20);
         $this->section(HomeSectionType::HeroSlider, 'Kampanya', ['slides' => [
             $this->slide(['title' => 'Birinci']),
-            $this->slide(['title' => 'İkinci', 'secondaryText' => 'Kategoriler', 'secondaryLink' => '/yeni/kategoriler']),
+            $this->slide(['title' => 'İkinci', 'secondaryText' => 'Kategoriler', 'secondaryLink' => '/kategoriler']),
         ]], 30);
         $this->section(HomeSectionType::ProductCarousel, 'Çok Satanlar', ['slugs' => $slugs], 40);
         $this->section(HomeSectionType::BannerGrid, 'Kampanyalar', ['banners' => [
-            ['title' => 'Yaz', 'image' => $image, 'link' => '/yeni/katalog'],
-            ['title' => 'Kış', 'image' => $image, 'link' => '/yeni/katalog'],
-            ['title' => 'Bahar', 'image' => $image, 'link' => '/yeni/katalog'],
-            ['title' => 'Sonbahar', 'image' => $image, 'link' => '/yeni/katalog'],
+            ['title' => 'Yaz', 'image' => $image, 'link' => '/katalog'],
+            ['title' => 'Kış', 'image' => $image, 'link' => '/katalog'],
+            ['title' => 'Bahar', 'image' => $image, 'link' => '/katalog'],
+            ['title' => 'Sonbahar', 'image' => $image, 'link' => '/katalog'],
         ]], 50);
         $this->section(HomeSectionType::ProductCarousel, 'Yeni Ürünler', ['slugs' => $slugs], 60);
         $this->section(HomeSectionType::Features, 'Güvence', ['features' => [
@@ -507,7 +507,7 @@ final class HomepageThemeLayoutTest extends WebTestCase
             'headline' => 'Ücretsiz kargo',
             'description' => 'Stoklarla sınırlıdır.',
             'cta' => 'İncele',
-            'link' => '/yeni/katalog',
+            'link' => '/katalog',
             'slugs' => $slugs,
         ], 80);
         $this->section(HomeSectionType::BrandStrip, 'Popüler Markalar', ['slugs' => [$brand->slug()]], 90);
@@ -783,7 +783,7 @@ final class HomepageThemeLayoutTest extends WebTestCase
 
     private function home(): Crawler
     {
-        $crawler = static::getClient()->request('GET', '/yeni/');
+        $crawler = static::getClient()->request('GET', '/');
         self::assertResponseIsSuccessful();
 
         return $crawler;

@@ -15,9 +15,9 @@ final class BrandLogoExtensionTest extends TestCase
 {
     public function testMissingBrandAlwaysUsesTheCentralAssetWithThePublicBasePath(): void
     {
-        $media = new StorefrontMediaExtension(new Packages(new PathPackage('/yeni', new EmptyVersionStrategy())), '/yeni');
+        $media = new StorefrontMediaExtension(new Packages(new PathPackage('/', new EmptyVersionStrategy())), '/');
         $extension = new BrandLogoExtension(new BrandLogoStorage(sys_get_temp_dir().'/absent-brand-'.bin2hex(random_bytes(5)), Validation::createValidator()), $media);
-        self::assertSame('/yeni/storefront/images/brand-placeholder.svg', $extension->logoUrl(78));
-        self::assertSame('/yeni/storefront/images/brand-placeholder.svg', $extension->logoUrl(0));
+        self::assertSame('/storefront/images/brand-placeholder.svg', $extension->logoUrl(78));
+        self::assertSame('/storefront/images/brand-placeholder.svg', $extension->logoUrl(0));
     }
 }

@@ -61,7 +61,7 @@ final class AuditTrailTest extends WebTestCase
     {
         $this->loginAsAdministrator();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         self::assertResponseIsSuccessful();
         $form = $crawler->selectButton('Save')->form();
         $form['store_settings[storeName]'] = 'Efe Otomotiv Adana';
@@ -69,7 +69,7 @@ final class AuditTrailTest extends WebTestCase
         // which is exactly why a raw form dump would be useless as an audit record.
         $form['store_settings[defaultTaxRate]'] = '22';
         $this->client->submit($form);
-        self::assertResponseRedirects('/yeni/admin/settings');
+        self::assertResponseRedirects('/admin/settings');
 
         $row = $this->lastRowFor(AuditAction::SettingsUpdated);
         self::assertNotNull($row, 'Changing the tax rate produced no audit row.');
@@ -94,7 +94,7 @@ final class AuditTrailTest extends WebTestCase
     {
         $this->loginAsAdministrator();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $this->client->submit($crawler->selectButton('Save')->form());
 
         self::assertSame(
@@ -107,7 +107,7 @@ final class AuditTrailTest extends WebTestCase
     {
         $administrator = $this->administrator('audit-admin@example.com');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/login');
+        $crawler = $this->client->request('GET', '/admin/login');
         $this->client->submit($crawler->selectButton('Sign in')->form([
             '_username' => 'audit-admin@example.com',
             '_password' => 'not-the-password',
@@ -121,7 +121,7 @@ final class AuditTrailTest extends WebTestCase
         self::assertSame('invalid_credentials', $failure->payload()['reason']);
 
         $this->client->restart();
-        $crawler = $this->client->request('GET', '/yeni/admin/login');
+        $crawler = $this->client->request('GET', '/admin/login');
         $this->client->submit($crawler->selectButton('Sign in')->form([
             '_username' => 'audit-admin@example.com',
             '_password' => self::PASSWORD,
@@ -144,7 +144,7 @@ final class AuditTrailTest extends WebTestCase
     {
         $this->administrator('audit-secret@example.com');
 
-        $crawler = $this->client->request('GET', '/yeni/admin/login');
+        $crawler = $this->client->request('GET', '/admin/login');
         $this->client->submit($crawler->selectButton('Sign in')->form([
             '_username' => 'audit-secret@example.com',
             '_password' => 'a-very-distinctive-wrong-password',
@@ -159,7 +159,7 @@ final class AuditTrailTest extends WebTestCase
     {
         $this->loginAsAdministrator();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/settings');
+        $crawler = $this->client->request('GET', '/admin/settings');
         $form = $crawler->selectButton('Save')->form();
         $form['store_settings[storeName]'] = 'Efe Otomotiv';
         $form['store_settings[defaultTaxRate]'] = '21';
@@ -183,7 +183,7 @@ final class AuditTrailTest extends WebTestCase
     public function testACallerSuppliedRequestIdIsNotHonoured(): void
     {
         foreach (["bad\r\nX-Injected: yes", str_repeat('a', 64), 'attacker-chosen-id'] as $supplied) {
-            $this->client->request('GET', '/yeni/katalog', [], [], ['HTTP_X-Request-Id' => $supplied]);
+            $this->client->request('GET', '/katalog', [], [], ['HTTP_X-Request-Id' => $supplied]);
 
             $header = (string) $this->client->getResponse()->headers->get('X-Request-Id');
             self::assertNotSame('', $header);

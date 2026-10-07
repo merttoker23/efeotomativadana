@@ -52,16 +52,16 @@ final class RobotsTxtBuilderTest extends TestCase
         foreach (RobotsTxtBuilder::PRIVATE_PREFIXES as $prefix) {
             self::assertStringContainsString('Disallow: '.$prefix, $robots);
         }
-        self::assertStringContainsString('Sitemap: https://magaza.example/yeni/sitemap.xml', $robots);
+        self::assertStringContainsString('Sitemap: https://magaza.example/sitemap.xml', $robots);
     }
 
     public function testTheStorefrontItselfIsNeverDisallowedInProduction(): void
     {
         $robots = $this->builder('prod')->build();
 
-        self::assertStringNotContainsString('Disallow: /yeni/katalog', $robots);
-        self::assertStringNotContainsString('Disallow: /yeni/urun', $robots);
-        self::assertStringNotContainsString('Disallow: /yeni/blog', $robots);
+        self::assertStringNotContainsString('Disallow: /katalog', $robots);
+        self::assertStringNotContainsString('Disallow: /urun', $robots);
+        self::assertStringNotContainsString('Disallow: /blog', $robots);
     }
 
     public function testAStoreThatHasNotLaunchedCanCloseItselfFromItsOwnSettings(): void
@@ -91,7 +91,7 @@ final class RobotsTxtBuilderTest extends TestCase
     private function urls(): SeoUrlFactory
     {
         $routes = new RouteCollection();
-        $routes->add('storefront_sitemap_index', new Route('/yeni/sitemap.xml'));
+        $routes->add('storefront_sitemap_index', new Route('/sitemap.xml'));
 
         return new SeoUrlFactory(
             new PublicUrlGenerator(
@@ -99,8 +99,8 @@ final class RobotsTxtBuilderTest extends TestCase
                 'https://magaza.example',
             ),
             new StorefrontMediaExtension(
-                new Packages(new PathPackage('/yeni', new EmptyVersionStrategy())),
-                '/yeni',
+                new Packages(new PathPackage('/', new EmptyVersionStrategy())),
+                '/',
             ),
         );
     }

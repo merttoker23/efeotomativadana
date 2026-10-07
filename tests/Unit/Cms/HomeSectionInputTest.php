@@ -93,16 +93,16 @@ final class HomeSectionInputTest extends TestCase
                 'priceLabel' => '',
                 'priceValue' => '',
                 'primaryText' => 'Hemen başla',
-                'primaryLink' => '/yeni/katalog',
+                'primaryLink' => '/katalog',
                 'secondaryText' => 'Kategoriler',
-                'secondaryLink' => '/yeni/kategoriler',
+                'secondaryLink' => '/kategoriler',
             ]),
         ]], $this->files);
 
         self::assertSame('Şu andan itibaren', $configuration['slides'][0]['priceLabel']);
         self::assertSame('', $configuration['slides'][0]['primaryText']);
         self::assertSame('Hemen başla', $configuration['slides'][1]['primaryText']);
-        self::assertSame('/yeni/kategoriler', $configuration['slides'][1]['secondaryLink']);
+        self::assertSame('/kategoriler', $configuration['slides'][1]['secondaryLink']);
     }
 
     public function testAHeroCallToActionWithoutItsOtherHalfIsRefused(): void
@@ -150,7 +150,7 @@ final class HomeSectionInputTest extends TestCase
         $stored = $this->storedImage();
 
         $configuration = $this->input->configuration(HomeSectionType::BannerGrid, ['banners' => [
-            ['title' => 'İndirim', 'image' => $stored, 'link' => '/yeni/katalog'],
+            ['title' => 'İndirim', 'image' => $stored, 'link' => '/katalog'],
         ]], $this->files);
 
         self::assertSame($stored, $configuration['banners'][0]['image']);

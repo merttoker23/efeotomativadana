@@ -29,17 +29,17 @@ final class CatalogControllerTest extends WebTestCase
         $this->product('FACET-UNBRANDED', 'Unbranded filter', 'facet-unbranded', true);
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/katalog?q=Branded+lamp');
+        $this->client->request('GET', '/katalog?q=Branded+lamp');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('#catalog-brand-title', 'Markalar');
         self::assertSelectorCount(1, '.catalog-brand-list a');
 
-        $this->client->request('GET', '/yeni/katalog?q=Unbranded+filter');
+        $this->client->request('GET', '/katalog?q=Unbranded+filter');
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('#catalog-brand-title, .catalog-brand-list');
         self::assertSelectorTextContains('.product-grid', 'Unbranded filter');
 
-        $this->client->request('GET', '/yeni/katalog?q=Unbranded+filter&brand=facet-brand');
+        $this->client->request('GET', '/katalog?q=Unbranded+filter&brand=facet-brand');
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('#catalog-brand-title');
         self::assertSelectorTextContains('.catalog-brand-list a[aria-current]', 'Facet Brand');
@@ -57,7 +57,7 @@ final class CatalogControllerTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/kategori/category-24?brand=brand-24&min_price=10&sort=price-desc');
+        $crawler = $this->client->request('GET', '/kategori/category-24?brand=brand-24&min_price=10&sort=price-desc');
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(1, '.catalog-category-list a');
         self::assertSelectorCount(1, '.catalog-brand-list a');
@@ -89,7 +89,7 @@ final class CatalogControllerTest extends WebTestCase
             $product->addCategory($category);
         }
         $this->entityManager->flush();
-        $crawler = $this->client->request('GET', '/yeni/kategori/price-category?q=lamba+accent&brand=price-brand&availability=in-stock&sort=price-asc&min_price=10&max_price=1000');
+        $crawler = $this->client->request('GET', '/kategori/price-category?q=lamba+accent&brand=price-brand&availability=in-stock&sort=price-asc&min_price=10&max_price=1000');
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(30, '.product-card');
         self::assertSame('10.00', $crawler->filter('.sort-form input[name="min_price"]')->attr('value'));
@@ -170,12 +170,12 @@ final class CatalogControllerTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/markalar');
+        $this->client->request('GET', '/markalar');
         self::assertResponseIsSuccessful();
         $firstPage = $this->brandNames();
         self::assertCount(48, $firstPage, 'The brand index must render one bounded page, not every brand.');
 
-        $this->client->request('GET', '/yeni/markalar', ['page' => 2]);
+        $this->client->request('GET', '/markalar', ['page' => 2]);
         self::assertResponseIsSuccessful();
         $secondPage = $this->brandNames();
         self::assertNotSame($firstPage, $secondPage, 'Page two repeated page one, so the index is not really paged.');
@@ -184,11 +184,11 @@ final class CatalogControllerTest extends WebTestCase
         // Past the end the index answers 200 with nothing in it, which is what all four paged
         // indexes here do. Asserted so that the four cannot drift apart, and so a future change
         // to a 404 or a clamped repeat has to be a deliberate edit of this test.
-        $this->client->request('GET', '/yeni/markalar', ['page' => 99]);
+        $this->client->request('GET', '/markalar', ['page' => 99]);
         self::assertResponseIsSuccessful();
         self::assertSame([], $this->brandNames(), 'A page past the end must not silently repeat the last page.');
 
-        $this->client->request('GET', '/yeni/kategoriler');
+        $this->client->request('GET', '/kategoriler');
         self::assertResponseIsSuccessful();
         self::assertNotEmpty($this->brandNames(), 'The category index rendered nothing.');
     }
@@ -215,7 +215,7 @@ final class CatalogControllerTest extends WebTestCase
         $price->scheduleSale(Money::ofMinor(139_990, 'TRY'), new \DateTimeImmutable('2020-01-01'), new \DateTimeImmutable('2099-01-01'));
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/katalog');
+        $crawler = $this->client->request('GET', '/katalog');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Ürün Kataloğu');
@@ -228,11 +228,11 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorExists('.product-card .cart-add-form[action*="/sepet/ekle/"]');
         self::assertSelectorExists('.product-card .wishlist-add-form[action*="/istek-listem/ekle/"]');
         self::assertSelectorExists('.product-card .compare-add-form[action*="/karsilastir/ekle/"]');
-        self::assertSame('/yeni/katalog', $crawler->filter('form.storefront-search')->attr('action'));
-        self::assertSame('/yeni/katalog', $crawler->filter('nav.main-navigation a')->eq(1)->attr('href'));
-        self::assertSame('/yeni/kategori/filtreler?sort=newest#catalog-results', $crawler->filter('.catalog-filters a[href*="/kategori/"]')->first()->attr('href'));
-        self::assertSelectorExists('.quick-navigation a[href="/yeni/istek-listem"]');
-        self::assertSelectorExists('.quick-navigation a[href="/yeni/karsilastir"]');
+        self::assertSame('/katalog', $crawler->filter('form.storefront-search')->attr('action'));
+        self::assertSame('/katalog', $crawler->filter('nav.main-navigation a')->eq(1)->attr('href'));
+        self::assertSame('/kategori/filtreler?sort=newest#catalog-results', $crawler->filter('.catalog-filters a[href*="/kategori/"]')->first()->attr('href'));
+        self::assertSelectorExists('.quick-navigation a[href="/istek-listem"]');
+        self::assertSelectorExists('.quick-navigation a[href="/karsilastir"]');
         self::assertSelectorCount(0, 'a[href$=".html"], form[action$=".html"]');
     }
 
@@ -249,9 +249,9 @@ final class CatalogControllerTest extends WebTestCase
         $this->entityManager->flush();
 
         foreach ([
-            '/yeni/kategori/motor-parcalari',
-            '/yeni/marka/mann-filter',
-            '/yeni/katalog?q=W712%2F95',
+            '/kategori/motor-parcalari',
+            '/marka/mann-filter',
+            '/katalog?q=W712%2F95',
         ] as $url) {
             $this->client->request('GET', $url);
             self::assertResponseIsSuccessful();
@@ -259,10 +259,10 @@ final class CatalogControllerTest extends WebTestCase
             self::assertSelectorTextNotContains('.product-grid', 'Fren Diski');
         }
 
-        $crawler = $this->client->request('GET', '/yeni/kategori/motor-parcalari?sort=name-asc');
+        $crawler = $this->client->request('GET', '/kategori/motor-parcalari?sort=name-asc');
         self::assertStringNotContainsString('category=motor-parcalari', $crawler->filter('.sort-form')->html());
 
-        $crawler = $this->client->request('GET', '/yeni/marka/mann-filter?sort=name-asc');
+        $crawler = $this->client->request('GET', '/marka/mann-filter?sort=name-asc');
         self::assertStringNotContainsString('brand=mann-filter', $crawler->filter('.sort-form')->html());
     }
 
@@ -275,18 +275,18 @@ final class CatalogControllerTest extends WebTestCase
         $this->product('FOCUS-001', 'Focus Product', 'focus-product', true, $brand, $category);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/marka/focus-brand?q=Focus&availability=in-stock&sort=price-desc');
+        $crawler = $this->client->request('GET', '/marka/focus-brand?q=Focus&availability=in-stock&sort=price-desc');
         $link = $crawler->filter('.catalog-filters a[href*="/kategori/focus-category"]')->attr('href');
-        self::assertSame('/yeni/kategori/focus-category?q=Focus&brand=focus-brand&availability=in-stock&sort=price-desc#catalog-results', $link);
+        self::assertSame('/kategori/focus-category?q=Focus&brand=focus-brand&availability=in-stock&sort=price-desc#catalog-results', $link);
 
-        $crawler = $this->client->request('GET', '/yeni/kategori/focus-category?q=Focus&availability=in-stock&sort=price-desc');
-        self::assertSame('/yeni/kategori/focus-category#catalog-results', $crawler->filter('.catalog-filter-form')->attr('action'));
+        $crawler = $this->client->request('GET', '/kategori/focus-category?q=Focus&availability=in-stock&sort=price-desc');
+        self::assertSame('/kategori/focus-category#catalog-results', $crawler->filter('.catalog-filter-form')->attr('action'));
         self::assertSame('price-desc', $crawler->filter('.catalog-filter-form input[name="sort"]')->attr('value'));
-        self::assertSame('/yeni/kategori/focus-category#catalog-results', $crawler->filter('.sort-form')->attr('action'));
+        self::assertSame('/kategori/focus-category#catalog-results', $crawler->filter('.sort-form')->attr('action'));
 
-        $crawler = $this->client->request('GET', '/yeni/kategori/focus-category?q=Focus&availability=in-stock&sort=price-desc&min_price=10&max_price=1000');
+        $crawler = $this->client->request('GET', '/kategori/focus-category?q=Focus&availability=in-stock&sort=price-desc&min_price=10&max_price=1000');
         $brandLink = $crawler->filter('.catalog-brand-list a[href*="/marka/focus-brand"]')->attr('href');
-        self::assertSame('/yeni/marka/focus-brand?q=Focus&category=focus-category&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $brandLink);
+        self::assertSame('/marka/focus-brand?q=Focus&category=focus-category&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $brandLink);
         $crawler = $this->client->request('GET', $brandLink);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.product-grid', 'Focus Product');
@@ -296,18 +296,18 @@ final class CatalogControllerTest extends WebTestCase
         self::assertStringNotContainsString('Tüm kategoriler', $crawler->filter('.catalog-filters')->text());
         self::assertStringNotContainsString('Tüm markalar', $crawler->filter('.catalog-filters')->text());
         $clearBrand = $crawler->filter('.catalog-brand-list a[aria-current="page"]')->attr('href');
-        self::assertSame('/yeni/katalog?q=Focus&category=focus-category&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $clearBrand);
+        self::assertSame('/katalog?q=Focus&category=focus-category&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $clearBrand);
         $clearCategory = $crawler->filter('.catalog-category-list a[aria-current="page"]')->attr('href');
-        self::assertSame('/yeni/katalog?q=Focus&brand=focus-brand&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $clearCategory);
+        self::assertSame('/katalog?q=Focus&brand=focus-brand&availability=in-stock&min_price=10.00&max_price=1000.00&sort=price-desc#catalog-results', $clearCategory);
         $this->client->request('GET', $clearBrand);
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.product-grid', 'Focus Product');
         self::assertSelectorNotExists('.catalog-brand-list a[aria-current="page"]');
 
-        $crawler = $this->client->request('GET', '/yeni/marka/focus-brand?category=focus-category&sort=price-desc');
+        $crawler = $this->client->request('GET', '/marka/focus-brand?category=focus-category&sort=price-desc');
         self::assertSame('focus-category', $crawler->filter('.catalog-filter-form input[name="category"]')->attr('value'));
 
-        $crawler = $this->client->request('GET', '/yeni/kategori/focus-category?brand=focus-brand');
+        $crawler = $this->client->request('GET', '/kategori/focus-category?brand=focus-brand');
         self::assertSame('focus-brand', $crawler->filter('.catalog-filter-form input[name="brand"]')->attr('value'));
     }
 
@@ -318,10 +318,10 @@ final class CatalogControllerTest extends WebTestCase
         $this->entityManager->persist($brand);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/markalar');
+        $crawler = $this->client->request('GET', '/markalar');
         self::assertSelectorTextNotContains('main', 'Üreticiler');
-        $card = $crawler->filter('.brand-grid a[href="/yeni/marka/logo-brand#catalog-results"]');
-        self::assertStringContainsString('/yeni/assets/storefront/images/brand-placeholder-', $card->filter('img')->attr('src'));
+        $card = $crawler->filter('.brand-grid a[href="/marka/logo-brand#catalog-results"]');
+        self::assertStringContainsString('/assets/storefront/images/brand-placeholder-', $card->filter('img')->attr('src'));
         self::assertStringContainsString('brand-placeholder', $card->filter('img')->attr('data-fallback-src'));
         self::assertSame('Logo Brand', $card->filter('strong')->text());
         self::assertSame('0 ürün', $card->filter('span')->text());
@@ -334,7 +334,7 @@ final class CatalogControllerTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/katalog?page=5&sort=price-desc%3BDELETE%20FROM%20catalog_product&ignored=leak');
+        $this->client->request('GET', '/katalog?page=5&sort=price-desc%3BDELETE%20FROM%20catalog_product&ignored=leak');
 
         self::assertResponseIsSuccessful();
         // Thirty to a page now, so page five of a hundred and nine products is past the last one
@@ -390,7 +390,7 @@ final class CatalogControllerTest extends WebTestCase
         $debugData->reset();
         $this->client->enableProfiler();
 
-        $this->client->request('GET', '/yeni/katalog');
+        $this->client->request('GET', '/katalog');
 
         self::assertResponseIsSuccessful();
         self::assertGreaterThanOrEqual($expectedCards, $this->client->getCrawler()->filter('.product-card')->count());
@@ -416,7 +416,7 @@ final class CatalogControllerTest extends WebTestCase
         $this->product('DRAFT-001', 'Gizli Ürün', 'gizli-urun', false);
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/urun/on-fren-balatasi');
+        $this->client->request('GET', '/urun/on-fren-balatasi');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Ön Fren Balatası');
@@ -429,7 +429,7 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorTextContains('.product-attributes', '280 mm');
         self::assertSelectorExists('.product-gallery img[alt="Ön fren balatası"]');
 
-        foreach (['/yeni/urun/gizli-urun', '/yeni/urun/yok', '/yeni/kategori/yok', '/yeni/marka/yok'] as $url) {
+        foreach (['/urun/gizli-urun', '/urun/yok', '/kategori/yok', '/marka/yok'] as $url) {
             $this->client->request('GET', $url);
             self::assertResponseStatusCodeSame(404);
         }
@@ -443,33 +443,33 @@ final class CatalogControllerTest extends WebTestCase
         $this->product('IMG-002', 'Görselsiz Ürün', 'gorselsiz-urun', true);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/urun/gorselli-urun');
+        $crawler = $this->client->request('GET', '/urun/gorselli-urun');
         self::assertResponseIsSuccessful();
         self::assertSame(
-            '/yeni'.$storedPath,
+            '/'.$storedPath,
             $crawler->filter('.product-gallery img')->first()->attr('src'),
         );
 
-        $crawler = $this->client->request('GET', '/yeni/urun/gorselsiz-urun');
+        $crawler = $this->client->request('GET', '/urun/gorselsiz-urun');
         self::assertResponseIsSuccessful();
         $detailPlaceholder = (string) $crawler->filter('.product-gallery img')->first()->attr('src');
-        self::assertStringStartsWith('/yeni/assets/storefront/images/product-placeholder-', $detailPlaceholder);
+        self::assertStringStartsWith('/assets/storefront/images/product-placeholder-', $detailPlaceholder);
         self::assertSelectorNotExists('.product-gallery-zoom, .product-gallery-dialog');
         self::assertSelectorNotExists('.product-gallery img.product-placeholder');
 
-        $crawler = $this->client->request('GET', '/yeni/katalog?sort=name-asc');
+        $crawler = $this->client->request('GET', '/katalog?sort=name-asc');
         self::assertResponseIsSuccessful();
         $sources = $crawler->filter('.product-card .product-thumb img')->each(
             static fn ($node): string => (string) $node->attr('src'),
         );
         self::assertCount(2, $sources);
-        self::assertContains('/yeni'.$storedPath, $sources);
+        self::assertContains('/'.$storedPath, $sources);
         self::assertSame(1, count(array_filter(
             $sources,
             static fn (string $source): bool => str_contains($source, 'product-placeholder'),
         )));
         foreach ($sources as $source) {
-            self::assertStringStartsWith('/yeni/', $source);
+            self::assertStringStartsWith('/', $source);
         }
         self::assertSelectorCount(2, '.product-card img[loading="lazy"][decoding="async"][width="640"][height="640"]');
         self::assertSelectorNotExists('.product-card img.product-placeholder');
@@ -482,7 +482,7 @@ final class CatalogControllerTest extends WebTestCase
         $product->addImage('storefront/images/hero-automotive.svg', 'Ana görsel', 0);
         $product->addImage('storefront/images/product-placeholder.svg', 'Ek görsel', 1);
         $this->entityManager->flush();
-        $crawler = $this->client->request('GET', '/yeni/urun/boyutlu-urun');
+        $crawler = $this->client->request('GET', '/urun/boyutlu-urun');
 
         self::assertResponseIsSuccessful();
         $images = $crawler->filter('.product-gallery-main img, .product-gallery-thumbnails img');
@@ -514,7 +514,7 @@ final class CatalogControllerTest extends WebTestCase
         $this->product('DETAIL-EMPTY', 'Empty Detail', 'detail-empty', true, quantity: 0);
         $this->entityManager->flush();
 
-        $this->client->request('GET', '/yeni/urun/detail-tabs');
+        $this->client->request('GET', '/urun/detail-tabs');
         self::assertResponseIsSuccessful();
         self::assertSelectorCount(3, '.product-information [role="tab"]');
         self::assertSelectorCount(1, '.product-information [aria-selected="true"]');
@@ -525,7 +525,7 @@ final class CatalogControllerTest extends WebTestCase
         self::assertSelectorCount(1, '.product-gallery img');
         self::assertSelectorNotExists('.product-gallery-thumbnails');
 
-        $this->client->request('GET', '/yeni/urun/detail-empty');
+        $this->client->request('GET', '/urun/detail-empty');
         self::assertSelectorNotExists('.product-information');
         self::assertSelectorNotExists('.similar-products');
         self::assertSelectorNotExists('.product-detail .cart-add-form');
@@ -543,11 +543,11 @@ final class CatalogControllerTest extends WebTestCase
         $this->entityManager->flush();
         $this->client->loginUser($customer, 'main');
         foreach ([
-            ['cart', '/yeni/sepet/ekle/', '/yeni/sepet'],
-            ['wishlist', '/yeni/istek-listem/ekle/', '/yeni/istek-listem'],
-            ['compare', '/yeni/karsilastir/ekle/', '/yeni/karsilastir'],
+            ['cart', '/sepet/ekle/', '/sepet'],
+            ['wishlist', '/istek-listem/ekle/', '/istek-listem'],
+            ['compare', '/karsilastir/ekle/', '/karsilastir'],
         ] as [$kind, $action, $redirect]) {
-            $crawler = $this->client->request('GET', '/yeni/urun/detail-actions');
+            $crawler = $this->client->request('GET', '/urun/detail-actions');
             $form = $crawler->filter('.product-detail-actions .'.$kind.'-add-form');
             self::assertSame($action.$product->id(), $form->attr('action'));
             $token = $form->filter('input[name="_token"]')->attr('value');

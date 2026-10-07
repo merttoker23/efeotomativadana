@@ -49,16 +49,16 @@ final class CatalogOperationsTest extends WebTestCase
 
     public function testAdminCommerceRoutesRejectAnonymousUsers(): void
     {
-        foreach (['/yeni/admin/catalog/products', '/yeni/admin/catalog/categories', '/yeni/admin/catalog/brands', '/yeni/admin/customers', '/yeni/admin/orders'] as $uri) {
+        foreach (['/admin/catalog/products', '/admin/catalog/categories', '/admin/catalog/brands', '/admin/customers', '/admin/orders'] as $uri) {
             $this->client->request('GET', $uri);
-            self::assertResponseRedirects('/yeni/admin/login');
+            self::assertResponseRedirects('/admin/login');
         }
     }
 
     public function testCustomerRoleCannotAccessAdminCommerceRoutes(): void
     {
         $this->client->loginUser(new InMemoryUser('viewer@example.com', 'test-only-not-used-for-form-login', ['ROLE_USER']), 'admin');
-        $this->client->request('GET', '/yeni/admin/catalog/products');
+        $this->client->request('GET', '/admin/catalog/products');
         self::assertResponseStatusCodeSame(403);
     }
 
@@ -71,7 +71,7 @@ final class CatalogOperationsTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products?q=Pagination');
+        $crawler = $this->client->request('GET', '/admin/catalog/products?q=Pagination');
 
         self::assertResponseIsSuccessful();
         self::assertCount(20, $crawler->filter('[data-testid="product-row"]'));
@@ -83,7 +83,7 @@ final class CatalogOperationsTest extends WebTestCase
     {
         $this->loginAdmin();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/new');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/new');
         self::assertResponseIsSuccessful();
         $form = $crawler->selectButton('Ürünü kaydet')->form([
             'admin_product[sku]' => 'LOCAL-001',
@@ -132,7 +132,7 @@ final class CatalogOperationsTest extends WebTestCase
     {
         $this->loginAdmin();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/new');
+        $crawler = $this->client->request('GET', '/admin/catalog/brands/new');
         $this->client->submit($crawler->selectButton('Markayı kaydet')->form([
             'admin_brand[name]' => 'Local Brand',
             'admin_brand[slug]' => 'local-brand',
@@ -141,7 +141,7 @@ final class CatalogOperationsTest extends WebTestCase
         self::assertResponseRedirects();
         self::assertInstanceOf(Brand::class, $this->entityManager->getRepository(Brand::class)->findOneBy(['slug' => 'local-brand']));
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/categories/new');
+        $crawler = $this->client->request('GET', '/admin/catalog/categories/new');
         $this->client->submit($crawler->selectButton('Kategoriyi kaydet')->form([
             'admin_category[name]' => 'Brake Systems',
             'admin_category[slug]' => 'brake-systems',
@@ -160,7 +160,7 @@ final class CatalogOperationsTest extends WebTestCase
         foreach ([$product, $inventory, $price] as $entity) { $this->entityManager->persist($entity); }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/edit');
         $form = $crawler->selectButton('Ürünü kaydet')->form();
         $this->connection->executeStatement('UPDATE commerce_product_inventory SET quantity = 9, version = version + 1 WHERE product_id = ?', [$product->id()]);
         $form['admin_product[quantity]'] = '3';
@@ -177,7 +177,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->persist($existing);
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/new');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/new');
         $form = $crawler->selectButton('Ürünü kaydet')->form([
             'admin_product[sku]' => 'NEW-002',
             'admin_product[name]' => 'New Product',
@@ -212,7 +212,7 @@ final class CatalogOperationsTest extends WebTestCase
         $this->entityManager->flush();
         $identifierIds = array_map(static fn ($identifier): ?int => $identifier->id(), $product->identifiers());
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/edit');
         $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[name]'] = 'Edited Product';
         $this->client->submit($form);
@@ -244,19 +244,19 @@ final class CatalogOperationsTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/edit');
         $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[slug]'] = 'changed-product';
         $this->client->submit($form);
         self::assertResponseRedirects();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/'.$brand->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/brands/'.$brand->id().'/edit');
         $form = $crawler->selectButton('Markayı kaydet')->form();
         $form['admin_brand[slug]'] = 'changed-brand';
         $this->client->submit($form);
         self::assertResponseRedirects();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/categories/'.$category->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/categories/'.$category->id().'/edit');
         $form = $crawler->selectButton('Kategoriyi kaydet')->form();
         $form['admin_category[slug]'] = 'changed-category';
         $this->client->submit($form);
@@ -290,7 +290,7 @@ final class CatalogOperationsTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/edit');
         $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[slug]'] = 'renamed-draft-product';
         $this->client->submit($form);
@@ -312,7 +312,7 @@ final class CatalogOperationsTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/edit');
         $form = $crawler->selectButton('Ürünü kaydet')->form();
         $form['admin_product[slug]'] = 'withdrawn-product-2';
         $published = $form['admin_product[published]'];
@@ -338,7 +338,7 @@ final class CatalogOperationsTest extends WebTestCase
         }
         $this->entityManager->flush();
 
-        $crawler = $this->client->request('GET', '/yeni/admin/catalog/products/'.$product->id().'/edit');
+        $crawler = $this->client->request('GET', '/admin/catalog/products/'.$product->id().'/edit');
         $form = $crawler->selectButton('Ürünü kaydet')->form();
         $this->connection->executeStatement('UPDATE commerce_product_inventory SET quantity = 9, version = version + 1 WHERE product_id = ?', [$product->id()]);
         $form['admin_product[quantity]'] = '3';
@@ -360,7 +360,7 @@ final class CatalogOperationsTest extends WebTestCase
         try {
             imagefill($image, 0, 0, imagecolorallocate($image, 255, 0, 0));
             imagepng($image, $upload);
-            $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/new');
+            $crawler = $this->client->request('GET', '/admin/catalog/brands/new');
             self::assertSelectorExists('input[type="file"][name="admin_brand[logo]"]');
             self::assertSelectorExists('form[enctype="multipart/form-data"]');
             $form = $crawler->selectButton('Markayı kaydet')->form(['admin_brand[name]' => 'Upload Brand', 'admin_brand[slug]' => 'upload-brand', 'admin_brand[published]' => '1']);
@@ -369,15 +369,15 @@ final class CatalogOperationsTest extends WebTestCase
             $field->upload($upload);
             $this->client->submit($form);
             $id = (int) $this->connection->fetchOne('SELECT id FROM catalog_brand WHERE slug = ?', ['upload-brand']);
-            self::assertResponseRedirects('/yeni/admin/catalog/brands/'.$id.'/edit');
+            self::assertResponseRedirects('/admin/catalog/brands/'.$id.'/edit');
             $target = dirname(__DIR__, 3).'/public/uploads/cms/img/ureticiler/'.$id.'.jpg';
             self::assertFileExists($target);
             self::assertSame('image/jpeg', (new \finfo(FILEINFO_MIME_TYPE))->file($target));
             $firstBytes = file_get_contents($target);
 
-            $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/'.$id.'/edit');
+            $crawler = $this->client->request('GET', '/admin/catalog/brands/'.$id.'/edit');
             $firstUrl = $crawler->filter('.brand-logo-preview')->attr('src');
-            self::assertStringStartsWith('/yeni/uploads/cms/img/ureticiler/'.$id.'.jpg?v=', $firstUrl);
+            self::assertStringStartsWith('/uploads/cms/img/ureticiler/'.$id.'.jpg?v=', $firstUrl);
             $form = $crawler->selectButton('Markayı kaydet')->form();
             imagefill($image, 0, 0, imagecolorallocate($image, 0, 0, 255));
             imagepng($image, $upload);
@@ -388,13 +388,13 @@ final class CatalogOperationsTest extends WebTestCase
             self::assertResponseRedirects();
             self::assertNotSame($firstBytes, file_get_contents($target));
 
-            $crawler = $this->client->request('GET', '/yeni/markalar');
-            $url = $crawler->filter('.brand-grid a[href="/yeni/marka/upload-brand#catalog-results"] img')->attr('src');
-            self::assertStringStartsWith('/yeni/uploads/cms/img/ureticiler/'.$id.'.jpg?v=', $url);
+            $crawler = $this->client->request('GET', '/markalar');
+            $url = $crawler->filter('.brand-grid a[href="/marka/upload-brand#catalog-results"] img')->attr('src');
+            self::assertStringStartsWith('/uploads/cms/img/ureticiler/'.$id.'.jpg?v=', $url);
             self::assertNotSame($firstUrl, $url, 'Replacing a logo must refresh its browser cache URL.');
             $replacementBytes = file_get_contents($target);
 
-            $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/'.$id.'/edit');
+            $crawler = $this->client->request('GET', '/admin/catalog/brands/'.$id.'/edit');
             $this->client->submit($crawler->selectButton('Markayı kaydet')->form(['admin_brand[name]' => 'Updated Upload Brand']));
             self::assertResponseRedirects();
             self::assertSame($replacementBytes, file_get_contents($target));
@@ -416,7 +416,7 @@ final class CatalogOperationsTest extends WebTestCase
                     // A valid image with a bad token must be rejected independently of file validation.
                     file_put_contents($upload, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==', true));
                 }
-                $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/new');
+                $crawler = $this->client->request('GET', '/admin/catalog/brands/new');
                 $form = $crawler->selectButton('Markayı kaydet')->form(['admin_brand[name]' => 'Invalid Logo', 'admin_brand[slug]' => 'invalid-logo']);
                 $field = $form['admin_brand[logo]'];
                 self::assertInstanceOf(FileFormField::class, $field);
@@ -436,11 +436,11 @@ final class CatalogOperationsTest extends WebTestCase
         $brand = new Brand('Protected Logo', 'protected-logo');
         $this->entityManager->persist($brand);
         $this->entityManager->flush();
-        foreach (['/yeni/admin/catalog/brands/new', '/yeni/admin/catalog/brands/'.$brand->id().'/edit'] as $uri) {
+        foreach (['/admin/catalog/brands/new', '/admin/catalog/brands/'.$brand->id().'/edit'] as $uri) {
             $this->client->request('POST', $uri, ['admin_brand' => ['name' => 'Unwanted', 'slug' => 'unwanted']]);
-            self::assertResponseRedirects('/yeni/admin/login');
+            self::assertResponseRedirects('/admin/login');
         }
-        foreach (['/yeni/admin/catalog/brands/new', '/yeni/admin/catalog/brands/'.$brand->id().'/edit'] as $uri) {
+        foreach (['/admin/catalog/brands/new', '/admin/catalog/brands/'.$brand->id().'/edit'] as $uri) {
             $this->client->loginUser(new InMemoryUser('viewer@example.com', 'test-only-not-used-for-form-login', ['ROLE_USER']), 'admin');
             $this->client->request('POST', $uri, ['admin_brand' => ['name' => 'Unwanted', 'slug' => 'unwanted']]);
             self::assertResponseStatusCodeSame(403);
@@ -466,7 +466,7 @@ final class CatalogOperationsTest extends WebTestCase
             self::getContainer()->get(BrandLogoStorage::class)->store((int) $brand->id(), new UploadedFile($upload, 'logo.png', null, null, true));
             $previous = file_get_contents($target);
             self::assertIsString($previous);
-            $crawler = $this->client->request('GET', '/yeni/admin/catalog/brands/'.$brand->id().'/edit');
+            $crawler = $this->client->request('GET', '/admin/catalog/brands/'.$brand->id().'/edit');
             $form = $crawler->selectButton('Markayı kaydet')->form(['admin_brand[name]' => 'Must Roll Back']);
             imagefill($image, 0, 0, imagecolorallocate($image, 0, 0, 255));
             imagepng($image, $upload);

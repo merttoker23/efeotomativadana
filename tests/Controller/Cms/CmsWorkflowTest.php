@@ -25,14 +25,14 @@ final class CmsWorkflowTest extends WebTestCase
         $this->manager->flush();
         $client = static::getClient();
         $client->loginUser($admin, 'admin');
-        $crawler = $client->request('GET', '/yeni/admin/cms/home');
+        $crawler = $client->request('GET', '/admin/cms/home');
         self::assertResponseIsSuccessful();
         $row = $crawler->filter('tbody tr')->reduce(static fn ($node) => str_contains($node->text(), 'Actions'));
         self::assertCount(1, $row->filter('a.button-link.cms-section-action'));
         self::assertCount(1, $row->filter('button.cms-section-action'));
-        self::assertSame('/yeni/admin/cms/home/'.$section->id().'/edit', $row->filter('a')->attr('href'));
+        self::assertSame('/admin/cms/home/'.$section->id().'/edit', $row->filter('a')->attr('href'));
         $client->submit($row->selectButton('Pasifleştir')->form());
-        self::assertResponseRedirects('/yeni/admin/cms/home');
+        self::assertResponseRedirects('/admin/cms/home');
         $client->followRedirect();
         self::assertSelectorTextContains('button.cms-section-action', 'Aktifleştir');
     }
@@ -67,7 +67,7 @@ final class CmsWorkflowTest extends WebTestCase
         $this->manager->flush();
 
         $client = static::getClient();
-        $client->request('GET', '/yeni/');
+        $client->request('GET', '/');
         self::assertResponseIsSuccessful();
         $html = $client->getResponse()->getContent() ?: '';
         self::assertLessThan(strpos($html, 'FIRST-CMS'), strpos($html, 'SECOND-CMS'));
@@ -80,12 +80,12 @@ final class CmsWorkflowTest extends WebTestCase
         $page = new InformationPage('Delivery', 'cms-delivery', 'Delivery body');
         $this->manager->persist($post); $this->manager->persist($page); $this->manager->flush();
         $client = static::getClient();
-        $client->request('GET', '/yeni/blog/cms-article'); self::assertResponseStatusCodeSame(404);
-        $client->request('GET', '/yeni/bilgi/cms-delivery'); self::assertResponseStatusCodeSame(404);
+        $client->request('GET', '/blog/cms-article'); self::assertResponseStatusCodeSame(404);
+        $client->request('GET', '/bilgi/cms-delivery'); self::assertResponseStatusCodeSame(404);
         $this->connection->executeStatement('UPDATE cms_blog_post SET published = 1 WHERE id = ?', [$post->id()]);
         $this->connection->executeStatement('UPDATE cms_information_page SET published = 1 WHERE id = ?', [$page->id()]);
-        $client->request('GET', '/yeni/blog/cms-article'); self::assertResponseIsSuccessful(); self::assertSelectorTextContains('h1', 'Article');
-        $client->request('GET', '/yeni/bilgi/cms-delivery'); self::assertResponseIsSuccessful(); self::assertSelectorTextContains('h1', 'Delivery');
+        $client->request('GET', '/blog/cms-article'); self::assertResponseIsSuccessful(); self::assertSelectorTextContains('h1', 'Article');
+        $client->request('GET', '/bilgi/cms-delivery'); self::assertResponseIsSuccessful(); self::assertSelectorTextContains('h1', 'Delivery');
     }
 
     public function testMissingProductReferenceLeavesHomepageAvailable(): void
@@ -94,7 +94,7 @@ final class CmsWorkflowTest extends WebTestCase
         $section->setEnabled(true);
         $this->manager->persist($section);
         $this->manager->flush();
-        static::getClient()->request('GET', '/yeni/');
+        static::getClient()->request('GET', '/');
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('.top-sellers .seller');
         self::assertSelectorNotExists('.home-section .product-grid .product-card');
@@ -104,45 +104,45 @@ final class CmsWorkflowTest extends WebTestCase
     {
         $client = static::getClient();
         self::assertInstanceOf(KernelBrowser::class, $client);
-        $client->request('GET', '/yeni/admin/cms/home'); self::assertResponseRedirects('/yeni/admin/login');
+        $client->request('GET', '/admin/cms/home'); self::assertResponseRedirects('/admin/login');
         $admin = new AdminUser('cms-admin@example.com');
         $admin->setPassword('test-only-hash');
         $this->manager->persist($admin);
         $this->manager->flush();
         $client->loginUser($admin, 'admin');
-        $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $client->request('GET', '/admin/cms/home/new?type=marquee');
         $form = $client->getCrawler()->selectButton('Bölümü kaydet')->form([
             'title' => 'Shipping',
             'items_count' => 1,
             'items_0_text' => 'Fast shipping',
         ]);
-        $client->submit($form); self::assertResponseRedirects('/yeni/admin/cms/home');
-        $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $client->submit($form); self::assertResponseRedirects('/admin/cms/home');
+        $client->request('GET', '/admin/cms/home/new?type=marquee');
         $form = $client->getCrawler()->selectButton('Bölümü kaydet')->form([
             'title' => 'Returns',
             'items_count' => 1,
             'items_0_text' => 'Simple returns',
         ]);
-        $client->submit($form); self::assertResponseRedirects('/yeni/admin/cms/home');
-        $crawler = $client->request('GET', '/yeni/admin/cms/home');
+        $client->submit($form); self::assertResponseRedirects('/admin/cms/home');
+        $crawler = $client->request('GET', '/admin/cms/home');
         $rows = $crawler->filter('tbody tr');
         self::assertCount(2, $rows);
         $client->submit($rows->eq(1)->filter('form[action*="move/up"]')->form());
-        self::assertResponseRedirects('/yeni/admin/cms/home');
-        $client->request('GET', '/yeni/admin/cms/home');
+        self::assertResponseRedirects('/admin/cms/home');
+        $client->request('GET', '/admin/cms/home');
         self::assertSelectorTextContains('tbody tr:first-child', 'Returns');
         $crawler = $client->getCrawler();
         $editUrl = $crawler->filter('tbody tr:first-child td a')->attr('href');
         self::assertIsString($editUrl);
         $crawler = $client->request('GET', $editUrl);
         $client->submit($crawler->selectButton('Bölümü kaydet')->form(['items_0_text' => 'Updated returns']));
-        self::assertResponseRedirects('/yeni/admin/cms/home');
-        $crawler = $client->request('GET', '/yeni/admin/cms/home');
+        self::assertResponseRedirects('/admin/cms/home');
+        $crawler = $client->request('GET', '/admin/cms/home');
         $client->submit($crawler->filter('tbody tr:first-child form[action*="toggle"]')->form());
-        self::assertResponseRedirects('/yeni/admin/cms/home');
-        $client->request('GET', '/yeni/');
+        self::assertResponseRedirects('/admin/cms/home');
+        $client->request('GET', '/');
         self::assertSelectorTextContains('.marquee', 'Updated returns');
-        $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $client->request('GET', '/admin/cms/home/new?type=marquee');
         $form = $client->getCrawler()->selectButton('Bölümü kaydet')->form(['title' => 'Invalid', 'items_count' => 1]);
         $client->submit($form); self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('[role="alert"]', 'Bölüm kayıtları boş bırakılamaz');
@@ -165,13 +165,13 @@ final class CmsWorkflowTest extends WebTestCase
         $client->loginUser($admin, 'admin');
 
         foreach (HomeSectionType::cases() as $type) {
-            $crawler = $client->request('GET', '/yeni/admin/cms/home/new?type='.$type->value);
+            $crawler = $client->request('GET', '/admin/cms/home/new?type='.$type->value);
             self::assertResponseIsSuccessful();
             self::assertSame(0, $crawler->filter('textarea[name="configuration"]')->count(), $type->value);
             self::assertSame(0, $crawler->filter('input[name="configuration"]')->count(), $type->value);
         }
 
-        $crawler = $client->request('GET', '/yeni/admin/cms/home/new?type=marquee');
+        $crawler = $client->request('GET', '/admin/cms/home/new?type=marquee');
         $form = $crawler->selectButton('Bölümü kaydet')->form();
         $client->request('POST', $form->getUri(), array_merge($form->getPhpValues(), [
             'configuration' => '{"items":["Injected"],"template":"admin/some-other-template"}',

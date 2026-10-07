@@ -102,7 +102,7 @@ final class SlugRedirectTest extends KernelTestCase
         $redirect = $this->resolver->find(SeoResourceType::Product, 'paylasilan-slug');
         self::assertNotNull($redirect);
         self::assertSame((int) $second->id(), $redirect->resourceId());
-        self::assertSame('https://localhost/yeni/urun/ikinci-ad', $this->resolver->targetUrlFor($redirect));
+        self::assertSame('https://localhost/urun/ikinci-ad', $this->resolver->targetUrlFor($redirect));
         self::assertSame(
             1,
             (int) $this->connection->fetchOne(
@@ -165,7 +165,7 @@ final class SlugRedirectTest extends KernelTestCase
 
         $redirect = $this->resolver->find(SeoResourceType::Product, 'canli-urun');
         self::assertNotNull($redirect);
-        self::assertSame('https://localhost/yeni/urun/canli-urun-3', $this->resolver->targetUrlFor($redirect));
+        self::assertSame('https://localhost/urun/canli-urun-3', $this->resolver->targetUrlFor($redirect));
     }
 
     /**
@@ -175,11 +175,11 @@ final class SlugRedirectTest extends KernelTestCase
     public function testEveryContentTypeRedirectsToItsOwnLocalRoute(): void
     {
         $expected = [
-            [SeoResourceType::Product, '/yeni/urun/'],
-            [SeoResourceType::Category, '/yeni/kategori/'],
-            [SeoResourceType::Brand, '/yeni/marka/'],
-            [SeoResourceType::BlogPost, '/yeni/blog/'],
-            [SeoResourceType::InformationPage, '/yeni/bilgi/'],
+            [SeoResourceType::Product, '/urun/'],
+            [SeoResourceType::Category, '/kategori/'],
+            [SeoResourceType::Brand, '/marka/'],
+            [SeoResourceType::BlogPost, '/blog/'],
+            [SeoResourceType::InformationPage, '/bilgi/'],
         ];
 
         foreach ($expected as [$type, $path]) {

@@ -11,8 +11,8 @@ PRODUCT="$ROOT/templates/storefront/catalog/product.html.twig"
 # application directory, so both the rewrite rule and the prefixed URLs are required.
 test -f "$HTACCESS"
 test -f "$PLACEHOLDER"
-grep -F -- 'RewriteCond %{REQUEST_URI} ^/yeni/uploads/(.+)$' "$HTACCESS"
-grep -F -- 'RewriteCond %{DOCUMENT_ROOT}/yeni/public/uploads/%1 -f' "$HTACCESS"
+grep -F -- 'RewriteCond %{REQUEST_URI} ^/uploads/(.+)$' "$HTACCESS"
+grep -F -- 'RewriteCond %{DOCUMENT_ROOT}/public/uploads/%1 -f' "$HTACCESS"
 grep -F -- 'RewriteRule ^.*$ public/uploads/%1 [L]' "$HTACCESS"
 
 # The rewrite must stay ahead of the front controller fallback.

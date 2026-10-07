@@ -97,15 +97,15 @@ final class ProductCardActionsTest extends WebTestCase
         $card = $this->catalogCard('sepete-eklenecek-urun');
 
         self::assertSame(
-            '/yeni/sepet/ekle/'.$product->id(),
+            '/sepet/ekle/'.$product->id(),
             $card->filter('.cart-add-form')->attr('action'),
         );
         $token = $card->filter('.cart-add-form input[name="_token"]')->attr('value');
         self::assertNotNull($token);
 
-        $this->client->request('POST', '/yeni/sepet/ekle/'.$product->id(), ['_token' => $token, 'quantity' => 2]);
+        $this->client->request('POST', '/sepet/ekle/'.$product->id(), ['_token' => $token, 'quantity' => 2]);
 
-        self::assertResponseRedirects('/yeni/sepet');
+        self::assertResponseRedirects('/sepet');
         self::assertSame(1, (int) $this->connection->fetchOne('SELECT COUNT(*) FROM commerce_cart_item'));
         self::assertSame(2, (int) $this->connection->fetchOne('SELECT quantity FROM commerce_cart_item'));
     }
@@ -162,12 +162,12 @@ final class ProductCardActionsTest extends WebTestCase
 
     private function homeCard(string $slug): Crawler
     {
-        return $this->cardOf($this->client->request('GET', '/yeni/'), $slug, true);
+        return $this->cardOf($this->client->request('GET', '/'), $slug, true);
     }
 
     private function catalogCard(string $slug): Crawler
     {
-        return $this->cardOf($this->client->request('GET', '/yeni/katalog?sort=name-asc'), $slug, false);
+        return $this->cardOf($this->client->request('GET', '/katalog?sort=name-asc'), $slug, false);
     }
 
     /**

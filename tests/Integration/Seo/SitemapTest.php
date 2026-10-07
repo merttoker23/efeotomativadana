@@ -59,7 +59,7 @@ final class SitemapTest extends KernelTestCase
         $xml = $this->index->build();
 
         self::assertStringContainsString('<sitemapindex', $xml);
-        self::assertStringContainsString('https://localhost/yeni/sitemap-static.xml', $xml);
+        self::assertStringContainsString('https://localhost/sitemap-static.xml', $xml);
         // Nothing published in this transaction, so no catalogue section is advertised at all.
         self::assertStringNotContainsString('sitemap-products-', $xml);
         self::assertStringNotContainsString('sitemap-categories-', $xml);
@@ -73,11 +73,11 @@ final class SitemapTest extends KernelTestCase
         $this->entityManager->flush();
 
         $xml = $this->index->build();
-        self::assertStringContainsString('https://localhost/yeni/sitemap-products-1.xml', $xml);
+        self::assertStringContainsString('https://localhost/sitemap-products-1.xml', $xml);
 
         $section = $this->sections->build(SitemapKind::Products, 1);
         self::assertStringContainsString('<urlset', $section);
-        self::assertStringContainsString('<loc>https://localhost/yeni/urun/yag-filtresi</loc>', $section);
+        self::assertStringContainsString('<loc>https://localhost/urun/yag-filtresi</loc>', $section);
     }
 
     public function testADraftProductIsNeverListedAnywhereInTheSitemap(): void
@@ -106,10 +106,10 @@ final class SitemapTest extends KernelTestCase
         $this->entityManager->persist($page);
         $this->entityManager->flush();
 
-        self::assertStringContainsString('https://localhost/yeni/kategori/frenler', $this->sections->build(SitemapKind::Categories, 1));
-        self::assertStringContainsString('https://localhost/yeni/marka/bosch', $this->sections->build(SitemapKind::Brands, 1));
-        self::assertStringContainsString('https://localhost/yeni/blog/yag-degisi', $this->sections->build(SitemapKind::Content, 1));
-        self::assertStringContainsString('https://localhost/yeni/bilgi/kargo', $this->sections->build(SitemapKind::Content, 1));
+        self::assertStringContainsString('https://localhost/kategori/frenler', $this->sections->build(SitemapKind::Categories, 1));
+        self::assertStringContainsString('https://localhost/marka/bosch', $this->sections->build(SitemapKind::Brands, 1));
+        self::assertStringContainsString('https://localhost/blog/yag-degisi', $this->sections->build(SitemapKind::Content, 1));
+        self::assertStringContainsString('https://localhost/bilgi/kargo', $this->sections->build(SitemapKind::Content, 1));
     }
 
     public function testAnUnpublishedBlogPostOrPageIsExcluded(): void
@@ -186,11 +186,11 @@ final class SitemapTest extends KernelTestCase
         $section = $this->sections->build(SitemapKind::Static, 1);
 
         foreach ([
-            'https://localhost/yeni/',
-            'https://localhost/yeni/katalog',
-            'https://localhost/yeni/markalar',
-            'https://localhost/yeni/blog',
-            'https://localhost/yeni/bilgi',
+            'https://localhost/',
+            'https://localhost/katalog',
+            'https://localhost/markalar',
+            'https://localhost/blog',
+            'https://localhost/bilgi',
         ] as $expected) {
             self::assertStringContainsString('<loc>'.$expected.'</loc>', $section);
         }
@@ -238,13 +238,13 @@ final class SitemapTest extends KernelTestCase
     public function testTheRendererEscapesAnAddressThatCouldOtherwiseBreakTheDocument(): void
     {
         $xml = SitemapXml::urlSet([
-            ['loc' => 'https://localhost/yeni/urun/a&b<c>"d"', 'lastmod' => null],
+            ['loc' => 'https://localhost/urun/a&b<c>"d"', 'lastmod' => null],
         ]);
 
         self::assertTrue(simplexml_load_string($xml) instanceof \SimpleXMLElement, 'The urlset must be well-formed XML.');
         self::assertStringNotContainsString('<c>', $xml);
         self::assertSame(
-            'https://localhost/yeni/urun/a&b<c>"d"',
+            'https://localhost/urun/a&b<c>"d"',
             (string) simplexml_load_string($xml)->url->loc,
             'Escaping must not change the value a consumer reads back.',
         );
@@ -258,7 +258,7 @@ final class SitemapTest extends KernelTestCase
         $section = $this->sections->build(SitemapKind::Products, 1);
 
         self::assertTrue(simplexml_load_string($section) instanceof \SimpleXMLElement, 'The urlset must be well-formed XML.');
-        self::assertStringContainsString('<loc>https://localhost/yeni/urun/kirli-ad</loc>', $section);
+        self::assertStringContainsString('<loc>https://localhost/urun/kirli-ad</loc>', $section);
     }
 
     public function testAProductThatArrivedFromTheB2BFeedIsPublishedUnderThisStoresOwnRoute(): void
@@ -277,7 +277,7 @@ final class SitemapTest extends KernelTestCase
 
         $section = $this->sections->build(SitemapKind::Products, 1);
 
-        self::assertStringContainsString('https://localhost/yeni/urun/b2b-urun', $section);
+        self::assertStringContainsString('https://localhost/urun/b2b-urun', $section);
         self::assertStringNotContainsString('efeotoyedekparca', $section);
     }
 

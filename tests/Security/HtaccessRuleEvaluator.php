@@ -43,9 +43,9 @@ final class HtaccessRuleEvaluator
     /**
      * The URL prefix the application is mounted under, and the directory the root .htaccess
      * governs. On the live Hostinger deployment the document root is `public_html` and the
-     * application is `public_html/yeni`, so `/yeni/` is the base and this is that directory.
+     * application is `public_html/yeni`, so `/` is the base and this is that directory.
      */
-    public const string BASE_PATH = '/yeni/';
+    public const string BASE_PATH = '/';
 
     /** The document root of the Symfony front controller, relative to the application root. */
     public const string PUBLIC_DIRECTORY = 'public';
@@ -86,7 +86,7 @@ final class HtaccessRuleEvaluator
     /**
      * The rule that denies this request, or null when the request is served.
      *
-     * @param string $requestPath the path as the browser asked for it, e.g. `/yeni/katalog`
+     * @param string $requestPath the path as the browser asked for it, e.g. `/katalog`
      * @param string $resolvedFile the file the request resolves to, relative to the application
      *                             root, e.g. `public/index.php`
      */

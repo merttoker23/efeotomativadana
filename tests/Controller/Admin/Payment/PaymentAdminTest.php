@@ -69,7 +69,7 @@ final class PaymentAdminTest extends WebTestCase
 
     public function testAnAnonymousVisitorCannotReachThePaymentList(): void
     {
-        $this->client->request('GET', '/yeni/admin/odemeler');
+        $this->client->request('GET', '/admin/odemeler');
 
         self::assertResponseRedirects();
     }
@@ -83,7 +83,7 @@ final class PaymentAdminTest extends WebTestCase
             ['ROLE_USER'],
         ), 'admin');
 
-        $this->client->request('GET', '/yeni/admin/odemeler');
+        $this->client->request('GET', '/admin/odemeler');
 
         self::assertResponseStatusCodeSame(403);
     }
@@ -94,7 +94,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->startAwaitingCallback($order, 'FAKE-LIST');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin/odemeler');
+        $this->client->request('GET', '/admin/odemeler');
 
         self::assertResponseIsSuccessful();
         $content = (string) $this->client->getResponse()->getContent();
@@ -111,7 +111,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->capture($succeeded, 'FAKE-SUCCEEDED');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin/odemeler?state=succeeded');
+        $this->client->request('GET', '/admin/odemeler?state=succeeded');
 
         self::assertResponseIsSuccessful();
         $content = (string) $this->client->getResponse()->getContent();
@@ -124,7 +124,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->order('bogus-filter@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin/odemeler?state=not-a-state');
+        $this->client->request('GET', '/admin/odemeler?state=not-a-state');
 
         self::assertResponseIsSuccessful();
     }
@@ -135,7 +135,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->capture($order, 'FAKE-DETAIL');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         $crawler = $this->client->getCrawler();
@@ -149,7 +149,7 @@ final class PaymentAdminTest extends WebTestCase
         $summary = (string) $crawler->filter('dl')->text();
         self::assertStringContainsString('300,00', $summary);
         self::assertStringContainsString('30000 alt birim', $summary);
-        self::assertGreaterThan(0, $crawler->filter(sprintf('a[href$="/yeni/admin/orders/%s"]', $order->orderNumber()))->count(), 'The payment page must link back to the order it belongs to.');
+        self::assertGreaterThan(0, $crawler->filter(sprintf('a[href$="/admin/orders/%s"]', $order->orderNumber()))->count(), 'The payment page must link back to the order it belongs to.');
     }
 
     public function testRetryIsOfferedOnlyForARetryablePayment(): void
@@ -158,7 +158,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->startAwaitingCallback($order, 'FAKE-RETRY');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $this->client->getCrawler()->filter('form[action$="yeniden-dene"]'));
@@ -170,7 +170,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->capture($order, 'FAKE-NORETRY');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $this->client->getCrawler()->filter('form[action$="yeniden-dene"]'));
@@ -182,12 +182,12 @@ final class PaymentAdminTest extends WebTestCase
         $this->startAwaitingCallback($order, 'FAKE-CANCEL');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
         $form = $this->client->getCrawler()->filter(sprintf('form[action$="%s/iptal"]', $order->orderNumber()))->form();
         $form['payment_cancel[reason]'] = 'Müşteri talebiyle iptal edildi';
         $this->client->submit($form);
 
-        self::assertResponseRedirects(sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        self::assertResponseRedirects(sprintf('/admin/odemeler/%s', $order->orderNumber()));
         self::assertSame(PaymentState::Cancelled, $this->paymentFor($this->reload($order))->state());
     }
 
@@ -197,7 +197,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->capture($order, 'FAKE-CANCEL-CAPTURED');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
         self::assertResponseIsSuccessful();
         // The page must not offer the action at all...
         self::assertCount(0, $this->client->getCrawler()->filter(sprintf('form[action$="%s/iptal"]', $order->orderNumber())));
@@ -209,10 +209,10 @@ final class PaymentAdminTest extends WebTestCase
         // from a retryable order rendered in the same session.
         $other = $this->order('cancel-token-source@example.com');
         $this->startAwaitingCallback($other, 'FAKE-TOKEN-SOURCE');
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $other->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $other->orderNumber()));
         $csrf = $this->client->getCrawler()->filter('input[name="payment_cancel[_token]"]')->attr('value');
         self::assertIsString($csrf);
-        $this->client->request('POST', sprintf('/yeni/admin/odemeler/%s/iptal', $order->orderNumber()), [
+        $this->client->request('POST', sprintf('/admin/odemeler/%s/iptal', $order->orderNumber()), [
             'payment_cancel' => ['reason' => 'Yanlışlıkla', '_token' => $csrf],
         ]);
 
@@ -228,7 +228,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->startAwaitingCallback($order, 'FAKE-CSRF');
         $this->loginAsAdmin();
 
-        $this->client->request('POST', sprintf('/yeni/admin/odemeler/%s/iptal', $order->orderNumber()), [
+        $this->client->request('POST', sprintf('/admin/odemeler/%s/iptal', $order->orderNumber()), [
             'payment_cancel' => ['reason' => 'forged', '_token' => 'not-a-real-token'],
         ]);
 
@@ -242,7 +242,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->startAwaitingCallback($order, 'FAKE-RETRY-CSRF');
         $this->loginAsAdmin();
 
-        $this->client->request('POST', sprintf('/yeni/admin/odemeler/%s/yeniden-dene', $order->orderNumber()), [
+        $this->client->request('POST', sprintf('/admin/odemeler/%s/yeniden-dene', $order->orderNumber()), [
             'payment_retry' => ['_token' => 'not-a-real-token'],
         ]);
 
@@ -256,7 +256,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->startAwaitingCallback($order, 'FAKE-REASON');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
         $form = $this->client->getCrawler()->filter(sprintf('form[action$="%s/iptal"]', $order->orderNumber()))->form();
         $form['payment_cancel[reason]'] = '   ';
         $this->client->submit($form);
@@ -273,12 +273,12 @@ final class PaymentAdminTest extends WebTestCase
         $this->gateway->queueInitiation(GatewayInitiationOutcome::redirect('https://pay.test/hosted/retry', 'FAKE-ADMIN-RETRY-2'));
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
         $button = $this->client->getCrawler()->filter(sprintf('form[action$="%s/yeniden-dene"] button', $order->orderNumber()));
         self::assertSame(1, $button->count(), 'A retryable payment must offer a restart button.');
         $this->client->submit($button->form());
 
-        self::assertResponseRedirects(sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        self::assertResponseRedirects(sprintf('/admin/odemeler/%s', $order->orderNumber()));
         $payment = $this->paymentFor($this->reload($order));
         self::assertCount(2, $payment->attempts(), 'A restart must add an attempt, never replace one.');
         self::assertSame('FAKE-ADMIN-RETRY-2', $payment->latestAttempt()?->providerReference());
@@ -294,7 +294,7 @@ final class PaymentAdminTest extends WebTestCase
         $refunds->refund($order, Money::ofMinor(10_000, 'TRY'), 'Kısmi iade', 'admin@example.com');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         $content = (string) $this->client->getResponse()->getContent();
@@ -307,10 +307,10 @@ final class PaymentAdminTest extends WebTestCase
     {
         $this->loginAsAdmin();
 
-        $this->client->request('GET', '/yeni/admin');
+        $this->client->request('GET', '/admin');
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('/yeni/admin/odemeler', (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString('/admin/odemeler', (string) $this->client->getResponse()->getContent());
     }
 
     public function testFailureMetadataIsShownWithoutSecrets(): void
@@ -320,7 +320,7 @@ final class PaymentAdminTest extends WebTestCase
         $this->initiation->start($order, 'FAKE');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/odemeler/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
         $content = (string) $this->client->getResponse()->getContent();
@@ -335,10 +335,10 @@ final class PaymentAdminTest extends WebTestCase
         $this->capture($order, 'FAKE-LINK');
         $this->loginAsAdmin();
 
-        $this->client->request('GET', sprintf('/yeni/admin/orders/%s', $order->orderNumber()));
+        $this->client->request('GET', sprintf('/admin/orders/%s', $order->orderNumber()));
 
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString(sprintf('/yeni/admin/odemeler/%s', $order->orderNumber()), (string) $this->client->getResponse()->getContent());
+        self::assertStringContainsString(sprintf('/admin/odemeler/%s', $order->orderNumber()), (string) $this->client->getResponse()->getContent());
     }
 
     private function loginAsAdmin(): void

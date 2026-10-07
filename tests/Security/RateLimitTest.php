@@ -59,7 +59,7 @@ final class RateLimitTest extends WebTestCase
     public function testAccountCreationIsLimitedPerAddress(): void
     {
         for ($attempt = 1; $attempt <= 5; ++$attempt) {
-            $crawler = $this->client->request('GET', '/yeni/kayit');
+            $crawler = $this->client->request('GET', '/kayit');
             $this->client->submit($crawler->selectButton('Hesap oluştur')->form([
                 'customer_registration[firstName]' => 'Test',
                 'customer_registration[lastName]' => 'Müşteri'.$attempt,
@@ -67,11 +67,11 @@ final class RateLimitTest extends WebTestCase
                 'customer_registration[plainPassword][first]' => self::PASSWORD,
                 'customer_registration[plainPassword][second]' => self::PASSWORD,
             ]));
-            $this->assertRedirectsTo('/yeni/giris', sprintf('attempt %d should still be allowed', $attempt));
+            $this->assertRedirectsTo('/giris', sprintf('attempt %d should still be allowed', $attempt));
             $this->client->followRedirect();
         }
 
-        $crawler = $this->client->request('GET', '/yeni/kayit');
+        $crawler = $this->client->request('GET', '/kayit');
         $this->client->submit($crawler->selectButton('Hesap oluştur')->form([
             'customer_registration[firstName]' => 'Test',
             'customer_registration[lastName]' => 'Altinci',
@@ -90,11 +90,11 @@ final class RateLimitTest extends WebTestCase
         // A limit that is spent by rendering the page would lock a customer out by refreshing,
         // which is the kind of abuse limit that causes support calls instead of preventing them.
         for ($i = 0; $i < 12; ++$i) {
-            $this->client->request('GET', '/yeni/kayit');
+            $this->client->request('GET', '/kayit');
             self::assertResponseIsSuccessful();
         }
 
-        $crawler = $this->client->request('GET', '/yeni/kayit');
+        $crawler = $this->client->request('GET', '/kayit');
         $this->client->submit($crawler->selectButton('Hesap oluştur')->form([
             'customer_registration[firstName]' => 'Test',
             'customer_registration[lastName]' => 'Müşteri',
@@ -103,21 +103,21 @@ final class RateLimitTest extends WebTestCase
             'customer_registration[plainPassword][second]' => self::PASSWORD,
         ]));
 
-        self::assertResponseRedirects('/yeni/giris');
+        self::assertResponseRedirects('/giris');
     }
 
     public function testPasswordResetRequestsAreLimited(): void
     {
         for ($attempt = 1; $attempt <= 5; ++$attempt) {
-            $crawler = $this->client->request('GET', '/yeni/parolami-unuttum');
+            $crawler = $this->client->request('GET', '/parolami-unuttum');
             $this->client->submit($crawler->filter('form[name="password_reset_request"]')->form([
                 'password_reset_request[email]' => sprintf('reset%d@example.com', $attempt),
             ]));
-            $this->assertRedirectsTo('/yeni/parolami-unuttum', sprintf('attempt %d should still be allowed', $attempt));
+            $this->assertRedirectsTo('/parolami-unuttum', sprintf('attempt %d should still be allowed', $attempt));
             $this->client->followRedirect();
         }
 
-        $crawler = $this->client->request('GET', '/yeni/parolami-unuttum');
+        $crawler = $this->client->request('GET', '/parolami-unuttum');
         $this->client->submit($crawler->filter('form[name="password_reset_request"]')->form([
             'password_reset_request[email]' => 'reset6@example.com',
         ]));
@@ -136,7 +136,7 @@ final class RateLimitTest extends WebTestCase
     {
         $allowance = 20;
         for ($attempt = 1; $attempt <= $allowance + 5; ++$attempt) {
-            $this->client->request('POST', '/yeni/parola-sifirla/'.str_repeat((string) ($attempt % 10), 64), [
+            $this->client->request('POST', '/parola-sifirla/'.str_repeat((string) ($attempt % 10), 64), [
                 'password_reset[newPassword][first]' => 'BrandNew!Pass1',
                 'password_reset[newPassword][second]' => 'BrandNew!Pass1',
                 '_token' => 'irrelevant',
@@ -198,7 +198,7 @@ final class RateLimitTest extends WebTestCase
         // throttled attempt — which Symfony surfaces as an authentication failure — does not
         // abort the loop that is trying to exhaust it.
         for ($attempt = 0; $attempt < 8; ++$attempt) {
-            $crawler = $this->client->request('GET', '/yeni/admin/login');
+            $crawler = $this->client->request('GET', '/admin/login');
             $this->client->submit($crawler->selectButton('Sign in')->form([
                 '_username' => 'admin-throttle@example.com',
                 '_password' => 'wrong-password',
@@ -259,7 +259,7 @@ final class RateLimitTest extends WebTestCase
                 $this->entityManager->flush();
             }
 
-            $crawler = $this->client->request('GET', '/yeni/giris');
+            $crawler = $this->client->request('GET', '/giris');
             $this->client->submit($crawler->selectButton('Giriş yap')->form([
                 '_username' => $email,
                 '_password' => 'definitely-not-the-password',
@@ -288,13 +288,13 @@ final class RateLimitTest extends WebTestCase
         // is in-memory per boot so that one test's spent budget cannot break another. Restarting
         // would therefore wipe the very counters this test is measuring.
         $this->client->getCookieJar()->clear();
-        $crawler = $this->client->request('GET', '/yeni/giris');
-        $this->client->submit($crawler->filter('form[action="/yeni/giris"]')->form([
+        $crawler = $this->client->request('GET', '/giris');
+        $this->client->submit($crawler->filter('form[action="/giris"]')->form([
             '_username' => $email,
             '_password' => $password,
         ]));
 
-        $this->client->request('GET', '/yeni/hesabim');
+        $this->client->request('GET', '/hesabim');
 
         return $this->client->getResponse()->isSuccessful();
     }
