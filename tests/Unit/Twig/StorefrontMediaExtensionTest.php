@@ -12,25 +12,25 @@ final class StorefrontMediaExtensionTest extends TestCase
 {
     public function testStoredAbsoluteMediaPathsAreServedFromTheApplicationDirectory(): void
     {
-        $extension = $this->extension('/yeni');
+        $extension = $this->extension('/subdir');
 
         self::assertSame(
-            '/yeni/uploads/products/abc.jpg',
+            '/subdir/uploads/products/abc.jpg',
             $extension->productImageUrl('/uploads/products/abc.jpg'),
         );
         self::assertSame(
-            '/yeni/uploads/cms/abc.webp',
+            '/subdir/uploads/cms/abc.webp',
             $extension->mediaUrl('/uploads/cms/abc.webp'),
         );
     }
 
     public function testAnAlreadyPrefixedPathIsNotPrefixedTwice(): void
     {
-        $extension = $this->extension('/yeni/');
+        $extension = $this->extension('/subdir/');
 
         self::assertSame(
-            '/yeni/uploads/products/abc.jpg',
-            $extension->mediaUrl('/yeni/uploads/products/abc.jpg'),
+            '/subdir/uploads/products/abc.jpg',
+            $extension->mediaUrl('/subdir/uploads/products/abc.jpg'),
         );
     }
 
@@ -48,7 +48,7 @@ final class StorefrontMediaExtensionTest extends TestCase
 
     public function testAMissingProductImageFallsBackToTheAutomotivePlaceholder(): void
     {
-        $extension = $this->extension('/yeni');
+        $extension = $this->extension('/subdir');
 
         self::assertSame(
             '/storefront/images/product-placeholder.svg',
@@ -62,7 +62,7 @@ final class StorefrontMediaExtensionTest extends TestCase
 
     public function testLogicalAssetNamesResolveThroughTheAssetPackage(): void
     {
-        $extension = $this->extension('/yeni');
+        $extension = $this->extension('/subdir');
 
         self::assertSame(
             '/storefront/images/hero-automotive.svg',
@@ -74,12 +74,12 @@ final class StorefrontMediaExtensionTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->extension('/yeni')->mediaUrl(null);
+        $this->extension('/subdir')->mediaUrl(null);
     }
 
     public function testImageDimensionsUseTheRealLocalMediaRatherThanAnInventedSquare(): void
     {
-        $extension = $this->extension('/yeni');
+        $extension = $this->extension('/subdir');
         self::assertSame(['width' => 400, 'height' => 320], $extension->imageDimensions(null));
         self::assertSame(['width' => 640, 'height' => 640], $extension->imageDimensions('storefront/images/hero-automotive.svg'));
     }
@@ -90,13 +90,13 @@ final class StorefrontMediaExtensionTest extends TestCase
         mkdir($directory.'/public/uploads/products', 0777, true);
         $image = $directory.'/public/uploads/products/example.png';
         file_put_contents($image, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jFz0AAAAASUVORK5CYII=', true));
-        $extension = new StorefrontMediaExtension(new Packages(new PathPackage('', new EmptyVersionStrategy())), '/yeni', $directory);
+        $extension = new StorefrontMediaExtension(new Packages(new PathPackage('', new EmptyVersionStrategy())), '/subdir', $directory);
         try {
-            self::assertSame(['width' => 1, 'height' => 1], $extension->imageDimensions('/yeni/uploads/products/example.png'));
+            self::assertSame(['width' => 1, 'height' => 1], $extension->imageDimensions('/subdir/uploads/products/example.png'));
             unlink($image);
-            self::assertSame(['width' => 1, 'height' => 1], $extension->imageDimensions('/yeni/uploads/products/example.png'), 'Repeated images reuse metadata within the request.');
+            self::assertSame(['width' => 1, 'height' => 1], $extension->imageDimensions('/subdir/uploads/products/example.png'), 'Repeated images reuse metadata within the request.');
             $extension->reset();
-            self::assertNull($extension->imageDimensions('/yeni/uploads/products/example.png'), 'A new request must not retain stale image metadata.');
+            self::assertNull($extension->imageDimensions('/subdir/uploads/products/example.png'), 'A new request must not retain stale image metadata.');
             foreach (['https://example.com/image.png', '/uploads/../example.png', '/uploads/products/missing.jpg', '/etc/passwd'] as $path) {
                 self::assertNull($extension->imageDimensions($path));
             }

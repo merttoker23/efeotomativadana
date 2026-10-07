@@ -26,7 +26,7 @@ Push-Location $projectRoot
 try {
     $env:DEFAULT_URI = $null
     $env:DEV_DEFAULT_URI = $null
-    Assert-PublicUri @('compose.yaml') 'https://efeotomotivadana.com.tr'
+    Assert-PublicUri @('compose.yaml') 'https://efeotomotivadana.com'
     Assert-PublicUri @('compose.yaml', 'compose.override.yaml') 'https://localhost:8443'
 
     $env:DEFAULT_URI = 'https://production-override.example.test'

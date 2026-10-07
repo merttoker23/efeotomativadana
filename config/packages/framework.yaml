@@ -13,7 +13,7 @@ framework:
     # - cookie_httponly: the default, but stated so that changing it is a visible edit here
     #   rather than an unremarkable diff in a config file nobody re-reads.
     # - cookie_samesite: lax. The browser must carry the cookie back on the provider's
-    #   top-level redirect to /yeni/odeme/sonuc/{token}, and "strict" would break exactly that
+    #   top-level redirect to /odeme/sonuc/{token}, and "strict" would break exactly that
     #   while protecting nothing this store needs: the only cross-site writes it accepts are
     #   POSTs, and those carry a CSRF token.
     # - cookie_secure: auto. Marks the cookie Secure whenever the request arrived over TLS.

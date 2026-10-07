@@ -26,7 +26,7 @@ class AssetMapperDevServerSubscriber implements EventSubscriberInterface
         }
 
         $pathInfo = rawurldecode($event->getRequest()->getPathInfo());
-        if (!str_starts_with($pathInfo, '/yeni/assets/')) {
+        if (!str_starts_with($pathInfo, '/assets/')) {
             return;
         }
 
@@ -74,10 +74,7 @@ class AssetMapperDevServerSubscriber implements EventSubscriberInterface
 
     private function findAsset(string $pathInfo): ?\Symfony\Component\AssetMapper\MappedAsset
     {
-        $publicPath = preg_replace('#^/yeni#', '', $pathInfo);
-        if (null === $publicPath) {
-            return null;
-        }
+        $publicPath = $pathInfo;
 
         $logicalPath = ltrim(preg_replace('#^/assets/#', '', $publicPath) ?? '', '/');
         $undigestedPath = preg_replace('/-[-_0-9A-Za-z]{7}(\.[^\/.]+)$/', '$1', $logicalPath);

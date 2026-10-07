@@ -35,7 +35,7 @@ final class AssetMapperDevServerSubscriberTest extends TestCase
         $kernel = $this->createStub(HttpKernelInterface::class);
         $event = new RequestEvent(
             $kernel,
-            Request::create('/yeni/assets/styles/admin-23MTFBz.css'),
+            Request::create('/assets/styles/admin-23MTFBz.css'),
             HttpKernelInterface::MAIN_REQUEST,
         );
 
@@ -66,7 +66,7 @@ final class AssetMapperDevServerSubscriberTest extends TestCase
 
         $event = new RequestEvent(
             $this->createStub(HttpKernelInterface::class),
-            Request::create('/yeni/assets/storefront/images/hero-automotive-H3R0ABC.svg'),
+            Request::create('/assets/storefront/images/hero-automotive-H3R0ABC.svg'),
             HttpKernelInterface::MAIN_REQUEST,
         );
 

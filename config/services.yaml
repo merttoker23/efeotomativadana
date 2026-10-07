@@ -10,7 +10,7 @@ parameters:
     # Public URL prefix the storefront is published under. Single source of truth for
     # compiled assets (framework.assets.base_path) and stored media URLs
     # (App\Twig\StorefrontMediaExtension).
-    app.public_base_path: '/yeni'
+    app.public_base_path: ''
 
 services:
     # default configuration for services in *this* file
@@ -150,10 +150,7 @@ services:
     App\EventSubscriber\PaymentSettingsPrivacySubscriber:
         arguments:
             $profiler: '@?profiler'
-
-    # Override the default AssetMapper dev server subscriber to only intercept /yeni/assets/ requests.
-    # The default public_prefix='/yeni' would cause the base subscriber to intercept ALL /yeni/
-    # requests including application routes. This custom subscriber only handles asset paths.
+    # Keep the custom AssetMapper dev subscriber scoped to /assets/ only.
     asset_mapper.dev_server_subscriber:
         class: App\EventListener\AssetMapperDevServerSubscriber
         arguments:

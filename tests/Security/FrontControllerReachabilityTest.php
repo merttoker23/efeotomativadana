@@ -45,14 +45,14 @@ final class FrontControllerReachabilityTest extends TestCase
      */
     public static function requestsThatMustBeServed(): iterable
     {
-        yield 'the storefront root' => ['/yeni/', 'public/index.php'];
-        yield 'a catalogue page' => ['/yeni/katalog', 'public/index.php'];
-        yield 'a product page' => ['/yeni/urun/bos-altili-filtre', 'public/index.php'];
-        yield 'the checkout' => ['/yeni/odeme', 'public/index.php'];
-        yield 'the sign-in page' => ['/yeni/giris', 'public/index.php'];
-        yield 'a compiled stylesheet' => ['/yeni/assets/styles/storefront.css', 'public/assets/styles/storefront.css'];
-        yield 'a stored image' => ['/yeni/uploads/cms/'.\str_repeat('a', 32).'.png', 'public/uploads/cms/'.\str_repeat('a', 32).'.png'];
-        yield 'robots.txt at the application root' => ['/yeni/robots.txt', 'public/robots.txt'];
+        yield 'the storefront root' => ['/', 'public/index.php'];
+        yield 'a catalogue page' => ['/katalog', 'public/index.php'];
+        yield 'a product page' => ['/urun/bos-altili-filtre', 'public/index.php'];
+        yield 'the checkout' => ['/odeme', 'public/index.php'];
+        yield 'the sign-in page' => ['/giris', 'public/index.php'];
+        yield 'a compiled stylesheet' => ['/assets/styles/storefront.css', 'public/assets/styles/storefront.css'];
+        yield 'a stored image' => ['/uploads/cms/'.\str_repeat('a', 32).'.png', 'public/uploads/cms/'.\str_repeat('a', 32).'.png'];
+        yield 'robots.txt at the application root' => ['/robots.txt', 'public/robots.txt'];
     }
 
     #[DataProvider('requestsThatMustBeServed')]
@@ -79,7 +79,7 @@ final class FrontControllerReachabilityTest extends TestCase
     public function testTheFrontControllerItselfIsNotDeniedByAnyRule(): void
     {
         $evaluator = self::evaluator();
-        $denial = $evaluator->denialFor('/yeni/', self::FRONT_CONTROLLER);
+        $denial = $evaluator->denialFor('/', self::FRONT_CONTROLLER);
 
         self::assertNull(
             $denial,
@@ -110,7 +110,7 @@ final class FrontControllerReachabilityTest extends TestCase
     public function testAScriptUnderUploadsIsStillDenied(string $name): void
     {
         $evaluator = self::evaluator();
-        $request = '/yeni/uploads/cms/'.$name;
+        $request = '/uploads/cms/'.$name;
         $resolved = 'public/uploads/cms/'.$name;
 
         self::assertNotNull(
@@ -130,7 +130,7 @@ final class FrontControllerReachabilityTest extends TestCase
         $evaluator = self::evaluator();
 
         self::assertTrue(
-            $evaluator->serves('/yeni/uploads/cms/'.$name, 'public/uploads/cms/'.$name),
+            $evaluator->serves('/uploads/cms/'.$name, 'public/uploads/cms/'.$name),
             sprintf('%s is a stored file the storefront must be able to render.', $name),
         );
     }
@@ -155,8 +155,8 @@ final class FrontControllerReachabilityTest extends TestCase
         $evaluator = self::evaluator();
         $resolved = 'public/uploads/b2b/'.\str_repeat('b', 32).'.webp';
 
-        self::assertTrue($evaluator->serves('/yeni/uploads/b2b/'.\str_repeat('b', 32).'.webp', $resolved));
-        self::assertNotNull($evaluator->denialFor('/yeni/uploads/b2b/shell.php', 'public/uploads/b2b/shell.php'));
+        self::assertTrue($evaluator->serves('/uploads/b2b/'.\str_repeat('b', 32).'.webp', $resolved));
+        self::assertNotNull($evaluator->denialFor('/uploads/b2b/shell.php', 'public/uploads/b2b/shell.php'));
     }
 
     /**
@@ -164,14 +164,14 @@ final class FrontControllerReachabilityTest extends TestCase
      */
     public static function applicationSourcePaths(): iterable
     {
-        yield 'the environment file' => ['/yeni/.env', '.env'];
-        yield 'composer.json' => ['/yeni/composer.json', 'composer.json'];
-        yield 'a source file' => ['/yeni/src/Entity/Commerce/AuditLog.php', 'src/Entity/Commerce/AuditLog.php'];
-        yield 'a config file' => ['/yeni/config/packages/security.yaml', 'config/packages/security.yaml'];
-        yield 'a vendor file' => ['/yeni/vendor/autoload.php', 'vendor/autoload.php'];
-        yield 'a template' => ['/yeni/templates/base.html.twig', 'templates/base.html.twig'];
-        yield 'the console' => ['/yeni/bin/console', 'bin/console'];
-        yield 'the log directory' => ['/yeni/var/log/prod.log', 'var/log/prod.log'];
+        yield 'the environment file' => ['/.env', '.env'];
+        yield 'composer.json' => ['/composer.json', 'composer.json'];
+        yield 'a source file' => ['/src/Entity/Commerce/AuditLog.php', 'src/Entity/Commerce/AuditLog.php'];
+        yield 'a config file' => ['/config/packages/security.yaml', 'config/packages/security.yaml'];
+        yield 'a vendor file' => ['/vendor/autoload.php', 'vendor/autoload.php'];
+        yield 'a template' => ['/templates/base.html.twig', 'templates/base.html.twig'];
+        yield 'the console' => ['/bin/console', 'bin/console'];
+        yield 'the log directory' => ['/var/log/prod.log', 'var/log/prod.log'];
     }
 
     #[DataProvider('applicationSourcePaths')]
@@ -201,14 +201,14 @@ final class FrontControllerReachabilityTest extends TestCase
             </FilesMatch>
             HTACCESS;
 
-        $evaluator = new HtaccessRuleEvaluator(['/yeni/.htaccess' => $shipped]);
+        $evaluator = new HtaccessRuleEvaluator(['/.htaccess' => $shipped]);
 
         self::assertNotNull(
-            $evaluator->denialFor('/yeni/', self::FRONT_CONTROLLER),
+            $evaluator->denialFor('/', self::FRONT_CONTROLLER),
             'The evaluator cannot see the rule this very test class was written for, so it proves nothing about the real files.',
         );
         self::assertTrue(
-            $evaluator->serves('/yeni/uploads/cms/'.\str_repeat('a', 32).'.png', 'public/uploads/cms/'.\str_repeat('a', 32).'.png'),
+            $evaluator->serves('/uploads/cms/'.\str_repeat('a', 32).'.png', 'public/uploads/cms/'.\str_repeat('a', 32).'.png'),
             'A global filename deny must not swallow stored images either, or the evaluator is simply refusing everything.',
         );
     }
@@ -228,11 +228,11 @@ final class FrontControllerReachabilityTest extends TestCase
             $evaluator = new HtaccessRuleEvaluator([$path => $contents]);
 
             self::assertNotNull(
-                $evaluator->denialFor('/yeni/uploads/cms/shell.php', 'public/uploads/cms/shell.php'),
+                $evaluator->denialFor('/uploads/cms/shell.php', 'public/uploads/cms/shell.php'),
                 sprintf('%s no longer denies a script under public/uploads/.', $path),
             );
             self::assertNull(
-                $evaluator->denialFor('/yeni/', self::FRONT_CONTROLLER),
+                $evaluator->denialFor('/', self::FRONT_CONTROLLER),
                 sprintf('%s denies the Symfony front controller, which takes the whole site offline.', $path),
             );
         }
