@@ -1,0 +1,133 @@
+{#
+    The storefront's 404 page follows tema.zip/404.html.  This is intentionally a
+    standalone error template: a missing route can fail before the security layer
+    and layout services are ready, so the page must not query the cart, settings,
+    navigation categories or footer data to render successfully.
+
+    Existing storefront.css supplies the design tokens and the theme's header,
+    card, breadcrumb and footer styling. No duplicate CSS or JavaScript required.
+#}
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#092a53">
+    <meta name="robots" content="noindex, follow">
+    <title>Sayfa Bulunamadı (404) | Efe Otomotiv Adana</title>
+    <link rel="preload" href="{{ asset('fonts/inter-tight-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ asset('styles/storefront.css') }}" data-storefront-stylesheet>
+</head>
+<body class="storefront-page">
+    <a class="skip-link" href="#main-content">İçeriğe geç</a>
+    {% include 'storefront/layout/_notice.html.twig' with {
+        text: 'Adana\'dan Türkiye\'nin her yerine güvenli gönderim',
+        script_free_navigation: true
+    } only %}
+
+    <header class="site-header">
+        <div class="header-topbar">
+            <div class="container topbar">
+                <div class="topbar-left"><p>Otomotiv yedek parçada yerel uzmanlık</p></div>
+                <div class="topbar-right"><p>Güvenli alışveriş · Kolay iade · Hızlı destek</p></div>
+            </div>
+        </div>
+        <div class="header-primary">
+            <div class="container header-main">
+                <a class="storefront-brand" href="{{ path('app_home') }}" aria-label="Efe Otomotiv Adana ana sayfa">
+                    <span class="brand-mark" aria-hidden="true">EO</span>
+                    <span class="brand-copy"><strong>Efe Otomotiv Adana</strong><small>Otomotiv &amp; Yedek Parça</small></span>
+                </a>
+                <form class="storefront-search" role="search" aria-label="Ürün arama" method="get" action="{{ path('storefront_catalog_index') }}">
+                    <label class="sr-only" for="storefront-404-search">Ürün, marka veya parça kodu ara</label>
+                    <input id="storefront-404-search" type="search" name="q" placeholder="Ürün, SKU, OEM veya parça kodu ara..." maxlength="120">
+                    <button type="submit" aria-label="Ürün ara">⌕</button>
+                </form>
+                <div class="header-actions" aria-label="Mağaza kısayolları">
+                    <a class="header-action action-btn account" href="{{ path('customer_login') }}"><span class="action-icon" aria-hidden="true">♙</span>Hesabım</a>
+                    <a class="header-action action-btn contact" href="{{ path('storefront_contact') }}"><span class="action-icon" aria-hidden="true">✉</span>İletişim</a>
+                    <a class="header-action action-btn blog" href="{{ path('storefront_blog_index') }}"><span class="action-icon" aria-hidden="true">▤</span>Blog</a>
+                    <details class="script-free-mobile-menu">
+                        <summary class="mobile-menu-toggle" aria-label="Menüyü aç veya kapat"><span aria-hidden="true">☰</span></summary>
+                        <nav class="mobile-navigation" aria-label="Mobil navigasyon">
+                            <div class="container mobile-navigation-inner">
+                                <a href="{{ path('app_home') }}">Ana Sayfa</a>
+                                <a href="{{ path('storefront_catalog_index') }}">Ürünler</a>
+                                <a href="{{ path('storefront_catalog_brands') }}">Markalar</a>
+                                <a href="{{ path('storefront_collections_index') }}">Koleksiyonlar</a>
+                                <a href="{{ path('storefront_wishlist_index') }}">İstek Listem</a>
+                                <a href="{{ path('storefront_compare_index') }}">Karşılaştır</a>
+                                <a href="{{ path('customer_login') }}">Hesabım</a>
+                                <a href="{{ path('storefront_contact') }}">İletişim</a>
+                            </div>
+                        </nav>
+                    </details>
+                </div>
+            </div>
+        </div>
+        <div class="container nav-row">
+            <a class="departments" href="{{ path('storefront_catalog_index') }}"><span class="hamb" aria-hidden="true">☷</span><span>Tüm Kategoriler</span></a>
+            <nav class="main-navigation" aria-label="Ana navigasyon">
+                <a href="{{ path('app_home') }}">Ana Sayfa</a>
+                <a href="{{ path('storefront_catalog_index') }}">Ürünler</a>
+                <a href="{{ path('storefront_catalog_brands') }}">Markalar</a>
+                <a href="{{ path('storefront_collections_index') }}">Koleksiyonlar</a>
+            </nav>
+            <div class="nav-spacer"></div>
+            <nav class="quick-navigation" aria-label="Hızlı erişim">
+                <a class="header-action" href="{{ path('storefront_wishlist_index') }}"><span class="action-icon" aria-hidden="true">♡</span>&nbsp;İstek Listem</a>
+                <a class="header-action" href="{{ path('storefront_compare_index') }}"><span class="action-icon" aria-hidden="true">↬</span>&nbsp;Karşılaştır</a>
+            </nav>
+            <a class="header-action cart-action cart-button" href="{{ path('storefront_cart_index') }}">Sepetim&nbsp;<span aria-hidden="true">♧</span></a>
+        </div>
+    </header>
+
+    <div class="storefront-content">
+        <main class="page-shell" id="main-content" tabindex="-1">
+            <nav class="container breadcrumbs" aria-label="Sayfa yolu">
+                <a href="{{ path('app_home') }}">Ana Sayfa</a>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">Sayfa Bulunamadı</span>
+            </nav>
+            <section class="container generic-card" aria-labelledby="not-found-title" style="text-align:center;padding:clamp(32px,7vw,80px)">
+                <h1 id="not-found-title" style="font-size:clamp(64px,8vw,80px);line-height:1.1;margin:0;font-weight:800">404</h1>
+                <h2 style="margin:12px 0 24px;font-size:clamp(20px,3vw,28px)">Sayfa Bulunamadı</h2>
+                <a class="btn-yellow" href="{{ path('app_home') }}" style="display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 20px;border-radius:4px;background:var(--storefront-yellow);color:var(--storefront-ink);font-size:14px;font-weight:700">Ana Sayfaya Dön</a>
+            </section>
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        <div class="container footer-main">
+            <section aria-labelledby="footer-404-store">
+                <div class="footer-logo" id="footer-404-store">Efe Otomotiv Adana</div>
+                <p>Otomotiv yedek parçada doğru ürünü güvenle bulmanız için yanınızdayız.</p>
+            </section>
+            <section aria-labelledby="footer-404-support">
+                <h4 id="footer-404-support">Müşteri Hizmetleri</h4>
+                <a href="{{ path('storefront_contact') }}">İletişim</a>
+                <a href="{{ path('customer_account_returns') }}">İade ve değişim</a>
+                <a href="{{ path('storefront_faq_index') }}">Sıkça sorulan sorular</a>
+            </section>
+            <section aria-labelledby="footer-404-info">
+                <h4 id="footer-404-info">Bilgi Sayfaları</h4>
+                <a href="{{ path('storefront_information_index') }}">Bilgi Sayfaları</a>
+                <a href="{{ path('storefront_blog_index') }}">Blog</a>
+            </section>
+            <section aria-labelledby="footer-404-account">
+                <h4 id="footer-404-account">Hesabım</h4>
+                <a href="{{ path('customer_login') }}">Giriş yap</a>
+                <a href="{{ path('customer_registration') }}">Hesap oluştur</a>
+            </section>
+        </div>
+        <div class="container footer-bottom">
+            <span>© {{ 'now'|date('Y') }} Efe Otomotiv Adana</span>
+            <span class="payments" role="group" aria-label="Ödeme markaları">
+                <img src="{{ asset('images/payments/paytr.svg') }}" alt="PayTR" width="135" height="24" loading="lazy" decoding="async">
+                <img src="{{ asset('images/payments/visa.svg') }}" alt="Visa" width="142" height="46" loading="lazy" decoding="async">
+                <img src="{{ asset('images/payments/mastercard.svg') }}" alt="Mastercard" width="94" height="73" loading="lazy" decoding="async">
+            </span>
+        </div>
+    </footer>
+</body>
+</html>
