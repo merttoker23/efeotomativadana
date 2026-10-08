@@ -22,3 +22,5 @@
 
 # Proje kuralı: .md dosyaları GitHub'a çıkmaz (yerel diskte kalır)
 *.md
+# Public project overview is the only Markdown exception.
+!README.md
